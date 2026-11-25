@@ -40,7 +40,9 @@ process.exit(result.status ?? 1);
       for (const args of calls) {
         expect(args.slice(0, 5)).toEqual(["--provider", "alicloud-express", "--opt", "region=cn-shanghai", "template"]);
         expect(["init", "build"]).toContain(args[5]);
-        expect(args).toContain("--yes");
+        // Source acquisition can prompt; pure local build has no approval flag.
+        if (args[5] === "init") expect(args).toContain("--yes");
+        else expect(args).not.toContain("--yes");
         expect(args).not.toContain("--official-api");
         expect(args).not.toContain("--legacy-api");
       }

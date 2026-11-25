@@ -167,8 +167,8 @@
       "reason": "Issue #244: The single init entry owns an explicit source destination, replacing ambiguous prompt switching and the root alias."
     },
     "tests/test_cli/test_create_nl.py::TestConfirmationAndFailures::test_build_failure_propagates": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::retains failed preparation and only cleans an unused artifact",
-      "reason": "Issue #244: Generation no longer builds; preparation failure and recoverable ownership are tested through template build."
+      "target": "tests/test_template/test_local_resource_build.py::propagates a failed Docker build without caching success and permits a fresh local retry",
+      "reason": "Issue #260: build now produces local images only. A failed Docker invocation must propagate, leave no successful cache, clean staged inputs and allow a fresh local retry without cloud calls."
     },
     "tests/test_cli/test_create_nl.py::TestConfirmationAndFailures::test_non_tty_without_yes_requires_confirmation": {
       "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_writes_local_files_without_deploy",
@@ -179,8 +179,8 @@
       "reason": "Issue #244: The generate/build/create pipeline is removed; init produces editable source and starts no deployment."
     },
     "tests/test_cli/test_create_nl.py::TestCreateRouting::test_create_falls_back_to_template_name_when_no_id": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Build returns an explicit prepared reference; implicit create-time fallback to a generated template name is retired."
+      "target": "tests/test_template/test_native_resource_lifecycle.py::requires a resource selector when several templates exist and pins native ID, region, account and endpoint",
+      "reason": "Issue #260: implicit generated-name fallback is retired. Creation selects a ready deployed native ID, requires a resource when ambiguous, and preserves its target configuration."
     },
     "tests/test_cli/test_create_nl.py::TestCreateRouting::test_description_with_explicit_template_is_rejected": {
       "target": "tests/test_cli/test_create_nl.py::TestTemplateInitNaturalLanguage::test_description_rejects_scaffold_flags",
@@ -296,11 +296,11 @@
     },
     "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_builtin_code_interpreter": {
       "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
-      "reason": "Issue #244: Built-in install alias is retired; deterministic built-in source authoring uses init, while native template IDs use deploy --template-id."
+      "reason": "Issue #260: built-in install is retired; deterministic authoring uses template init, while existing native templates use create --template."
     },
     "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_help_discloses_cloud_costs": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::explains local-only construction and separate deployment in public build help",
+      "reason": "Issue #260: combined install is retired. The single build help explicitly describes local construction and directs cloud publication to deploy."
     },
     "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_shortcut_builtin": {
       "target": "tests/test_cli/test_template_commands.py::TestTemplateInitCommand::test_python_generates_expected_files",
@@ -311,8 +311,8 @@
       "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
     },
     "tests/test_cli/test_template_commands.py::TestInstallCommand::test_install_shortcut_help_discloses_cloud_costs": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::explains local-only construction and separate deployment in public build help",
+      "reason": "Issue #260: the duplicate install shortcut is retired; the canonical build help describes local construction and separate deployment."
     },
     "tests/test_cli/test_template_commands.py::TestInstallDirOption::test_install_dir_deploy_passes_template_dir": {
       "target": "tests/test_templates/test_local_install.py::template init source acquisition::copies local source byte-for-byte",
@@ -331,16 +331,16 @@
       "reason": "Issue #244: The single authoring group advertises init/build/publish and removes all install/scaffold aliases and their duplicated flags."
     },
     "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_deploy_with_yes": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::builds local images through the public command without a cloud-preparation handoff",
+      "reason": "Issue #260: the combined install/build/deploy pipeline is superseded by a local-only public build command, with no implicit launch or user-managed build file."
     },
     "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_missing_acr_namespace_error": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+      "target": "tests/test_template/test_local_resource_build.py::builds only a local image without credentials, runtime-env resolution, hooks or cloud API",
+      "reason": "Issue #260: pure build no longer needs a cloud namespace or credential. The regression verifies construction without cloud credentials, runtime secrets, hooks or resource calls."
     },
     "tests/test_cli/test_template_commands.py::TestInstallFullPipeline::test_install_non_tty_without_yes_raises": {
-      "target": "tests/test_cli/test_template_authoring.py::template authoring::freezes source and a reusable prepared artifact without creating an application",
-      "reason": "Issue #244: Install no longer combines acquisition and cloud preparation; explicit build creates a reusable artifact without starting an application."
+      "target": "tests/test_cli/test_template_authoring.py::template authoring::builds local images through the public command without a cloud-preparation handoff",
+      "reason": "Issue #260: local-only build has no billable deployment consent. Its noninteractive JSON invocation without --yes must complete without invoking deployment."
     },
     "tests/test_cli/test_template_commands.py::TestInstallRegistryType::test_install_help_shows_local_example": {
       "target": "tests/test_cli/test_template_commands.py::TestTemplateGroup::test_template_list_subcommands",

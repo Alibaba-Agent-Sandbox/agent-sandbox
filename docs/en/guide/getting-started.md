@@ -6,7 +6,7 @@ Configure the selected Provider once. `config init` explains each credential and
 
 ```bash
 abx config init
-abx deploy --template-id base --name my-sandbox --yes
+abx create --template base --name my-sandbox --yes
 abx status my-sandbox
 abx exec my-sandbox -- echo 'Hello from sandbox'
 abx delete my-sandbox --yes
@@ -24,7 +24,7 @@ abx delete hello --yes
 
 The CLI prepares the source, starts it and verifies declared readiness. A template requiring Docker, an image registry or model access needs those prerequisites. Application authentication is generated and saved automatically when the template declares it. Use the returned service endpoint for external HTTP clients; they must send the application token and any Provider gateway headers.
 
-For an already prepared native template, `--template-id` names the Provider's template or supported image reference. A local deployment name is a convenient handle saved on this host; an SDK instead connects to the actual Sandbox ID shown by `status`.
+For an already prepared native template, `abx create --template` names the Provider's template or supported image reference. A local deployment name is a convenient handle saved on this host; an SDK instead connects to the actual Sandbox ID shown by `status`.
 
 Continue with [template authoring](authoring-templates.md), [configuration](guided-configuration.md), [Sandbox operations](operations.md) or [managed applications](managed-applications.md).
 

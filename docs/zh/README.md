@@ -111,3 +111,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 - [本地暂停与快照验收](guide/conditional-acceptance.md)
 
 - [调用 Sandbox API](guide/sandbox-api.md)
+
+[资源项目](guide/native-resources.md)

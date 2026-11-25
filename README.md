@@ -27,11 +27,13 @@ The preview uses a new command layout. Read [upgrading from 0.5.10](docs/en/guid
 
 ## Quick start
 
+This example requires a [build of this source revision](docs/en/guide/binary-installation.md#install-from-source). Published `0.6.0-alpha.2` does not include root `create`, resource YAML v1 or pure local `template build`.
+
 Configure your provider, then create a sandbox:
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo --yes
+abx create --template base --name demo --yes
 ```
 
 For Express, use a Sandbox API key for your account and region. The setup guide explains [credential sources and required permissions](docs/en/guide/permissions.md), including the optional AccessKey-based preparation flow. Interactive settings are saved locally for later commands. If an environment variable or project `.env` overrides an entered value, setup identifies the active source.

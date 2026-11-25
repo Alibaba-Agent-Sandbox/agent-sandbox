@@ -400,7 +400,7 @@ export function generation1UpdateMessage(name: string, templateId: string): stri
 export function generation1UpdateSuggestion(templateId: string): string {
   return (
     `abx --provider alicloud-express provider run template.delete --input '${JSON.stringify({ template_id: templateId })}' --yes\n` +
-    "Then rebuild with abx template build . --yes, or use a new template name to retain the existing template."
+    "Then redeploy the source with abx deploy SOURCE, or use a new template name to retain the existing template."
   );
 }
 

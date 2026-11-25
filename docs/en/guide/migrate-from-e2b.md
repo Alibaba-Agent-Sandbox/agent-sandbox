@@ -3,7 +3,7 @@
 Current abx uses one command surface for Express and other Providers. Migration changes command paths; replacing the executable name alone is insufficient. Standard Python imports and compatibility are documented in the [Python migration guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/guide/migrate-from-e2b.md).
 
 ```bash
-abx deploy --template-id code-interpreter-v1 --name work --yes
+abx create --template code-interpreter-v1 --name work --yes
 abx --json list
 abx exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
 abx connect work

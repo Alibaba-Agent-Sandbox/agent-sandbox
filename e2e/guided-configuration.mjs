@@ -35,7 +35,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
     pid, master = pty.fork()
     if pid == 0:
         os.chdir(home)
-        os.execvpe(command[0], command + ['deploy', '--template-id', 'code-interpreter-v1', '--name', 'guided-native', '--sandbox-timeout', '60'], child_env)
+        os.execvpe(command[0], command + ['create', '--template', 'code-interpreter-v1', '--name', 'guided-native', '--timeout', '60'], child_env)
     fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 24, 200, 0, 0))
     output = b''
     key_sent = method_sent = approved = False

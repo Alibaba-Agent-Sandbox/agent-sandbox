@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- Separate pure local `template build`, resource `deploy`, and dynamic `create`; remove public build-file handoffs and `deploy --template-id`. Source v5 deployment retains its existing service startup behavior. / 分离纯本地构建、资源部署与动态实例创建；移除公开构建文件交接及 `deploy --template-id`。v5 源码部署保留现有服务启动行为。
+- Add a resource v1 candidate for Express templates/volumes and native FC components, with named ownership, observed readiness and explicit create selection. This does not automatically bootstrap a business API. / 新增资源 v1 候选实现，覆盖极速版模板、卷和原生 FC 组件，提供按名称管理、实际就绪查询及显式实例创建；不会自动启动业务 API。
+
 ## [0.6.0-alpha.2] - 2026-11-25
 
 ### Added

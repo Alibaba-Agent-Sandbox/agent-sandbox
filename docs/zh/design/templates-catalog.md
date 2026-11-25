@@ -8,7 +8,7 @@
 
 模板拥有仓库提供小型 profile 规范化契约，只在字段省略时补充固定机制值。显式冲突值和 null 保留给校验器拒绝；不自动补入凭据、地域、资源规格或业务策略。CLI 与 Registry 消费方固定契约来源并验证相同 fixtures。
 
-作者可用 `template build` 准备产物，再通过部署的 `--build` 复用。复用前检查源码与目标身份；删除部署保留借用的作者产物，清理产物要求没有活跃消费者。Provider 原生模板 ID 是平台管理引用，不能普遍宣称其在所有后端都不可修改。
+作者可用 `template build SOURCE` 在本地构建 Docker 镜像，不注册云资源。资源 v1 的 deploy 自动复用已验证的本地镜像，发布静态模板、卷和 Serving，再通过 `create --template NAME` 创建实例。原生 Steps 和 Serving actions 在 deploy 阶段执行。现有源码 v5 的 deploy 继续启动声明的服务集合；格式边界见[原生资源](../guide/native-resources.md)。
 
 `template publish --tag VERSION` 要求干净且已提交的仓库、已有 GitHub remote 和新 tag，返回固定 commit 的源码引用。目录投稿仍走拥有仓库的贡献流程。
 

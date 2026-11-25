@@ -1,11 +1,13 @@
 # 操作速查
 
+> **需要源码构建：** 本文的资源 `specVersion: 1`、根命令 `abx create` 和纯本地 `template build` 属于当前文档对应源码的能力，已发布的 `0.6.0-alpha.2` 不包含这些变更。请先[从当前检出源码构建](binary-installation.md#从源码安装)。
+
 公共命令使用同一个解析入口，`--provider` 选择后端，`--json` 控制机器输出。
 
 | 任务 | 命令 |
 | --- | --- |
 | 部署源码/目录模板 | `abx deploy SOURCE --name APP` |
-| 从原生模板创建 | `abx deploy --template-id TEMPLATE --name APP` |
+| 从原生模板创建 | `abx create --template TEMPLATE --name APP` |
 | 查看/状态/日志 | `abx list`、`abx status APP`、`abx logs APP` |
 | 删除/恢复 | `abx delete APP --yes`、`abx recover APP` |
 | 执行进程 | `abx exec APP -- COMMAND` |
@@ -13,7 +15,7 @@
 | 注册函数 | `abx sandbox APP --help`、`abx sandbox APP NAME --body @request.json` |
 | 文件和进程工具 | `abx files --help`、`abx process --help` |
 | 目录与源码 | `abx template list`、`abx template info NAME`、`abx template init` |
-| 构建/源码发布 | `abx template build SOURCE --yes`、`abx template publish SOURCE --tag VERSION --yes` |
+| 构建/源码发布 | `abx template build SOURCE`、`abx template publish SOURCE --tag VERSION --yes` |
 | Provider 原生操作 | `abx provider command list PROVIDER`、`abx provider run OPERATION --input-file request.json` |
 
 APP 是本机保存的部署名称。Sandbox 操作也接受原生 ID；托管应用通过业务 HTTP API 使用，不能被当作一个 Sandbox。Provider 写入/删除操作在非交互模式需要 `--yes`。查看操作帮助确认输入 JSON 的字段和效果。

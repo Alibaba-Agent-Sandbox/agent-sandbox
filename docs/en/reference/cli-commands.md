@@ -1,10 +1,12 @@
 # CLI commands
 
+> **Source build required:** Resource `specVersion: 1`, root `abx create`, and pure local `template build` are available in the source revision described here. Published `0.6.0-alpha.2` does not include these changes. [Build this checkout from source](../guide/binary-installation.md#install-from-source) to use them.
+
 `abx` deploys reusable templates, manages their running instances, and exposes Sandbox operations. The commands below describe the current source tree; install a CLI built from this revision when using this command layout. Released 0.5.10 uses the earlier layout.
 
 <!-- fixed-set -->
 
-`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx capabilities`, `abx files`, `abx process`, `abx system`, `abx pause`, `abx resume`, `abx metrics`, `abx snapshot`, `abx fork`, `abx network`.
+`abx create`, `abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx capabilities`, `abx files`, `abx process`, `abx system`, `abx pause`, `abx resume`, `abx metrics`, `abx snapshot`, `abx fork`, `abx network`.
 
 ## Deploy and manage
 
@@ -18,7 +20,7 @@ abx delete demo
 
 `deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the instance independently of its template. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
 
-Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
+Use `create --template ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
 
 Managed application templates use the same `deploy` command, with `--bindings FILE` for external-service and credential references. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
 
@@ -30,7 +32,7 @@ For a named Sandbox, `logs` reads the template service startup log. `--source pl
 
 `recover NAME` inspects interrupted effects using saved ownership records. It never repeats an uncertain creation or publication request. Follow its result before retrying deployment or deletion. Local records live under `~/.abx/deployments`; keep them while their resources exist. A local deployment lock does not coordinate deployments from different machines.
 
-Deleting a deployment removes its recorded owned resources. Externally supplied services and explicitly reused build artifacts remain owned by their original source. Any manually retained image artifacts are shown in the result; delete those using their registry's image-management tools when no longer needed.
+Deleting a deployment removes its confirmed owned resources. External services, retained resources and image repositories remain with their owner.
 
 ## Template authoring
 
@@ -39,17 +41,16 @@ abx template list python
 abx template info python-hello
 abx template init ./my-template --from python-hello
 abx template init ./my-mcp --template mcp
-abx template build ./my-template --yes
-abx deploy --build BUILD_FILE --name demo --yes
+abx template build ./my-template
+abx deploy ./my-template --name demo --yes
 abx template publish ./my-template --tag v1.0.0 --yes
-abx template build --clean BUILD_FILE --yes
 ```
 
 `list` and `info` inspect the reusable catalog. Provider-native cloud templates are inspected through Provider operations.
 
 `init --from` copies source without validating it for execution, building images or deploying resources. `init --template` creates a local skeleton; `--prompt` and `--adopt` are authoring options. Generated files remain editable.
 
-`build` prepares a Provider-specific reusable artifact and preserves its source snapshot and resource journal. A build may perform billable remote work. The output identifies its artifact file. `deploy --build` verifies the source and target before using its prepared reference. Native Provider references can have Provider-specific mutability; they are not a universal immutable image format. A build in use cannot be cleaned. Managed application builds retain their image digest and locked component toolchain.
+`build` constructs local Docker images and prints image IDs. It does not publish images, register templates or run deployment actions. Deploy reads the source directly and manages reuse of matching local images for resource v1. Native Steps and Serving actions execute during deploy. See [resource projects](../guide/native-resources.md).
 
 `publish` pushes a committed source version to an existing GitHub remote using a new tag and returns a commit-pinned Registry source reference. It does not create a catalog listing. Choose a new version tag for changed content; existing remote tags are never overwritten.
 

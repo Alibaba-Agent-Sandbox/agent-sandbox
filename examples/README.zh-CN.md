@@ -14,7 +14,7 @@ abx template list python
 创建自己的沙箱，使用后销毁：
 
 ```bash
-abx deploy --template-id base --name demo
+abx create --template base --name demo
 # 后续操作使用本机保存的部署名称。
 abx sandbox exec demo -- echo hello
 abx delete demo --yes

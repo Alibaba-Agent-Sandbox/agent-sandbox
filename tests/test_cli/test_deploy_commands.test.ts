@@ -37,6 +37,21 @@ function fakeLaunch() {
   });
 }
 describe("unified deploy", () => {
+  it("creates a named instance with explicit lifecycle and keeps that identity for cleanup", async () => {
+    const create=vi.spyOn(Sandbox,"create").mockResolvedValue({id:"sandbox-created",provider:"alicloud-express",status:"running",info:{template:"base"},url:"https://example.test",close:vi.fn()} as never);
+    const result=await run(["--json","create","--template","base","--name","created","--on-timeout","pause","--auto-resume","--yes"]);
+    expect(result.exit_code,result.output).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({name:"created",sandbox_id:"sandbox-created",status:"running"});
+    expect(create.mock.calls[0][0]).toMatchObject({template:"base",lifecycle:{onTimeout:"pause",autoResume:true}});
+    const saved=readDeployment("created")!; expect(saved).toMatchObject({sandboxId:"sandbox-created",status:"ready"});
+    expect(JSON.parse(fs.readFileSync(saved.journal!,"utf8")).entries).toMatchObject([{id:"sandbox-created",state:"created"}]);
+  });
+  it("rejects an invalid lifetime combination and retired raw deploy before creation", async () => {
+    const create=vi.spyOn(Sandbox,"create");
+    expect((await run(["create","--auto-resume","--yes"])).exit_code).not.toBe(0);
+    expect((await run(["deploy","--template-id","base","--yes"])).exit_code).not.toBe(0);
+    expect(create).not.toHaveBeenCalled();
+  });
   it("previews a valid Sandbox without invoking creation, building or writing a deployment", async () => {
     const source = project(), launch = fakeLaunch();
     const result = await run(["--json","deploy",source,"--name","demo","--plan"]);
@@ -95,12 +110,12 @@ describe("unified deploy", () => {
   });
   it("keeps an uncertain native create intent without retrying the cloud operation", async () => {
     const create=vi.spyOn(Sandbox,"create").mockRejectedValue(new Error("unknown-result"));
-    const result=await run(["deploy","--template-id","base","--name","uncertain","--yes"]);
+    const result=await run(["create","--template","base","--name","uncertain","--yes"]);
     expect(result.exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
     const saved=readDeployment("uncertain")!;expect(saved.status).toBe("requires_recovery");
     const journal=JSON.parse(fs.readFileSync(saved.journal!,"utf8"));expect(journal.entries).toEqual([expect.objectContaining({kind:"sandbox",state:"intent",cleanup:"sandbox.delete"})]);
     expect(create.mock.calls[0][0]).toMatchObject({metadata:{"abx.launch":journal.id,"abx.intent":journal.entries[0].intent_id}});
-    expect((await run(["deploy","--template-id","base","--name","uncertain","--yes"])).exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
+    expect((await run(["create","--template","base","--name","uncertain","--yes"])).exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
   });
   it("retains the known identity when service startup fails", async () => {
     const source=project();
@@ -116,18 +131,10 @@ describe("unified deploy", () => {
     fs.writeFileSync(file,JSON.stringify({kind:"SandboxTemplateBuild",status:"ready",prepared:{},projectRoot:source,sourceDigest:"changed"}));
     expect((await run(["deploy","--build",file,"--yes"])).exit_code).not.toBe(0);expect(launch).not.toHaveBeenCalled();
   });
-  it("releases a borrowed build after real admission rejects its Provider identity before resource requests", async () => {
-    const source = project(), file = path.join(tmp(), "build.json");
-    fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
-    const result = await run(["deploy", "--build", file, "--name", "rejected", "--yes"]);
-    expect(result.exit_code).not.toBe(0);
-    expect(result.output).toContain("Build target or Provider implementation differs");
-    expect(readDeployment("rejected")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
-    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toHaveLength(1);
-    const removed = await run(["delete", "rejected", "--yes"]);
-    expect(removed.exit_code,removed.output).toBe(0);
-    expect(readDeployment("rejected")?.status).toBe("deleted");
-    expect(JSON.parse(fs.readFileSync(file,"utf8")).consumers).toEqual([]);
+  it("rejects retired build-file handoff before native admission", async () => {
+    const launch = vi.spyOn(deploymentSeams, "launch");
+    const result = await run(["deploy", "--build", "private-file", "--name", "rejected", "--yes"]);
+    expect(result.exit_code).toBe(2);expect(result.output).toContain("No such option");expect(launch).not.toHaveBeenCalled();expect(readDeployment("rejected")).toBeUndefined();
   });
   it("keeps unknown records and rejects duplicate mounts or missing upload before admission", async () => {
     const source = project(), launch = fakeLaunch();
@@ -142,23 +149,30 @@ describe("unified deploy", () => {
   });
 });
 
-// Exercise the actual Docker harness argv through the public parser and build admission.
-it("Docker scenario reaches borrowed-build Provider admission without a redundant source", async () => {
+it("Docker scenario passes source directly without any build-file handoff", async () => {
   const module = "../../e2e/scenarios/40-docker-deploy.mjs";
-  const { default: docker } = await import(module);
-  const source = project(), file = path.join(tmp(), "docker-build.json");
-  fs.writeFileSync(file, JSON.stringify({kind:"SandboxTemplateBuild",version:1,status:"ready",provider:"alicloud-express",projectRoot:source,sourceDigest:sourceDigest(source),prepared:{reference:"base",status:"ready"},target:{provider:"alicloud-express",providerOptions:{},connection:{},provider_digest:"different-code"}}));
-  let output = "";
-  const abx = vi.fn(async (argv: string[]) => {
-    const response = await run(argv); output = response.output;
-    return {code:response.exit_code,out:response.output,rawJson:()=>JSON.parse(response.stdout)};
+  const {default: docker} = await import(module);
+  const source = project(), abx = vi.fn().mockResolvedValueOnce({code: 0, rawJson: () => ({sandbox_id: "sbx-owned", template: "tpl-owned"})}).mockResolvedValueOnce({code: 0, stdout: "deployed-ok"});
+  const ctx = {state: {name: "docker-source", source}, abx, beginCreateAttempt: () => "attempt", track: vi.fn(), resolveCreateAttempt: vi.fn(), check: vi.fn(), fail: (message: string) => {throw new Error(message);}};
+  await docker.scenarios[1].run(ctx);
+  expect(abx.mock.calls[0][0]).toEqual(["--json", "deploy", source, "--name", "docker-source", "--sandbox-timeout", "600", "--yes"]);
+});
+
+it("auto-binds only the verified service token source without storing its value in the deployment", async () => {
+  const source=project();
+  for (const [name,content] of renderScaffold("python","example","alicloud-express")) fs.writeFileSync(path.join(source,name),content);
+  const launch=fakeLaunch();
+  launch.mockImplementationOnce(async (_ctx,_params,options={}) => {
+    await options.onCreated?.("sandbox-test");
+    options.onVerifiedApplication?.({port:9000,token:"deployment-private-token"});
+    return {receipt:{sandbox_id:"sandbox-test",provider:"alicloud-express",services:{}},creation:{}};
   });
-  const ctx = {state:{name:"docker-admission",source,build:file},abx,beginCreateAttempt:()=>"attempt",track:vi.fn(),resolveCreateAttempt:vi.fn(),fail:(message:string)=>{throw new Error(message);}};
-  await expect(docker.scenarios[1].run(ctx)).rejects.toThrow("create exit");
-  expect(abx).toHaveBeenCalledOnce();
-  expect(output, output).toContain("Build target or Provider implementation differs");
-  expect(output).not.toContain("omit SOURCE");
-  expect(readDeployment("docker-admission")).toMatchObject({effectsStarted:false,status:"requires_recovery"});
+  const result=await new CliRunner().invoke(cli,["--json","deploy",source,"--name","bound-app","--yes"],{env:{ABX_SANDBOX_API_KEY:"test-key",ABX_REGION:"cn-hangzhou",ABX_SERVER_TOKEN:"deployment-private-token"}});
+  expect(result.exit_code,result.output).toBe(0);
+  expect(readApiBinding("bound-app").credentials).toEqual({"app.token":"config:server_token"});
+  expect(readApiBinding("bound-app").credentialFingerprints).toEqual({"app.token":credentialFingerprint("deployment-private-token")});
+  expect(JSON.stringify(readDeployment("bound-app"))).not.toContain("deployment-private-token");
+  expect(result.output).not.toContain("deployment-private-token");
 });
 
 it("auto-binds only the verified service token source without storing its value in the deployment", async () => {

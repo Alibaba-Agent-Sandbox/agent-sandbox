@@ -1,19 +1,19 @@
 Usage: abx deploy [options] [SOURCE]
 
-Deploy a catalog template or local project. --name identifies the running
-instance. Use --template-id for a Provider-native template; --plan previews
-resources without building or deploying.
+Deploy a catalog template or local project. --name identifies this deployment.
+Resource specVersion: 1 prepares templates and Serving; use create --template
+for an instance. Source spec_version: 5 also starts its declared instance.
+--plan previews without building or deploying.
 
 Options:
   --name <NAME>
-  --template-id <TEMPLATE_ID>
-  --build <BUILD>                  Reuse a template build artifact.
   --plan
   --bindings <BINDINGS>            Private application binding references JSON
                                    file.
   --build-profile <BUILD_PROFILE>
   --build-timeout <FLOAT>
-  --sandbox-timeout <INTEGER>
+  --sandbox-timeout <INTEGER>      Source spec_version: 5 instance lifetime in
+                                   seconds (default: 300).
   --request-timeout <FLOAT>
   --upload <UPLOAD>
   --on-timeout <ON_TIMEOUT>        (choices: "pause", "kill")

@@ -8,7 +8,7 @@ The template repository owns manifests and specifications. Registry ingests them
 
 The template owner supplies a small profile normalization contract. It fills fixed mechanism defaults only when omitted. Explicit conflicting or null values remain visible to validation. Credentials, region, resource sizes and business policy are not invented by normalization. CLI and Registry consumers pin this producer and verify matching fixtures.
 
-Authors may run `template build` to create reusable artifacts, then supply them to deployments with `--build`. A deployment checks source and target identity before reuse. Cleaning the deployment retains a borrowed author artifact; cleaning the artifact requires no active consumers. Native template IDs are Provider-managed references and are not claimed to be universally immutable across all backends.
+Authors may run `template build SOURCE` to build local Docker images without cloud registration. Resource v1 deploy reuses verified local images automatically and publishes static templates/volumes/Serving; `create --template NAME` then creates an instance. Native Steps and Serving actions execute during deploy, not local build. Existing source v5 deploy still starts its declared service set. See [native resources](../guide/native-resources.md) for the format boundary.
 
 `template publish --tag VERSION` requires a clean committed repository, an existing GitHub remote and a new tag. It returns a commit-pinned source reference. Catalog contribution remains the owning repository's contribution workflow.
 

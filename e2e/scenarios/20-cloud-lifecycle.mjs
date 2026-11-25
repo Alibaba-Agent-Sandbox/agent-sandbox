@@ -22,7 +22,7 @@ export default {
       async run(ctx) {
         ctx.state.name = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name);
-        const r = await ctx.abx(["--json", "deploy", "--name", ctx.state.name, "--template-id", TEMPLATE, "--sandbox-timeout", '900', "--yes"], { timeoutMs: 180_000 });
+        const r = await ctx.abx(["--json", "create", "--name", ctx.state.name, "--template", TEMPLATE, "--timeout", '900', "--yes"], { timeoutMs: 180_000 });
         const id = trackDetachedCreate(ctx, r, attempt);
         ctx.state.id = id;
         const info = await ctx.abx(['--json', 'status', id]);
@@ -357,7 +357,7 @@ export default {
         writeFileSync(join(ctx.cwd, 'seed', 'seed.txt'), 'seeded\n');
         ctx.state.name2 = 'e2e-' + randomUUID().slice(0, 12);
         const attempt = ctx.beginCreateAttempt(ctx.state.name2);
-        const r = await ctx.abx(['--json', "deploy", '--name', ctx.state.name2, "--template-id", TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', "--sandbox-timeout", '600', "--yes"]);
+        const r = await ctx.abx(['--json', "create", '--name', ctx.state.name2, "--template", TEMPLATE, '-e', 'E2E_FOO=bar', '-e', 'E2E_N=1', '--upload', 'seed', "--timeout", '600', "--yes"]);
         const id = r.rawJson()?.sandbox_id;
         if (isExpressSandboxId(id)) { ctx.track(id); ctx.resolveCreateAttempt(attempt); }
         if (r.code !== 0 || !isExpressSandboxId(id)) ctx.fail('native create did not return a valid owned sandbox identity');

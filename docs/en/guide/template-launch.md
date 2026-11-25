@@ -7,7 +7,7 @@ abx logs my-app
 abx delete my-app --yes
 ```
 
-SOURCE can be a catalog name, local project or pinned Git reference. Use `--template-id TEMPLATE_ID` for an existing native template. Current source uses one command surface; an older release may differ, so inspect `abx --help`.
+SOURCE can be a catalog name, local project or pinned Git reference. Use `abx create --template TEMPLATE_ID` for an existing native template. Current source uses one command surface; an older release may differ, so inspect `abx --help`.
 
 A Sandbox template prepares and creates one instance, runs declared startup/readiness and resolves every `provides` endpoint. Server v2 receives health and protocol discovery without executing business commands. Other HTTP protocols rely on declared readiness and are not automatically certified as application-compatible. Managed applications have a different lifecycle; see [managed applications](managed-applications.md).
 

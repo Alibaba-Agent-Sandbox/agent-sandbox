@@ -36,6 +36,8 @@ Command groups:
 
 Commands:
   sandbox              Inspect and invoke a Sandbox's registered API operations.
+  create               Create an instance from a deployed template or
+                       Provider-native template ID.
   deploy               Deploy a template as a named instance.
   list                 List deployments and Sandboxes.
   status               Inspect a deployment or Sandbox ID.

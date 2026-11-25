@@ -110,7 +110,7 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 位置 | 示例 |
 |---|---|
 | 限定引用 | `abx delete my-cloud:sbx-1` |
-| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud create --template base --name my-sandbox` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx config set provider my-cloud`） |
@@ -132,7 +132,7 @@ abx config list                           # 查看实际生效的值和来源
 所有 Provider 的文本 ID 输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process create --name my-sandbox --template base      # ID: local-process:sbx-1
 abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # 所有已配置的提供商，带 Provider 列
 abx delete local-process:sbx-1 --yes
@@ -150,7 +150,7 @@ abx delete local-process:sbx-1 --yes
 
 | 要做的事 | CLI | Python ProviderSandbox |
 |---|---|---|
-| 创建、连接与清理 | `deploy --template-id ID --name NAME`、`connect`、`delete` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
+| 创建、连接与清理 | `create --template ID --name NAME`、`connect`、`delete` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
 | 执行进程 | `exec` | `commands.run` |
 | 读写文件 | `upload`、`download` | `files.read/write` |
 | 调用模板应用 | `sandbox TARGET OPERATION`，见[命令参考](../reference/cli-commands.md) | `await application_client(port, token=...)` 后调用 `client.commands.run` |
@@ -174,7 +174,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create --template base --name cube-demo
 ```
 
 非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。
@@ -276,7 +276,7 @@ abx --json --provider alicloud-express provider run volume.list --input '{"max_r
 
 写入和删除要求 `--yes`。凭证通过配置提供，`--opt` 拒绝密钥字段；复杂输入使用 `--input-file`。发现命令不需要云凭证。FC 管理操作要求阿里云 AK/SK，不能用沙箱 API Key 鉴权。完整规范见[命令契约](../design/provider-commands.md)和[阿里云能力矩阵](../design/alicloud-provider-commands.md)，包含域名能力边界和 API Key 安全导出。
 
-创建实例时挂载已有 FC Volume，可向 `abx deploy --template-id TEMPLATE_ID --name NAME` 传入 `--volume-mount /mnt/workspace=workspace`，或使用原生 Python SDK 的 `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` 参数，详见 [SDK API 参考](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。
+创建实例时挂载已有 FC Volume，可向 `abx create --template TEMPLATE_ID --name NAME` 传入 `--volume-mount /mnt/workspace=workspace`，或使用原生 Python SDK 的 `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` 参数，详见 [SDK API 参考](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/reference/api-reference.md)。
 按 Volume 名称选择，要求配置其所属 Team 的沙箱 API Key 和存储访问角色，不创建底层存储。
 Volume 目前需要邀测开通，请按[官方 OSS Volume 指南](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume)提交阿里云工单确认。
 角色配置和挂载验证见能力矩阵。

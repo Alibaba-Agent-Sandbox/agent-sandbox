@@ -96,7 +96,7 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 
 ## Cloud command contracts
 
-`cloud-readonly` and `cloud-lifecycle` use `deploy --template-id`, root
+`cloud-readonly` and `cloud-lifecycle` use `create --template`, root
 `list/status/delete`, and `exec`/files/process/application commands. JSON
 inventory is `{items, partial, errors}`; deployment results include `name` and
 `sandbox_id`. Native template CRUD uses `provider run template.list/get/create/delete`
@@ -164,7 +164,7 @@ create/connect remain covered by `e2e/standard.mjs` with a real local PTY.
 | `cloud-readonly` | cloud | unified authentication/listing and typed error envelopes, official template ID readback and precise missing-resource diagnostics, secret masking of `config list` |
 | `cloud-lifecycle` | cloud | named `deploy` -> `list` -> `status` -> `exec` (exit-code propagation, `--cwd`, JSON/quiet/CI output and supported command deadlines) -> `upload`/`download` (binary round-trip) -> background/streaming/command env -> `files/process/system/capabilities` -> explicit API binding, offline help, `sandbox TARGET OPERATION` (authentication, alias and JSON file) -> env/upload at create -> `delete` |
 | `catalog` | outbound GitHub | `template search` and `template init --from` against the remote index |
-| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template build` (docker build, ACR push, CreateTemplate) -> `deploy` -> `exec` -> `template build --clean` |
+| `docker-deploy` | cloud + Docker, opt-in | `template init` → local `template build` → source `deploy` → `exec` → named `delete`; verifies retained resources |
 
 ## Scenario format
 

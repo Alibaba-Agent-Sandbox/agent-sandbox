@@ -13,7 +13,11 @@ Help is offline. Invocation never creates a Sandbox or falls back to shell execu
 Options:
   --help, -h                 Show the target's operations or an operation's contract
   --api NAME                 Select an API when operation IDs are ambiguous
-  --body JSON|@FILE          JSON request body (maximum 1 MiB)
+  --body JSON|@FILE|-        JSON request body, or stdin with - (maximum 1 MiB)
+  --output FILE             Save successful response bytes; never overwrite a file
+  --path-NAME VALUE          Qualified path parameter (similarly --query-NAME)
+  --body-NAME VALUE          Scalar top-level JSON body field
+  --NAME VALUE               Short form when the field name is unambiguous
   --path NAME=VALUE          Path parameter; repeat for multiple parameters
   --query NAME=VALUE         Query parameter; repeat for multiple parameters
   --header NAME=VALUE        Declared non-authentication header parameter

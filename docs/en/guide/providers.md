@@ -110,7 +110,7 @@ Highest priority first:
 | Where | Example |
 |---|---|
 | Qualified reference | `abx delete my-cloud:sbx-1` |
-| Flag (before the sandbox ID for exec) | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| Flag (before the sandbox ID for exec) | `abx --provider my-cloud create --template base --name my-sandbox` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`) |
@@ -132,7 +132,7 @@ Every command that takes a sandbox id accepts `[provider:]sandbox_id`; the prefi
 Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include `provider` while retaining the bare ID field.
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process create --name my-sandbox --template base      # ID: local-process:sbx-1
 abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # every configured provider, with a Provider column
 abx delete local-process:sbx-1 --yes
@@ -150,7 +150,7 @@ Installing a plugin does not implement every interface. Inspect `abx provider in
 
 | Task | CLI | Python ProviderSandbox |
 |---|---|---|
-| Create, connect and clean up | `deploy --template-id ID --name NAME`, `connect`, `delete` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
+| Create, connect and clean up | `create --template ID --name NAME`, `connect`, `delete` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
 | Execute a process | `exec` | `commands.run` |
 | Read and write files | `upload`, `download` | `files.read/write` |
 | Call a template application | `sandbox TARGET OPERATION`; see [command reference](../reference/cli-commands.md) | `await application_client(port, token=...)`, then `client.commands.run` |
@@ -174,7 +174,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create --template base --name cube-demo
 ```
 
 A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.
@@ -276,7 +276,7 @@ abx --json --provider alicloud-express provider run volume.list --input '{"max_r
 
 Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
 
-To mount an existing FC Volume when creating an instance, pass `--volume-mount /mnt/workspace=workspace` to `abx deploy --template-id TEMPLATE_ID --name NAME`, or use the native Python SDK `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` argument from the [SDK API reference](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md).
+To mount an existing FC Volume when creating an instance, pass `--volume-mount /mnt/workspace=workspace` to `abx create --template TEMPLATE_ID --name NAME`, or use the native Python SDK `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` argument from the [SDK API reference](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md).
 This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
 It does not create underlying storage. Volume currently requires invitation access; confirm it through
 an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).

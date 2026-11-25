@@ -3,4 +3,4 @@
 Usage: abx [options] [command]
 Try 'abx -h' for help.
 
-Error: No such command 'crate'. No similar command. See 'abx --help' for the command list (templates: 'abx template init|build|publish'; Sandbox API operations: 'abx sandbox TARGET --help').
+Error: No such command 'crate'. Did you mean 'create'?

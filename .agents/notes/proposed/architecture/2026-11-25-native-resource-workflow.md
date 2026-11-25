@@ -1,0 +1,134 @@
+# Decision: Native resource workflow candidate
+
+Status: Proposed; bounded local implementation, not a complete catalog or runtime migration.
+Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/260
+
+## Problem
+
+The old build command registered cloud resources and exposed private build files.
+The resource and instance lifecycles need separate public meanings.
+
+## Decision
+
+The user rejected build artifacts that users must name, pass or parse, duplicate
+raw-instance deployment, and build commands that create cloud resources. The
+candidate removes public `--build`, `--out`, `--clean`, and `deploy --template-id`.
+`template build SOURCE` constructs local Docker images only, returns real image
+IDs, and privately reuses content-bound cached images after Docker inspection.
+`deploy SOURCE --name NAME` publishes resource v1 templates/volumes/Serving.
+`create --template NAME --resource RESOURCE --name INSTANCE` creates a dynamic
+instance via the existing SDK/provider route; the selector is needed only for
+several templates. Native template IDs continue through that same create route.
+
+Source v5 deploy still performs its supported application startup. This is a
+temporary migration boundary, not a claimed final unified product. Plain v5
+Dockerfile build is local-only; v5 provider-specific deployment preparation may
+still rebuild/stage runtime dependencies rather than reuse the v1 image cache.
+Managed application builds stay automatic inside deploy. Source acquisition was
+rechecked after the first review: the current Registry client already downloads
+source independently of v5 validation. Resource v1 follows the same strict reader
+after download. Catalog-wide replacement, full application bootstrap and automatic
+API authentication binding have not been delivered by this candidate.
+
+## API Design
+
+Only relevant v1 contract/parser, Express resource API/executor and official Devs
+component worker code were selected from the earlier draft; unrelated draft
+public surfaces and architecture changes were not merged. Runtime/component
+execution uses the npm distribution; SEA invocation fails explicitly. Docker
+contexts exclude private files, input identity includes contents/paths/platform,
+and cache records contain no credentials. Local builds never resolve unrelated
+runtime secrets or execute pre-deploy actions. Steps/Serving are reported deferred,
+including `no_local_build` when nothing was built. Unsupported native resource
+Providers fail before parsing environment secrets, hooks or cloud credentials.
+
+Static resource status queries real saved IDs and distinguishes missing, failed,
+preparing and unknown from recorded readiness. FC presence alone is not ready;
+deploy requires Active plus Successful. Account, region and Team identity are
+checked; a user-provided opaque Sandbox API key cannot be independently proved to
+belong to the saved Team before the instance API accepts it. The managed-key path
+receives the selected Team explicitly. Saved endpoint overrides are preserved.
+
+Dynamic instances receive independent names and owned cleanup intent before
+creation. They never silently start or authenticate an HTTP API. Existing
+Express startCommand/readyCommand remain build/snapshot controls. No new envd,
+E2B style, generic business application metadata or bootstrapping guesses are
+introduced. Published image tags and FC auto-created shared infrastructure are
+retained because exclusive ownership has not been established.
+
+An interrupted image publication remains pending and prevents replay; this
+candidate cannot claim automatic recovery from an uncertain push. Known resource
+IDs remain available for status/delete. A future recovery policy must prove
+publication identity rather than promote a pending tag to ready or repeat hooks.
+
+## Alternatives considered
+
+A wholesale merge of the old draft would reintroduce rejected interfaces. A new
+business bootstrap schema or automatic envd assumption would exceed the agreed
+empty-instance resource contract. Both were rejected; existing supported v5
+startup remains explicit during migration.
+
+## Dependencies
+
+Official Serverless Devs parse-spec/load-component, the pinned resource v1
+contract, Express native API models and the existing provider SDK creation route.
+
+## Test Strategy
+
+Use independent source/parser/ownership tests, actual built CLI and Docker smoke,
+then exact owned-cloud resource checks. Source fetch proof does not imply cloud
+execution or application readiness.
+
+## Acceptance criteria
+
+Build must have no cloud writes or hooks, deploy must not create dynamic instances,
+create must preserve explicit target and ownership, and all public outputs must
+exclude private artifact handoffs. The additional gates below remain required.
+
+## Evidence
+
+### Adversarial review
+
+Root challenged pure-build cloud writes, false ready state, account/Team drift,
+and duplication of create. API reviewer challenged mutable image caches, unrelated
+secret evaluation, mixed/Steps-only success reporting and unsafe bootstrap.
+Accepted fixes include cache inspection, literal build-only input discovery,
+deferred reporting, explicit readiness and root create reuse. The suspected
+failed-push replay was retracted after the reviewer confirmed the global pending
+guard prevents replay; a regression and additional status invariant preserve it.
+The final candidate is reviewed separately from the completed bounded UX fixes.
+
+### Required remaining gates
+
+- Actual Docker build/cache inspection and static Express template deploy/status/
+  delete are now verified in the linked evidence. This host did not build Docker.
+- Native FC component publication, read-only state observation and owned deletion
+  are now verified. Named dynamic creation from a borrowed native resource project,
+  ambiguous-selection rejection, saved Sandbox identity, live status and deletion
+  are also verified. Native Invoke did not establish business execution; native
+  application bootstrap remains a separate integration gate.
+- A supported API bootstrap/authentication contract and cross-repository catalog
+  migration before claiming the full empty-Sandbox/OpenAPI product finished.
+- Reconcile source and public distribution, full repository CI, and platform
+  package contents. No new package version is included here.
+
+See [verification](../../../evidence/verify/2026-11-25-native-resource-workflow.md).
+
+### Static publication and FC runtime state
+
+A successful native component operation and confirmed owned identity establish
+publication, not business readiness. Some observed FC code runtimes omit optional
+state fields. Such results are recorded as deployed; current status remains unknown.
+Explicit Active/Successful is ready. Explicit failure, inactive/unrecognized states,
+inspection failures and uncertain component completion remain errors. Pending states
+retain bounded waiting. No synthetic health request or runtime compatibility layer
+was added. A new function must carry the deployment ownership tag; updates must keep
+the original native identity. Ready Sandbox templates remain independently usable.
+
+This change followed a failed actual FC check with successful owned cleanup and a
+separate read-only observation of omitted runtime fields. The first failure's exact
+message was not retained, so that failure is not retroactively attributed to omission.
+
+Pure local build also removes its unused --yes/-y flag; cloud confirmation remains
+on deploy, create and delete. Native SDK management flags keep their distinct
+cloud semantics. The public generation-update guidance uses deploy for publication.

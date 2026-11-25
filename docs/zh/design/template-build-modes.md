@@ -2,16 +2,14 @@
 
 状态：当前源码的 Sandbox 模板准备行为。以下模式规则针对极速版适配器；其他 Provider 具有各自支持的准备能力。托管应用构建请参见[托管应用指南](../guide/managed-applications.md)。
 
-## 命令与产物
+## 命令与结果
 
 ```bash
-abx template build ./project --out ./.abx/build.json --timeout 600 --yes
-abx deploy --build ./.abx/build.json --name my-app --yes
-# 也可以直接准备并部署：
+abx template build ./project --timeout 600
 abx deploy ./project --name my-app --build-timeout 600 --yes
 ```
 
-`template build` 准备可复用产物，不创建实例。`deploy --build FILE` 消费该产物，`--build` 不是模式选择参数。直接 `deploy SOURCE` 则准备源码并创建具名部署。源码发布是独立的 `template publish SOURCE --tag VERSION` 操作。
+本地 build 只生成 Docker 镜像。原生 Steps 和 Serving actions 在部署阶段执行。源码发布仍使用 `template publish SOURCE --tag VERSION`。资源 v1 的静态 deploy 与 `abx create` 分开；已有 v5 源码 deploy 保留创建实例及启动服务的行为。详见[资源项目](../guide/native-resources.md)。
 
 ## 选择准备路径
 
@@ -80,6 +78,6 @@ Express 原生 `ENV` 不保证变量进入后续 `RUN` 或运行进程。对于�
 
 Sandbox 准备使用 `template build --timeout SECONDS` 或 `deploy --build-timeout SECONDS` 设置预算：默认 600 秒，大于零且不超过 3600 秒。`deploy --sandbox-timeout` 单独设置实例存活时间，`--request-timeout` 配置请求期限。本地到期不证明远端工作已经停止，也不证明结果不确定的创建可以安全重试。
 
-具名部署失败后先用 `status` 和 `recover` 查看，再用 `delete` 清理其拥有的资源。单独准备的构建保持独立：先删除消费者，再执行 `template build --clean BUILD_FILE --yes`，并检查提示中需要手工清理的镜像。详见[模板编写](../guide/authoring-templates.md)和[部署边界](../guide/template-launch.md)。
+部署失败后使用 `status`、`recover` 检查，再用 `delete` 删除已确认归属的资源。本地构建镜像通过 Docker 管理，保留的远端镜像通过对应仓库管理。
 
 模型辅助编写使用 `template init --prompt` 或 `--adopt`，完成源码文件后即结束。SDK 创建沙箱不会执行这条构建流水线。

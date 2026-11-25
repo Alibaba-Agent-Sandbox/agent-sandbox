@@ -48,7 +48,7 @@ it('tracks the real detached ID before info fails, without replaying creation', 
   });
   await expect(scenario('create-json').run({ ...journalFixture(), state: {}, abx, track, fail })).rejects.toThrow('info unavailable');
   expect(abx).toHaveBeenCalledTimes(2);
-  expect(abx.mock.calls[0][0]).toContain('--template-id');
+  expect(abx.mock.calls[0][0]).toContain('--template');
   expect(scenario('create-json').retries).toBeUndefined();
 });
 
@@ -68,7 +68,7 @@ it('tracks the native-created identity before checking env/files, without replay
     throw new Error('env probe failed');
   });
   await expect(scenario('create-with-env-and-upload').run({ ...journalFixture(), cwd, state: {}, abx, track, fail })).rejects.toThrow('env probe failed');
-  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'deploy']);
+  expect(abx.mock.calls[0][0].slice(0, 2)).toEqual(['--json', 'create']);
   expect(scenario('create-with-env-and-upload').retries).toBeUndefined();
 });
 
@@ -448,26 +448,21 @@ const { default: dockerSuite } = await import(dockerModule);
 it('Docker deployment tracks a reported owned ID before a failed result and never replays submission', async () => {
   const track = vi.fn();
   const abx = vi.fn(async (_argv: string[]) => ({ ...result({sandbox_id: 'sbx-docker-owned'}, 1), out: 'lost final response' }));
-  const ctx = { ...journalFixture(), state: {name: 'owned-docker', source: '/fixture', build: '/fixture/build.json'}, abx, track, fail };
+  const ctx = { ...journalFixture(), state: {name: 'owned-docker', source: '/fixture'}, abx, track, fail };
   await expect(dockerSuite.scenarios[1].run(ctx)).rejects.toThrow('create exit 1');
   expect(track).toHaveBeenCalledWith('sbx-docker-owned');
   expect(abx).toHaveBeenCalledOnce();
-  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'deploy', '--build', '/fixture/build.json', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
+  expect(abx.mock.calls[0]![0]).toEqual(['--json', 'deploy', '/fixture', '--name', 'owned-docker', '--sandbox-timeout', '600', '--yes']);
 });
 
-it.each([{retained:[]}, {retained:[{kind:'image', state:'retained'}]}])('Docker cleanup keeps build recovery until all owned artifacts are absent: %j', async ({retained}) => {
-  const root = mkdtempSync(join(tmpdir(), 'abx-docker-cleanup-')); directories.push(root);
-  const build = join(root, 'build.json'); writeFileSync(build, JSON.stringify({prepared:{reference:'tpl-owned'}}));
-  const resolveCreateAttempt = vi.fn();
-  const abx = vi.fn().mockResolvedValueOnce(result({status:'deleted'}))
-    .mockResolvedValueOnce(result({status:'cleaned',retained}))
+it.each([{retained:[]}, {retained:[{kind:'image', state:'retained'}]}])('Docker cleanup reports retained resources through named deletion: %j', async ({retained}) => {
+  const abx = vi.fn().mockResolvedValueOnce(result({status:'deleted',retained_resources:retained}))
     .mockResolvedValueOnce(result({status:'error',code:'E2001'},4));
-  const ctx = {state:{name:'owned-docker',sandbox:'sbx-owned',build,buildAttempt:'build-intent'},abx,resolveCreateAttempt,fail};
-  if (retained.length) await expect(dockerSuite.teardown(ctx)).rejects.toThrow('cleanup is unconfirmed');
+  const ctx = {state:{name:'owned-docker',sandbox:'sbx-owned',templateId:'tpl-owned'},abx,fail};
+  if (retained.length) await expect(dockerSuite.teardown(ctx)).rejects.toThrow('cleanup is incomplete');
   else await dockerSuite.teardown(ctx);
-  expect(resolveCreateAttempt).toHaveBeenCalledTimes(retained.length ? 0 : 1);
-  expect(abx.mock.calls[1]![0]).toEqual(['--json','template','build','--clean',build,'--yes']);
-  expect(abx.mock.calls[2]![0]).toEqual(['--json','provider','run','template.get','--input',JSON.stringify({template_id:'tpl-owned'})]);
+  expect(abx.mock.calls[0]![0]).toEqual(['--json','delete','owned-docker','--yes']);
+  expect(abx.mock.calls[1]![0]).toEqual(['--json','provider','run','template.get','--input',JSON.stringify({template_id:'tpl-owned'})]);
 });
 
 it.each([{items:[],partial:true,errors:[]},{items:[],partial:false,errors:[{provider:'alicloud-express',code:'E1001'}]}])('incomplete provider inventory never proves cleanup: %j', async inventory => {

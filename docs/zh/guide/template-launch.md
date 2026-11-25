@@ -7,7 +7,7 @@ abx logs my-app
 abx delete my-app --yes
 ```
 
-SOURCE 可以是目录名称、本地工程或固定 Git 引用。使用已有原生模板时改用 `--template-id TEMPLATE_ID`。当前源码使用统一命令入口；旧发行版可能不同，请检查 `abx --help`。
+SOURCE 可以是目录名称、本地工程或固定 Git 引用。使用已有原生模板时改用 `abx create --template TEMPLATE_ID`。当前源码使用统一命令入口；旧发行版可能不同，请检查 `abx --help`。
 
 Sandbox 模板准备后创建一个实例，执行声明的启动和就绪条件，并解析 `provides` 中所有端点。Server v2 服务会进行健康和协议发现，但不会执行业务命令。其他 HTTP 协议依赖声明的就绪条件，不会被自动认证为应用协议兼容。托管应用使用不同的生命周期，见[托管应用](managed-applications.md)。
 

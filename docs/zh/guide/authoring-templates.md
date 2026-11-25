@@ -44,26 +44,15 @@ abx template init --adopt ./app --dry-run
 大文件、二进制和依赖目录；已有 Docker ignore 规则必须排除密钥。
 生成后仍应检查文件，再构建或部署。
 
-## 构建一次，再部署应用
+## 构建与部署
 
 ```bash
-abx template build ./my-template --yes
-# 使用命令返回的构建文件路径：
-abx deploy --build BUILD_FILE --name my-app
+abx template build ./my-template
+abx deploy ./my-template --name my-app --yes
 abx status my-app
 ```
 
-构建准备真实镜像或平台模板，不启动应用。私有产物记录 Provider 目标、准备结果、
-资源记录和源码快照。默认在 `.abx` 下生成唯一文件；`--out FILE` 可指定另一个未使用的
-路径，不覆盖已有产物。`--build-profile NAME` 选择清单声明的 Dockerfile 配置；
-`--timeout` 限制沙箱模板准备的期限。
-
-`deploy --build` 检查快照和 Provider 目标后复用准备结果。修改原项目不会修改已有构建，
-新版本应重新构建。不需要独立构建时，可用
-`abx deploy ./my-template --name my-app` 一次完成准备与部署。
-
-服务实现写在应用代码中。SandboxServer 命名命令使用服务端 `@command()` 注册，
-通过明确的应用调用入口访问。MCP 等普通 HTTP 服务声明自己的协议，并使用对应 HTTP API。
+Build 只准备本地 Docker 镜像。Deploy 发布所选源码；资源 v1 会自动复用输入一致且已验证的本地镜像。原生 Steps 和 Serving actions 在部署阶段执行。两种配置的具体流程见[构建与部署](deploy-and-build.md)。
 
 ## 发布可复用源码
 
@@ -85,13 +74,4 @@ abx template publish . --tag v1.0.0 --yes
 
 ## 资源清理
 
-用 `abx delete my-app --yes` 删除运行中的应用。单独准备的构建会保留以供复用，
-不再需要时显式清理：
-
-```bash
-abx template build --clean BUILD_FILE --yes
-```
-
-仍有应用使用的构建不能清理；清理只删除已确认属于该构建的资源。
-构建失败时保留产物及资源记录，以便重试。需要手动清理的保留镜像会列在结果中。
-源码快照和产物仍留在本机供检查，不再需要时再删除对应本机文件。
+使用 `abx delete NAME --yes` 删除部署中已确认归属的资源。操作中断后使用 `abx recover NAME`。已有外部服务、保留资源和镜像仓库仍由原拥有者管理。本地构建镜像不再使用时可以通过 Docker 删除。

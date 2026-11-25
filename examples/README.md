@@ -15,7 +15,7 @@ abx template list python
 Run an owned sandbox and destroy it after use:
 
 ```bash
-abx deploy --template-id base --name demo
+abx create --template base --name demo
 # The local name resolves this deployment for subsequent operations.
 abx sandbox exec demo -- echo hello
 abx delete demo --yes

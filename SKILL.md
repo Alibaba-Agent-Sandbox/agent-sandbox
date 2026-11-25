@@ -48,7 +48,7 @@ Creating or renewing a management API key needs explicit consent. `--ci` control
 ## Creating a sandbox
 
 ```bash
-abx deploy --template-id base --name demo --sandbox-timeout 300 --yes
+abx create --template base --name demo --sandbox-timeout 300 --yes
 abx status demo
 abx exec demo -- python3 --version
 abx exec --cwd /tmp --timeout 60 demo -- sh -c 'printf hello'
@@ -58,7 +58,7 @@ abx download demo /home/user/input.txt ./downloaded.txt
 abx delete demo --yes
 ```
 
-`deploy --template-id` accepts a native template ID or alias. Source templates use `abx deploy python-hello --name hello --yes` or `abx deploy ./project --name hello --yes`. `--plan` previews without building or modifying cloud resources. Query actual resources when CPU, memory or region matter; requested values are not observed results.
+`create --template` accepts a native template ID or alias. Source templates use `abx deploy python-hello --name hello --yes` or `abx deploy ./project --name hello --yes`. `--plan` previews without building or modifying cloud resources. Query actual resources when CPU, memory or region matter; requested values are not observed results.
 
 ## Executing code and commands
 
@@ -105,7 +105,7 @@ Write/delete operations require `--yes` for the authorized operation. All native
 
 Use `list --local` without cloud access; `list --all-providers` reports partial failures explicitly. `status` observes without resuming a sandbox. For an interrupted deployment, run `recover NAME`; it observes owned resources and does not repeat creation or publication. Keep records when the result is uncertain.
 
-`delete NAME --yes` cleans the deployment's owned resources. Explicitly supplied builds and external databases remain with their owner. After every consumer is deleted, clean an author build with `template build --clean FILE --yes`. Remove images listed for manual cleanup only after checking their remaining references. Independently verify absence where the task requires resource cleanup; preserve failed cleanup as a failure.
+`delete NAME --yes` cleans the deployment's owned resources. External databases, retained resources and image repositories remain with their owner. Local build produces Docker image IDs; manage those images with Docker. Remove images listed for manual cleanup only after checking their remaining references. Independently verify absence where the task requires resource cleanup; preserve failed cleanup as a failure.
 
 ## MCP
 

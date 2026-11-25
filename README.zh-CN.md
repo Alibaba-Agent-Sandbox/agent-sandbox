@@ -27,11 +27,13 @@ abx --help
 
 ## 快速开始
 
+以下示例需要[构建当前检出源码](docs/zh/guide/binary-installation.md#从源码安装)。已发布的 `0.6.0-alpha.2` 不包含根命令 `create`、资源 YAML v1 或纯本地 `template build`。
+
 配置提供方，再创建沙箱：
 
 ```bash
 abx config init
-abx deploy --template-id base --name demo --yes
+abx create --template base --name demo --yes
 ```
 
 极速版需要对应账号和地域的 Sandbox API Key。[凭据与权限指南](docs/zh/guide/permissions.md)说明凭据来源、所需授权，以及可选的 AccessKey 准备方式。交互输入的配置保存在本机，后续命令复用。若进程环境变量或项目 `.env` 覆盖了保存值，CLI 会提示实际来源。
