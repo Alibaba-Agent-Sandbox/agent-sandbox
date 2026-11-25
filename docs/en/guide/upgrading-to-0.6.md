@@ -43,6 +43,10 @@ abx --ci delete demo --yes
 
 Configuration, Sandbox API credentials, application tokens and model credentials remain separate. See [guided configuration](guided-configuration.md) and the [Provider guide](providers.md) for the settings relevant to your target.
 
+## Rebuild application images when updating the runtime
+
+New generated Server SDK templates and MCP applications select the matching 0.5.0a0 server or client package for their respective roles. Existing Dockerfiles keep their explicit dependency choices. To use the file-upload corrections in an existing Server SDK application, update its `agent-sandbox-server` requirement and rebuild/redeploy its image; updating the CLI alone does not replace a running application's code. Upload and download endpoints still buffer JSON/base64 content. See the [Server SDK file guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/en/guide/server-sdk.md) for policy limits.
+
 ## Keep an existing 0.5.10 script
 
 Pin `@agent-sandbox/cli@0.5.10` and use that version's `--help` until the script has been updated. Installing an older CLI does not undo resources or deployment records created by another version. Keep the owning version and its local records available for resource cleanup.

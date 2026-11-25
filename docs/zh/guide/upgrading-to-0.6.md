@@ -43,6 +43,10 @@ abx --ci delete demo --yes
 
 配置项、Sandbox API 凭据、应用令牌与模型凭据分别管理。目标需要哪些配置请参阅[配置引导](guided-configuration.md)及 [Provider 指南](providers.md)。
 
+## 更新运行时时重新构建应用镜像
+
+新生成的 Server SDK 模板与 MCP 应用分别选择各自所需的 0.5.0a0 服务端或客户端包。已有 Dockerfile 保留其显式依赖选择。已有 Server SDK 应用要使用文件上传修复，需要更新 `agent-sandbox-server` 依赖并重新构建、部署镜像；单独更新 CLI 不会替换运行中应用的代码。上传与下载接口仍在内存中缓冲 JSON/base64 内容，策略限制见 [Server SDK 文件指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/zh/guide/server-sdk.md)。
+
 ## 继续使用现有 0.5.10 脚本
 
 在完成脚本迁移前，固定 `@agent-sandbox/cli@0.5.10` 并使用该版本的 `--help`。安装旧版 CLI 不会撤销其他版本已创建的资源或部署记录；请保留创建资源时所用版本及其本机记录，以便清理资源。

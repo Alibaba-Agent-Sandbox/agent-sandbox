@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Use runtime 0.5.0a0 for new Server SDK installations and generated MCP client requirements, including the empty-file and large-upload corrections. / 新建 Server SDK 安装及生成的 MCP 客户端依赖使用运行时 0.5.0a0，包含空文件与较大文件上传修复。
 - Preserve value arity, conversion and repeat order across long CLI option aliases; keep boolean flag polarity and defaults. / 修复长选项别名的值参数、转换与重复顺序，保留布尔开关极性和默认值。
 - Remove the expired stable-release date from the bilingual preview notice. / 移除双语预览说明中过期的正式版发布日期。
 

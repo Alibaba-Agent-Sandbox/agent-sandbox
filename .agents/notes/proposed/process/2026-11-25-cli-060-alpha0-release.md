@@ -22,10 +22,18 @@ tested tarball with provenance to next. latest and stable installers retain
 0.5.10. Preparation does not establish publication; the Issue remains open until
 the independent public installation and artifact readback criteria pass.
 
+After both Python 0.5.0a0 distributions became public, update the shared runtime
+pin and the real image fixture tag. Newly generated Server SDK applications use
+the corrected server. Generated MCP applications use the matching client extra
+without installing the Server SDK; the artifact verifier checks that separation
+and retains its complete real HTTP checks. Existing explicit image requirements
+remain under the author's control and require rebuilding/redeployment to update.
+
 ## API Design
 
-No runtime API is changed by this preparation. The version identifies the
-already merged command contract and authorization behavior.
+The version identifies the already merged command contract and authorization
+behavior. Generated runtime dependencies select the public 0.5.0a0 server or
+client package according to their role; no new CLI API is introduced here.
 
 ## Alternatives considered
 
@@ -40,8 +48,10 @@ already merged command contract and authorization behavior.
 
 - Reviewed main c268608d6a3f917c6d07b7feaa24ab54f25e8fdf and its lockfile.
 - Existing release.yml, release-binary.yml and installed-artifact verifier.
-- Python runtime pins remain unchanged unless a separately verified public
-  runtime release and its consumer checks justify updating them.
+- Both Python 0.5.0a0 distributions are verified on official PyPI. The runtime
+  source fixture is the immutable v0.5.0a0 tag. Generated MCP HTTP and actual
+  server image consumer checks remain required. The MCP client extra must remain
+  usable without installing the Server SDK.
 
 ## Test Strategy
 
