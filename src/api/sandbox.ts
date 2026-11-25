@@ -302,6 +302,7 @@ export class Sandbox {
   _declared_capabilities: ReadonlySet<string> | null;
   _provider_id: string;
   _killed: boolean;
+  private killCleanupComplete = false;
   readonly _createdMetadataReader?: CreatedMetadataReader;
 
   private _commands?: CommandsModule;
@@ -727,16 +728,16 @@ export class Sandbox {
     await this._http_client.close();
   }
 
-  /** Kill the sandbox and release resources. A second call is a no-op: the first call closes the client. */
+  /** Keep the client usable after failed deletion; retry local cleanup after an acknowledgement. */
   async kill(): Promise<void> {
-    if (this._killed) return;
-    try {
+    if (this.killCleanupComplete) return;
+    if (!this._killed) {
       await this._sandbox_protocol.kill(this.id);
       this._killed = true;
       logger.info("Sandbox killed: %s", this.id);
-    } finally {
-      await this._http_client.close();
     }
+    await this.close();
+    this.killCleanupComplete = true;
   }
 
   /** Update sandbox timeout. */

@@ -30,7 +30,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
 
-import { ExcInfo, getLogger } from "../utils/logging.js";
+import { getLogger } from "../utils/logging.js";
 import {
   ValueError,
   isDict,
@@ -38,6 +38,7 @@ import {
   pyJsonLoadsBytes,
   pyStrip,
 } from "./_py.js";
+import { McpCleanupError } from "./lifecycle_errors.js";
 import { SandboxMCPServer, _jsonrpcResponse, _jsonrpcError } from "./mcp.js";
 
 export { _jsonrpcResponse, _jsonrpcError };
@@ -95,6 +96,7 @@ export const time = {
 export interface _SessionEntry {
   server: SandboxMCPServer;
   last_access: number;
+  closing?: boolean;
 }
 
 /** Raised when the configured concurrent-session limit is reached. */
@@ -129,6 +131,8 @@ export class SessionStore {
   _session_ttl_seconds: number;
   _max_sessions: number;
   _sessions: Map<string, _SessionEntry> = new Map();
+  private readonly destroying = new Map<string, Promise<boolean>>();
+  private closed = false;
 
   constructor(options: SessionStoreOptions = {}) {
     const sessionTtlSeconds = options.session_ttl_seconds ?? DEFAULT_SESSION_TTL_SECONDS;
@@ -154,7 +158,9 @@ export class SessionStore {
    * @throws SessionCapacityError if the active-session limit is reached.
    */
   async createSession(): Promise<[string, SandboxMCPServer]> {
+    if (this.closed) throw new SessionCapacityError("MCP server is shutting down");
     await this.cleanupExpired();
+    if (this.closed) throw new SessionCapacityError("MCP server is shutting down");
     if (this._sessions.size >= this._max_sessions) {
       throw new SessionCapacityError(`MCP session limit reached (${this._max_sessions})`);
     }
@@ -182,7 +188,7 @@ export class SessionStore {
    */
   getSession(sessionId: string): SandboxMCPServer | null {
     const entry = this._sessions.get(sessionId);
-    if (entry === undefined) return null;
+    if (entry === undefined || entry.closing) return null;
     entry.last_access = time.monotonic();
     return entry.server;
   }
@@ -192,36 +198,51 @@ export class SessionStore {
    *
    * @returns true if the session existed and was cleaned up.
    */
-  async destroySession(sessionId: string): Promise<boolean> {
-    const entry = this._sessions.get(sessionId);
-    this._sessions.delete(sessionId);
-    if (entry === undefined) return false;
-    await entry.server.shutdown();
-    logger.info("Destroyed MCP session: %s", sessionId);
-    return true;
+  isClosing(sessionId: string): boolean {
+    return this._sessions.get(sessionId)?.closing === true;
   }
 
-  /**
-   * Destroy idle sessions whose TTL has elapsed.
-   *
-   * @returns Number of expired sessions removed.
-   */
+  async destroySession(sessionId: string): Promise<boolean> {
+    const pending = this.destroying.get(sessionId);
+    if (pending) return pending;
+    const entry = this._sessions.get(sessionId);
+    if (entry === undefined) return false;
+    entry.closing = true;
+    entry.last_access = time.monotonic();
+    const cleanup = (async () => {
+      await entry.server.shutdown();
+      this._sessions.delete(sessionId);
+      logger.info("Destroyed MCP session: %s", sessionId);
+      return true;
+    })();
+    this.destroying.set(sessionId, cleanup);
+    try { return await cleanup; }
+    finally { this.destroying.delete(sessionId); }
+  }
+
+  /** Retry failed idle cleanup no more often than the configured session TTL. */
   async cleanupExpired(): Promise<number> {
     const now = time.monotonic();
     const expiredIds = [...this._sessions.entries()]
-      .filter(([, entry]) => now - entry.last_access >= this._session_ttl_seconds)
+      .filter(([id, entry]) => !this.destroying.has(id) && now - entry.last_access >= this._session_ttl_seconds)
       .map(([sessionId]) => sessionId);
+    let removed = 0;
     for (const sessionId of expiredIds) {
-      await this.destroySession(sessionId);
+      try { if (await this.destroySession(sessionId)) removed += 1; }
+      catch { logger.warning("Expired MCP session cleanup failed; retry its DELETE request"); }
     }
-    return expiredIds.length;
+    return removed;
   }
 
-  /** Destroy every session (used on process exit). */
+  /** Try every session; incomplete cleanup is reported and remains retryable. */
   async shutdownAll(): Promise<void> {
+    this.closed = true;
+    let failed = false;
     for (const sessionId of [...this._sessions.keys()]) {
-      await this.destroySession(sessionId);
+      try { await this.destroySession(sessionId); }
+      catch { failed = true; }
     }
+    if (failed) throw new McpCleanupError();
   }
 }
 
@@ -537,6 +558,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
     }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
+    }
 
     let body: unknown;
     try {
@@ -559,6 +584,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (sessionId) {
       server = store.getSession(sessionId);
       if (server === null) {
+        if (store.isClosing(sessionId)) {
+          return jsonResponse(_jsonrpcError(bodyId, INVALID_REQUEST,
+            "Session cleanup is pending. Retry DELETE /mcp with the same Mcp-Session-Id."), 409);
+        }
         return jsonResponse(
           _jsonrpcError(bodyId, INVALID_REQUEST, `Unknown session: ${sessionId}`),
           404,
@@ -608,6 +637,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
     }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
+    }
     return jsonResponse(
       { error: "SSE server notifications are not implemented. Use POST /mcp." },
       405,
@@ -623,17 +656,23 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
     }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
+    }
 
     const sessionId = request.headers.get("mcp-session-id");
     if (!sessionId) {
       return jsonResponse({ error: "Missing Mcp-Session-Id header" }, 400);
     }
 
-    const destroyed = await store.destroySession(sessionId);
-    if (!destroyed) {
-      return jsonResponse({ error: `Unknown session: ${sessionId}` }, 404);
+    try {
+      const destroyed = await store.destroySession(sessionId);
+      if (!destroyed) return jsonResponse({ error: `Unknown session: ${sessionId}` }, 404);
+      return jsonResponse({ status: "session_terminated" });
+    } catch {
+      return jsonResponse({ error: "MCP cleanup is incomplete. Retry DELETE /mcp with the same Mcp-Session-Id." }, 503);
     }
-    return jsonResponse({ status: "session_terminated" });
   };
 
   // ---- Health check ----
@@ -898,9 +937,13 @@ export async function serveMcpApp(app: McpHttpApp, options: ServeOptions): Promi
 
   let closing: Promise<void> | null = null;
   let resolveClosed!: () => void;
-  const closed = new Promise<void>((resolve) => {
+  let rejectClosed!: (error: unknown) => void;
+  const closed = new Promise<void>((resolve, reject) => {
     resolveClosed = resolve;
+    rejectClosed = reject;
   });
+  // Explicit close() callers may observe that promise instead of `closed`.
+  void closed.catch(() => {});
   const close = (): Promise<void> => {
     closing ??= (async () => {
       log("Shutting down");
@@ -909,7 +952,8 @@ export async function serveMcpApp(app: McpHttpApp, options: ServeOptions): Promi
         server.closeIdleConnections();
       });
       log("Waiting for application shutdown.");
-      await app.shutdown();
+      try { await app.shutdown(); }
+      catch (error) { rejectClosed(error); throw error; }
       log("Application shutdown complete.");
       log(`Finished server process [${process.pid}]`);
       resolveClosed();
@@ -922,9 +966,14 @@ export async function serveMcpApp(app: McpHttpApp, options: ServeOptions): Promi
       if (closing !== null) {
         process.exit(1);
       }
-      void close().then(() => {
+      const detach = (): void => {
         process.off("SIGINT", onSignal);
         process.off("SIGTERM", onSignal);
+      };
+      void close().then(detach, () => {
+        process.stderr.write(`${prefix("ERROR")}MCP shutdown cleanup is incomplete.\n`);
+        process.exitCode = 1;
+        detach();
       });
     };
     process.on("SIGINT", onSignal);
