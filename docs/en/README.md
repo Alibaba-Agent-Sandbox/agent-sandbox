@@ -20,6 +20,7 @@ The CLI installs catalog providers from `alibaba-agent-sandbox/awesome-providers
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](guide/getting-started.md) | Install, configure, first sandbox |
+| [Upgrading to 0.6](guide/upgrading-to-0.6.md) | Preview installation, command changes and automation consent |
 | [Best Practices](guide/best-practices.md) | When to use `--provider`, `--model`, `llm_model`, credentials, and the standalone binary |
 | [Operations](guide/operations.md) | Every command group and the one command for that job |
 | [Binary Installation](guide/binary-installation.md) | Single-file `abx` binary (Node SEA), no Node.js required |

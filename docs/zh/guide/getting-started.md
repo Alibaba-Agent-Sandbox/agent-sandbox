@@ -1,6 +1,6 @@
 # 开始使用
 
-先按[安装指南](binary-installation.md)安装，再运行 `abx --version` 和 `abx --help`。本文对应当前源码；旧发行版可能使用不同命令。
+先按[安装指南](binary-installation.md)安装，再运行 `abx --version` 和 `abx --help`。本页命令使用 0.6 预览版本；从 0.5.10 升级前请阅读[升级指南](upgrading-to-0.6.md)。
 
 用 `config init` 配置所选 Provider。交互引导说明每种凭据的来源与用途，并保存输入。Express 的 Sandbox API Key 用于运行时调用，云 AccessKey 用于平台管理；应用令牌和模型 Key 分开使用。
 

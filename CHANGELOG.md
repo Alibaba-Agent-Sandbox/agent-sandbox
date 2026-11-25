@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.6.0-alpha.0] - 2026-11-25
+
 ### Fixed
 
+- Use runtime 0.5.0a0 for new Server SDK installations and generated MCP client requirements, including the empty-file and large-upload corrections. / 新建 Server SDK 安装及生成的 MCP 客户端依赖使用运行时 0.5.0a0，包含空文件与较大文件上传修复。
 - Preserve value arity, conversion and repeat order across long CLI option aliases; keep boolean flag polarity and defaults. / 修复长选项别名的值参数、转换与重复顺序，保留布尔开关极性和默认值。
 - Remove the expired stable-release date from the bilingual preview notice. / 移除双语预览说明中过期的正式版发布日期。
 
@@ -23,6 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Align current recipes, reachable MCP help and active runner instructions with the unified CLI. / 同步当前示例、MCP 帮助与验证说明中的统一 CLI 用法。
 
 ### Changed
+
+- Assign the unified CLI a distinct preview version and document explicit preview installation, command migration and separate `--ci`/`--yes` semantics. / 为统一 CLI 分配独立预览版本，说明显式安装、命令迁移及 `--ci` 与 `--yes` 的独立语义。
 
 - Unify running deployments under deploy/list/status/logs/delete/recover; template list/info/init/build/publish covers reusable source and builds. / 运行部署统一为 deploy/list/status/logs/delete/recover，模板发现、创作、构建和发布归入 template。
 - Use one parser for every Provider, retain Express protocol/PTY behavior, and make Provider run the sole native management execution entry. / 所有 Provider 共用一个解析入口，保留极速版协议和 PTY 能力，原生管理统一通过 provider run 执行。
@@ -41,7 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Documentation
 
-- Announce the expected November 15, 2026 project 1.0.0 release, preview compatibility notice, and DingTalk community contact in both README languages.
+- Document preview compatibility and the DingTalk community contact in both README languages.
 
 ### Documentation
 

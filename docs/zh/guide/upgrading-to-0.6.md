@@ -1,0 +1,52 @@
+# 从 CLI 0.5.10 升级到 0.6 预览版本
+
+0.6 预览版本调整了命令布局与自动化授权规则。请显式选择预览版本，并在修改脚本前确认安装结果：
+
+```bash
+npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+abx --version
+abx --help
+```
+
+npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复执行的自动化时，请固定完整版本号。独立二进制可通过 [GitHub 安装器](binary-installation.md) 指定 `ABX_VERSION=0.6.0-alpha.0`。默认稳定版安装器及官网镜像不会自动选择预览版本。
+
+## 更新命令
+
+| 任务 | 0.6 预览版本命令 |
+|---|---|
+| 从 Provider 模板创建实例（原 `create`） | `abx deploy --template-id TEMPLATE --name demo --yes` |
+| 启动目录模板或本地源码模板（原 `template launch`） | `abx deploy TEMPLATE_OR_DIRECTORY --name demo --yes` |
+| 查看实例（原 `info`） | `abx status TARGET` |
+| 删除实例（原 `kill`） | `abx delete TARGET --yes` |
+| 创建本地模板项目（原 `template scaffold`） | `abx template init DIRECTORY` |
+| 执行程序 | `abx exec TARGET -- PROGRAM ARGS` |
+| 打开终端 | `abx connect TARGET` |
+| 传输文件 | `abx upload TARGET LOCAL_PATH REMOTE_PATH` / `abx download TARGET REMOTE_PATH LOCAL_PATH` |
+| 管理文件与进程 | `abx files --help` / `abx process --help` |
+| 发现 Provider 原生操作 | `abx --provider PROVIDER provider run --help` |
+
+`TARGET` 是已有的 Sandbox ID 或保存在本机的部署名称。平台工具使用根命令。`abx sandbox TARGET --help` 则从显式绑定的本地 OpenAPI 契约发现业务操作；`abx sandbox TARGET OPERATION --help` 查看操作契约，`abx sandbox TARGET OPERATION` 发起调用。绑定方式、支持的输入与鉴权见 [Sandbox API 操作](sandbox-api.md)。调用操作不会创建实例，也不会把未知操作当作 Shell 命令执行。
+
+`app` 命令树、`--native` 解析器选择、`sandbox command list/run` 以及重叠的生命周期别名已移除。托管应用请按照[托管应用指南](managed-applications.md)，通过 `deploy`、`status`、`logs`、`recover`、`delete` 管理。旧 `app` 子命令并非逐项替换关系。`recover` 观察中断操作，不重复创建或发布；重试变更前先检查不确定结果。
+
+已有 Server SDK 装饰器与 HTTP 路由继续使用各自的接口。旧的具名命令调用若要使用新的业务操作 CLI，需要显式绑定 OpenAPI；直接 HTTP 与 SDK 接入仍以应用文档为准。
+
+## 检查自动化授权
+
+0.5.10 的 `--ci` 可以授权 Express 托管管理 Key 的创建或续期。0.6 预览版本的 `--ci` 用于选择非交互、机器可读输出，**不代表授权变更**。需要确认的操作必须使用自身的显式 `--yes` 选项；云端管理 Key 的创建与续期仍保留该授权要求。非交互执行前须准备凭据及必需配置。
+
+```bash
+abx --ci deploy --template-id base --name demo --yes
+abx --ci status demo
+abx --ci delete demo --yes
+```
+
+配置项、Sandbox API 凭据、应用令牌与模型凭据分别管理。目标需要哪些配置请参阅[配置引导](guided-configuration.md)及 [Provider 指南](providers.md)。
+
+## 更新运行时时重新构建应用镜像
+
+新生成的 Server SDK 模板与 MCP 应用分别选择各自所需的 0.5.0a0 服务端或客户端包。已有 Dockerfile 保留其显式依赖选择。已有 Server SDK 应用要使用文件上传修复，需要更新 `agent-sandbox-server` 依赖并重新构建、部署镜像；单独更新 CLI 不会替换运行中应用的代码。上传与下载接口仍在内存中缓冲 JSON/base64 内容，策略限制见 [Server SDK 文件指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/zh/guide/server-sdk.md)。
+
+## 继续使用现有 0.5.10 脚本
+
+在完成脚本迁移前，固定 `@agent-sandbox/cli@0.5.10` 并使用该版本的 `--help`。安装旧版 CLI 不会撤销其他版本已创建的资源或部署记录；请保留创建资源时所用版本及其本机记录，以便清理资源。

@@ -22,7 +22,15 @@ The official website mirrors the complete stable release: all five binaries, the
 
 ---
 
-Current repository guides describe source commands. Older releases may expose different commands; inspect `abx --help`, or install from source below for the current interface.
+Repository guides use the 0.6 preview command layout. Select that preview explicitly; the default stable installers and npm `latest` retain 0.5.10. See [upgrading from 0.5.10](upgrading-to-0.6.md) before updating automation.
+
+```bash
+npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+# Or install its standalone binary directly from GitHub:
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.0 sh
+```
+
+On Windows, set `$env:ABX_VERSION = "0.6.0-alpha.0"` before running the PowerShell installer. Preview artifacts come from their matching GitHub prerelease, independently of the stable website mirror.
 
 ## Install
 

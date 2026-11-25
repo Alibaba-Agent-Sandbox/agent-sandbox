@@ -7,6 +7,7 @@ import http from 'node:http';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { SERVER_SDK_RELEASE_VERSION } from '../dist/utils/server_sdk_pin.js';
 
 function argument(name) {
   const index = process.argv.indexOf(name);
@@ -23,12 +24,13 @@ const environment = Object.fromEntries(
 );
 environment.HOME = home;
 const metadata = spawnSync(python, ['-c',
-  'import json; from importlib.metadata import version; print(json.dumps({name: version(name) for name in ["agent-sandbox-client", "agent-sandbox-server"]}))'],
+  'import json\nfrom importlib.metadata import PackageNotFoundError, version\nversions = {}\nfor name in ["agent-sandbox-client", "agent-sandbox-server"]:\n    try: versions[name] = version(name)\n    except PackageNotFoundError: versions[name] = None\nprint(json.dumps(versions))'],
   { encoding: 'utf8', env: environment });
 assert.equal(metadata.status, 0, metadata.stderr);
 const versions = JSON.parse(metadata.stdout);
-assert.equal(versions['agent-sandbox-client'], '0.4.0a6');
-assert.equal(versions['agent-sandbox-server'], '0.4.0a6');
+assert.equal(versions['agent-sandbox-client'], SERVER_SDK_RELEASE_VERSION);
+assert.equal(versions['agent-sandbox-server'], null,
+  'The generated MCP client extra must work without installing the Server SDK distribution');
 const token = randomBytes(32).toString('base64url');
 Object.assign(environment, {
   ABX_MCP_AUTH_TOKEN: token,

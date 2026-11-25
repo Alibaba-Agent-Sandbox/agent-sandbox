@@ -1,6 +1,6 @@
 # Get started
 
-Use the [installation guide](binary-installation.md), then run `abx --version` and `abx --help`. The commands here describe current source; an older published binary may have a different surface.
+Use the [installation guide](binary-installation.md), then run `abx --version` and `abx --help`. These commands use the 0.6 preview; follow [the upgrade guide](upgrading-to-0.6.md) when moving from 0.5.10.
 
 Configure the selected Provider once. `config init` explains each credential and saves values entered interactively. For Express, a Sandbox API key authorizes runtime calls; cloud AccessKeys authorize platform management. Application and model tokens are separate.
 

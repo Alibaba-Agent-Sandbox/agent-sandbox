@@ -15,19 +15,15 @@
 
 ## 安装
 
-以下命令需要当前源码 CLI；已发布的 0.5.10 使用原命令布局。使用 Node.js 20+ 从源码安装：
+显式选择 0.6 预览版本（需要 Node.js 20+）：
 
 ```bash
-git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
-cd agent-sandbox
-npm ci
-npm run build
-npm link
-cd ..
+npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+abx --version
 abx --help
 ```
 
-已发布的 0.5.10 仍可通过 `npm install -g @agent-sandbox/cli@0.5.10` 安装，其命令布局以该版本的 `--help` 为准。
+预览版本使用新的命令布局。更新脚本前请阅读 [从 0.5.10 升级](docs/zh/guide/upgrading-to-0.6.md)，尤其检查 `--ci` 的用法。npm 的 `latest` 通道及默认稳定版安装器仍选择 0.5.10；该版本的命令以自己的 `--help` 为准。预览二进制及源码构建见[安装指南](docs/zh/guide/binary-installation.md)。
 
 ## 快速开始
 
