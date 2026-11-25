@@ -1,5 +1,8 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Final delivery and remaining requirement review](evidence/verify/2026-11-25-final-delivery-gap-review.md)
+  updates the earlier coverage checkpoint without rewriting history; [process note](notes/implemented/process/2026-11-25-final-delivery-gap-review.md).
+
 - [Native resource workflow candidate](notes/proposed/architecture/2026-11-25-native-resource-workflow.md) · [verification and remaining gates](evidence/verify/2026-11-25-native-resource-workflow.md).
 
 - [Sandbox user journey corrections](notes/implemented/feature/2026-11-25-whole-journey-corrections.md) · [integrated verification](evidence/verify/2026-11-25-whole-journey-corrections.md). Request/authentication, observed state and public recovery results; this is not the native YAML migration or a new release.
