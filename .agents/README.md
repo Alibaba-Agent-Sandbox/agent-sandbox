@@ -361,3 +361,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Standalone dependency isolation](notes/implemented/process/2026-11-25-sea-dependency-isolation.md) · [verification](evidence/verify/2026-11-25-sea-dependency-isolation.md).
 
 - [Artifact human/CI error-channel regression](evidence/verify/2026-11-25-artifact-output-channel.md).
+
+- [MCP template input](notes/implemented/feature/2026-11-25-mcp-template-input.md) · [verification](evidence/verify/2026-11-25-mcp-template-input.md).

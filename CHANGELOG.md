@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Removed
 
+- Remove the misleading MCP `submit_template_build.envd_inject` input; obsolete values are rejected before cloud access. / 移除含义不准确的 MCP `submit_template_build.envd_inject` 输入，旧参数在云端访问前被拒绝。
+
 - Remove manual `recover --receipt` import; named recovery uses the tool's saved ownership information. / 删除手动 `recover --receipt` 导入入口；具名恢复使用工具内部保存的归属信息。
 
 ## [0.6.0-alpha.1] - 2026-11-25

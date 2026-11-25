@@ -3,6 +3,7 @@ import * as adapter from "../../src/providers/alicloud_express/fc_template.js";
 import * as config from "../../src/transport/config.js";
 import { SandboxManager } from "../../src/agent/mcp.js";
 import { handleTemplateOperation } from "../../src/agent/template_operations.js";
+import { TEMPLATE_SCHEMAS } from "../../src/providers/alicloud_express/agent/template_metadata.js";
 import { useIso } from "../_support/iso.js";
 
 useIso();
@@ -15,8 +16,20 @@ describe("template workflow contracts", () => {
     credentials(); vi.spyOn(adapter, "listOfficialTemplates").mockResolvedValue([]);
     const create = vi.spyOn(adapter, "createOfficialTemplate").mockResolvedValue({ templateID: "test-template", requestId: "test-request" });
     const result = await handleTemplateOperation("submit_template_build", { team_id: "test-team", name: "test-new-version", image: "example/image:1", start_command: "/start.sh", ready_command: "test -f /ready" }, new SandboxManager());
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({ generation: 2, start_command: "/start.sh", ready_command: "test -f /ready" }));
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ generation: 2, start_command: "/start.sh", ready_command: "test -f /ready", envd_inject: true }));
     expect(result).toMatchObject({ state: "submitted", runtime_verified: false });
+  });
+  it.each([true, false])("rejects the retired envd injection toggle %s before configuration or cloud access", async (value) => {
+    const load = vi.spyOn(config, "loadConfig");
+    const list = vi.spyOn(adapter, "listOfficialTemplates");
+    const create = vi.spyOn(adapter, "createOfficialTemplate");
+    const schema = TEMPLATE_SCHEMAS.find(tool => tool.name === "submit_template_build")!.inputSchema;
+    expect(schema.properties).not.toHaveProperty("envd_inject");
+    expect(schema.additionalProperties).toBe(false);
+    await expect(handleTemplateOperation("submit_template_build", { team_id: "test-team", name: "test-new-version", image: "example/image:1", envd_inject: value }, new SandboxManager())).rejects.toThrow("envd_inject");
+    expect(load).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
   it("refuses generation 1 startup parameters before contacting the create API", async () => {
     credentials(); const create = vi.spyOn(adapter, "createOfficialTemplate");
