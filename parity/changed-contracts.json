@@ -593,6 +593,18 @@
     "tests/integration/test_progress_activity_e2e.py::test_kill_all_lists_ids_under_the_header": {
       "target": "tests/test_cli/test_command_surface.py::one command contract::rejects removed root kill",
       "reason": "Issue #244: Account-wide kill --all and its progress header are retired; root delete requires an explicit name or ID. The command-contract regression verifies the retired entry is rejected."
+    },
+    "tests/test_cli/test_run_command.py::TestRunCommand::test_run_invalid_arg_format": {
+      "target": "tests/test_cli/test_run_command.test.ts::retired business-command wrappers::rejects \"sandbox\" before connecting",
+      "reason": "Issue #265: the old command-run namespace and --arg parser are retired. Its replacement rejects the old namespace before Provider, registered-command or discovery dispatch. New OpenAPI request validation is covered separately; this is not old argument-parser compatibility."
+    },
+    "tests/test_cli/test_help_alias.py::TestRunPassthroughCompatibility::test_dash_h_shows_help_without_connecting": {
+      "target": "tests/test_cli/test_help_alias.test.ts::registered API help::renders -h without connecting",
+      "reason": "Issue #265: target-first registered API help replaces the retired run wrapper and retains offline rendering without Provider connection."
+    },
+    "tests/test_cli/test_help_alias.py::TestRunPassthroughCompatibility::test_double_dash_help_also_skips_connect": {
+      "target": "tests/test_cli/test_help_alias.test.ts::registered API help::renders --help without connecting",
+      "reason": "Issue #265: target-first registered API help replaces the retired run wrapper and retains offline rendering without Provider connection."
     }
   }
 }

@@ -54,7 +54,8 @@ it.skipIf(!ALL_COMMANDS).each(CASES)("test_dash_h_matches_double_dash_help [%s]"
   expect(short.exit_code, `\`abx ${path.join(" ")} -h\` exited ${short.exit_code}: ${JSON.stringify(short.output)}`).toBe(0);
   expect(long.exit_code, `\`abx ${path.join(" ")} --help\` exited ${long.exit_code}: ${JSON.stringify(long.output)}`).toBe(0);
   expect(short.output).toBe(long.output);
-  expect(short.output).toContain("Usage:");
+  if (target(path).automaticHelp) expect(short.output.startsWith("Usage:")).toBe(true);
+  else expect(short.output).toContain("Usage: abx sandbox TARGET [OPERATION]");
 });
 
 it.skipIf(!ALL_COMMANDS).each(CASES.filter(([, path]) => target(path).automaticHelp))("test_help_never_runs_the_target_callback [%s]", async (_id, path) => {
