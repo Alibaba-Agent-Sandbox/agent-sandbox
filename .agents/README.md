@@ -2,6 +2,15 @@
 
 - [Sandbox user journey corrections](notes/implemented/feature/2026-11-25-whole-journey-corrections.md) · [integrated verification](evidence/verify/2026-11-25-whole-journey-corrections.md). Request/authentication, observed state and public recovery results; this is not the native YAML migration or a new release.
 
+## Public CLI 0.6.0-alpha.2 — 2026-11-25
+
+[Public delivery and independent consumption](evidence/verify/2026-11-25-cli-060-alpha2-public-release.md)
+records the exact tag, five platform checks, public npm/Linux consumption and
+paired Python 0.5.0a1 runtime. npm next is alpha.2; latest remains 0.5.10.
+The [full request coverage review](evidence/verify/2026-11-25-full-request-coverage.md)
+separately lists delivered fixes and the remaining native-template, runtime and
+Agents API work. This release does not certify the unfinished product migration.
+
 ## Public CLI 0.6.0-alpha.1 — 2026-11-25
 
 [Public delivery and independent consumption](evidence/verify/2026-11-25-cli-060-alpha1-public-release.md)
@@ -362,5 +371,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Artifact human/CI error-channel regression](evidence/verify/2026-11-25-artifact-output-channel.md).
 
-- [CLI alpha.2 release preparation](notes/proposed/process/2026-11-25-cli-060-alpha2-release.md) · [preflight](evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha2-release.md).
+- [CLI alpha.2 release preparation](notes/implemented/process/2026-11-25-cli-060-alpha2-release.md) · [preflight](evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha2-release.md).
 - [MCP template input](notes/implemented/feature/2026-11-25-mcp-template-input.md) · [verification](evidence/verify/2026-11-25-mcp-template-input.md).

@@ -1,6 +1,6 @@
 # Decision: Publish the corrected invocation and MCP preview
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -55,3 +55,5 @@ Verify public npm metadata, fresh installation and checksummed native assets.
 
 - [Preflight](../../../evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md).
 - [Preparation](../../../evidence/verify/2026-11-25-cli-060-alpha2-release.md).
+
+- [Public delivery](../../../evidence/verify/2026-11-25-cli-060-alpha2-public-release.md).

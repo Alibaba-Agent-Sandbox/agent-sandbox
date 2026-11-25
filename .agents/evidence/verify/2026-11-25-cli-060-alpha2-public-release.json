@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-25",
+  "result": "PASS",
+  "scope": "public release artifact delivery; not complete native/template migration",
+  "source_sha": "fb4de80458e2c002cc05f70616a0de04f1ab8f03",
+  "tag": "v0.6.0-alpha.2",
+  "tag_object": "4afa587437422e81f375ed853d493f0d3577e2af",
+  "python_runtime": "0.5.0a1",
+  "github_release_id": 458002461,
+  "github_prerelease": true,
+  "github_latest": "v0.5.10",
+  "binary_workflow_run": 45602068106,
+  "npm_workflow_run": 45602785730,
+  "npm": {
+    "version": "0.6.0-alpha.2",
+    "dist_tags": {
+      "latest": "0.5.10",
+      "next": "0.6.0-alpha.2"
+    },
+    "tarball": "https://registry.npmjs.org/@agent-sandbox/cli/-/cli-0.6.0-alpha.2.tgz",
+    "integrity": "sha512-8EAP+ux5xSPYDBF2Mqemdr5Apg8mpmGavT7myRBVVf9wlWJr7hL5oAzF9yIvBwjrxUHAEb7Q1uxN3Ay6+d45Pw==",
+    "sha256": "b0558f4f39645fcb4fc29a2bb6005d4e2d186e29c340fecd7d974d00cbc54f84",
+    "bytes": 1465289,
+    "gitHead": null
+  },
+  "linux_x64": {
+    "platform": "linux-x64",
+    "sha256": "52dabc38ac62690983f5029ddc086ef0a0d9ba2b15027beb293efff6218d5cc2",
+    "checksum_asset_matches": true,
+    "public_asset_digest_matches": true,
+    "bytes": 135924928
+  },
+  "public_install": {
+    "fresh_prefix": true,
+    "fresh_cache": true,
+    "attempt": 3,
+    "installed_artifact_checker_exit_code": 0,
+    "github_tarball_matches_npm": true
+  },
+  "preserved_failures": [
+    "First public metadata HTTP404 and fresh install ETARGET",
+    "Second metadata HTTP200 but tarball HTTP404 and fresh install E404"
+  ],
+  "new_cloud_resources": 0
+}
