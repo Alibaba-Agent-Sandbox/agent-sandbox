@@ -53,12 +53,13 @@ const exited = new Promise(done => {
 });
 
 /** Direct loopback HTTP avoids ambient proxy configuration and source SDK imports. */
-function request(body, auth, session) {
+function request(body, auth, session, method = 'POST', protocol) {
   return new Promise((done, fail) => {
     const headers = { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' };
     if (auth) headers.Authorization = 'Bearer ' + auth;
     if (session) headers['Mcp-Session-Id'] = session;
-    const message = http.request({ host: '127.0.0.1', port, path: '/mcp', method: 'POST', headers }, response => {
+    if (protocol) headers['MCP-Protocol-Version'] = protocol;
+    const message = http.request({ host: '127.0.0.1', port, path: '/mcp', method, headers }, response => {
       let raw = '';
       response.setEncoding('utf8');
       response.on('data', text => { raw += text; });
@@ -72,14 +73,14 @@ function request(body, auth, session) {
     });
     message.setTimeout(10000, () => message.destroy(new Error('MCP HTTP request deadline exceeded')));
     message.once('error', fail);
-    message.end(JSON.stringify(body));
+    message.end(method === 'POST' ? JSON.stringify(body) : undefined);
   });
 }
 const checks = {};
 const report = { passed: false, versions, transport: 'real generated ASGI HTTP', checks, cloud_requests: 0, readiness_connection_retries: { ECONNREFUSED: 0, ECONNRESET: 0 } };
 try {
   const initialize = { jsonrpc: '2.0', id: 1, method: 'initialize', params: {
-    protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'public-artifact-verifier', version: '1' },
+    protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'public-artifact-verifier', version: '1' },
   } };
   let ready = false;
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -94,7 +95,8 @@ try {
   assert(ready, 'Generated server readiness deadline');
   checks.missing_auth_rejected = (await request(initialize)).status === 401;
   checks.wrong_auth_rejected = (await request(initialize, 'placeholder-wrong')).status === 401;
-  const initialized = await request(initialize, token);
+  checks.unsupported_protocol_rejected = (await request(initialize, token, undefined, 'POST', '1900-01-01')).status === 400;
+  const initialized = await request(initialize, token, undefined, 'POST', '2025-06-18');
   checks.initialize = initialized.status === 200 && Boolean(initialized.body.result);
   assert(Object.values(checks).every(Boolean), JSON.stringify(checks));
   await request({ jsonrpc: '2.0', method: 'notifications/initialized' }, token, initialized.session);
@@ -104,6 +106,10 @@ try {
   const required = ['create_sandbox', 'list_sandboxes', 'get_sandbox', 'set_sandbox_timeout', 'run_command', 'kill_sandbox'];
   checks.current_tool_catalog = listed.status === 200 && required.every(name => names.has(name)) && names.size === tools.length;
   checks.tool_schemas = tools.every(tool => tool.inputSchema && typeof tool.inputSchema === 'object');
+  checks.invalid_delete_preserves_session = (await request(undefined, token, initialized.session, 'DELETE', '1900-01-01')).status === 400 &&
+    (await request({ jsonrpc: '2.0', id: 3, method: 'tools/list', params: {} }, token, initialized.session)).status === 200;
+  checks.empty_session_delete = (await request(undefined, token, initialized.session, 'DELETE', '2025-06-18')).status === 200;
+  checks.deleted_session_not_found = (await request({ jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} }, token, initialized.session)).status === 404;
   assert(Object.values(checks).every(Boolean), JSON.stringify(checks));
   Object.assign(report, { passed: true, tool_names: [...names].sort() });
 } catch (error) {

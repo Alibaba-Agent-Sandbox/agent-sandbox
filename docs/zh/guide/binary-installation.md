@@ -26,12 +26,12 @@ Node.js 运行时、Agent Sandbox CLI 及其打包的运行时依赖。**独立�
 本仓库指南使用 0.6 预览版本的命令布局。请显式选择该预览版本；默认稳定版安装器及 npm `latest` 保持 0.5.10。更新自动化脚本前先阅读[从 0.5.10 升级](upgrading-to-0.6.md)。
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.2 --registry=https://registry.npmjs.org
 # 或直接从 GitHub 安装对应的独立二进制：
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.1 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.2 sh
 ```
 
-Windows 请在运行 PowerShell 安装器前设置 `$env:ABX_VERSION = "0.6.0-alpha.1"`。预览产物来自对应的 GitHub 预发布版本，与官网稳定版镜像分别提供。
+Windows 请在运行 PowerShell 安装器前设置 `$env:ABX_VERSION = "0.6.0-alpha.2"`。预览产物来自对应的 GitHub 预发布版本，与官网稳定版镜像分别提供。
 
 ## 安装
 

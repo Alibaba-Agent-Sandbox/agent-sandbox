@@ -13,15 +13,29 @@ After a disconnected creation with an uncertain backend outcome, inspect the act
 or the task's resource inventory before repeating a mutation. A request cancellation and a cleanup
 failure are separate results; the platform lifetime remains the final bound if deletion fails.
 
-Maintainers can exercise the real handle path with:
+For Streamable HTTP, send `DELETE /mcp` with the session's `Mcp-Session-Id` and the
+same Bearer authentication used to initialize it. HTTP 200 means cleanup succeeded.
+HTTP 503 means cleanup is incomplete: keep the session ID and retry the same DELETE.
+Only handles that failed cleanup are retried; completed deletions are not repeated.
+A failed native deletion keeps its SDK client available for retry. After the remote
+delete succeeds, a failed client close retries only local cleanup. An SDK caller
+choosing to abandon retry can call `close()` to release local connections; this does
+not delete the remote sandbox.
+While cleanup is pending, tool requests for that session return HTTP 409. Borrowed
+or explicitly retained sandboxes are only disconnected, including during a retry.
 
-```bash
-npm run build
-node e2e/skill-mcp-shutdown-acceptance.mjs --output ./mcp-shutdown-new.json
-```
+Idle expiration follows the same rule. Failed sessions still count toward the session
+limit. Subsequent requests retry their cleanup after another configured session TTL
+interval; explicit DELETE can retry immediately. Expiration runs when requests arrive,
+not on an independent timer.
 
-Supply the configured sandbox runtime API key/origin through environment variables. The scenario
-uses actual Express create/connect/command/kill operations. Its test hooks delay real SDK handles
-and control lock scheduling to reproduce the race deterministically. It verifies new owned-resource
-HTTP404, a borrowed sandbox's surviving business command and final independent deletion of both
-task-owned test sandboxes. The hooks do not mock cloud responses.
+Recovery records live in this server process's memory. A process restart loses them;
+use the provider's sandbox IDs and lifetime settings to manage remaining resources.
+Shutdown waits for already admitted create/connect requests to return their handles,
+but does not guarantee that every running tool or external side effect has stopped.
+A process shutdown reports cleanup failure instead of reporting successful release.
+
+The HTTP endpoint accepts `MCP-Protocol-Version: 2025-06-18`. An explicitly different
+or malformed version returns HTTP 400 before tools, expiration or deletion execute.
+Requests without that header keep the session's negotiated behavior. `/health` does
+not require the protocol header. Origin and authentication checks still run first.

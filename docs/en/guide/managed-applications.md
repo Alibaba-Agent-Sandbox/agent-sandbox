@@ -100,13 +100,10 @@ Use the saved application name for recovery; no internal deployment file needs t
 configure FC logging; configure the function's `logConfig` and required logging access before using
 this command. Continuous application log following is not supported.
 
-Deploy prepares and publishes this managed application directly:
-
-```bash
-abx deploy . --name my-agents --bindings .abx/bindings.json --yes
-```
-
-Images retained after deletion remain in their registry until no template or function references them.
+Use `abx deploy . --name my-agents --bindings .abx/bindings.json --yes` to prepare
+and deploy the project. The CLI manages automatic build products with the
+application's lifecycle. Follow any reported retention or image-cleanup guidance;
+remove an image only when no retained template or function references it.
 
 The database, model account, execution role and supplied custom domain remain yours. Deletion retains
 the database history and admission fence. To create another application after complete deletion,

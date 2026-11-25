@@ -154,7 +154,7 @@ describe("TestBuildCreateTemplateRequestMap", () => {
     expect(copy_image).toContain("-fcsandbox-");
   });
 
-  it("test_envd_inject_disabled", () => {
+  it("false omits the injection build block instead of requesting a disabled cloud policy", () => {
     const result = buildCreateTemplateRequestMap({
       name: "test-no-envd",
       image: "img",
@@ -163,8 +163,7 @@ describe("TestBuildCreateTemplateRequestMap", () => {
     });
 
     const body = result["body"] ?? {};
-    const build_config = body["buildConfig"];
-    expect(build_config === null || build_config === undefined || !Object.keys(build_config).length).toBe(true);
+    expect(Object.hasOwn(body, "buildConfig")).toBe(false);
   });
 
   it("test_registry_type_auto_detected_acree", () => {
