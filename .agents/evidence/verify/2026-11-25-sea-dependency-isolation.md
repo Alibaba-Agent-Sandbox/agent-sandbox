@@ -36,6 +36,16 @@ and failed assets remain immutable evidence, not a completed release.
   verifier passed through its copied executable: version/help, target-first API,
   scaffolds, aliases, isolated configuration, managed plan/early refusal, real PTY
   cancellation and complete licenses. The owned copied directory was removed.
+- The first health scan rejected a reused node_modules symlink. It was not
+  committed, but the first task commit was made before resolving this local
+  prerequisite. The symlink was replaced with an independent npm ci from the
+  unchanged dependency lock. The unchanged health gate then passed with 106
+  passes, 11 existing warnings and zero failures; no gate was disabled.
+- With that independent installation, typecheck/build and 96 SDK/deploy/template/
+  alias checks passed. A freshly rebuilt real SEA (SHA-256
+  a335a3316ffd105760d51e55867c1ae57a634de00773c1a4d471376c2d2ba995)
+  passed the entire copied-body verifier again. The Python PTY prerequisite probe
+  now uses the same isolated environment/cwd as the other invocations.
 
 ## Supported managed boundary
 

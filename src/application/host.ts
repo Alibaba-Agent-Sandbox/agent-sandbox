@@ -2,7 +2,7 @@
 import { createRequire } from "node:module";
 import { ApplicationError } from "./config.js";
 
-/** Reject unsupported standalone managed preparation before local or cloud effects. */
+/** Reject unsupported standalone managed preparation before owned preparation or cloud effects. */
 export function assertManagedApplicationHost(): void {
   let standalone = false;
   try {

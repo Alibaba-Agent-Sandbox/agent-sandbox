@@ -185,7 +185,7 @@ try {
   assert.match(readFileSync(join(project, "Dockerfile"), "utf8"), /FROM/);
   // Exercise the shipped executable in a real terminal; cancellation precedes Docker/cloud work.
   if (process.platform !== "win32") {
-    const python = spawnSync("python3", ["-c", "import pty, fcntl, termios"], { encoding: "utf8" });
+    const python = spawnSync("python3", ["-c", "import pty, fcntl, termios"], { cwd: verificationRoot, env: baseEnvironment, encoding: "utf8" });
     assert.equal(python.status, 0, "POSIX release verification requires python3 PTY support");
     const terminalEnv = { ...environment, TERM: "xterm-256color" };
     delete terminalEnv.CI;
