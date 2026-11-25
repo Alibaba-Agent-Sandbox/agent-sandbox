@@ -36,7 +36,8 @@ import { Abort, CliError, EOFError, KeyboardInterrupt, SystemExit, UsageError, s
 import { echo, sys } from "../io.js";
 import { confirm, prompt } from "../prompts.js";
 import { cpSlice } from "../../utils/_py.js";
-import { DescriptionClarificationError } from "../../models/errors.js";
+import { DescriptionClarificationError, ExecutionError } from "../../models/errors.js";
+import { CommandOutputCapture } from "../command_output.js";
 import { ProcessChunkType } from "../../models/process.js";
 import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
 import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
@@ -1216,7 +1217,7 @@ export const exec_cmd = command("exec", {
     option(["--env", "-e"], { multiple: true, help: "Environment variable for the command, format KEY=VALUE (repeatable)" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: null, help: "Command deadline in seconds (Express: no deadline; other Providers: 60s)" }),
     option(["--background"], { is_flag: true, help: "Start the command, print its pid after piped stdin reaches EOF; do not wait for remote completion" }),
-    option(["--stream"], { is_flag: true, help: "Print stdout/stderr live while the command runs" }),
+    option(["--stream"], { is_flag: true, help: "Print stdout/stderr live; JSON mode returns one result (16 MiB combined output limit)" }),
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
@@ -1245,14 +1246,14 @@ export const exec_cmd = command("exec", {
     if (isExpressReference(sandboxId)) {
       const native = await connectNative(ctx, sandboxId);
       const { execute } = await import("../../standard_cli/session.js");
-      let stdout = "", stderr = "";
+      const captured = new CommandOutputCapture();
       const result = await execute(native, commandLine, {
         cwd: cwd || undefined, user: params["user"] ?? undefined, envs: env ?? undefined, timeoutMs: cmdTimeout * 1000, background,
-        onStdout: data => { if (fmt.use_json) stdout += data; else echo(data, { nl: false }); },
-        onStderr: data => { if (fmt.use_json) stderr += data; else echo(data, { err: true, nl: false }); },
+        onStdout: data => { if (fmt.use_json) captured.append("stdout", data); else echo(data, { nl: false }); },
+        onStderr: data => { if (fmt.use_json) captured.append("stderr", data); else echo(data, { err: true, nl: false }); },
       });
       if (background) { if (fmt.use_json) fmt.printData({ pid: result.pid }); else echo(String(result.pid)); }
-      else if (fmt.use_json) fmt.printData({ stdout, stderr, exit_code: result.exitCode });
+      else if (fmt.use_json) fmt.printData(captured.result(result.exitCode));
       sysExit(result.exitCode);
     }
     if (params["user"]) throw new UsageError("--user is supported by the alicloud-express protocol executor.");
@@ -1277,17 +1278,23 @@ export const exec_cmd = command("exec", {
     }
 
     if (stream) {
-      let exitCode = 0;
+      let exitCode: number | null = null;
+      const captured = new CommandOutputCapture();
       for await (const chunk of sandbox.commands.stream(commandLine, { timeout: cmdTimeout, cwd, env })) {
+        if (exitCode !== null) throw new ExecutionError("The command stream continued after reporting an exit code; its completion result is inconsistent.");
         if (chunk.type === ProcessChunkType.STDOUT) {
-          if (chunk.data) echo(chunk.data, { nl: false });
+          if (fmt.use_json) captured.append("stdout", chunk.data);
+          else if (chunk.data) echo(chunk.data, { nl: false });
         } else if (chunk.type === ProcessChunkType.STDERR) {
-          if (chunk.data) echo(chunk.data, { err: true, nl: false });
+          if (fmt.use_json) captured.append("stderr", chunk.data);
+          else if (chunk.data) echo(chunk.data, { err: true, nl: false });
         } else if (chunk.type === ProcessChunkType.EXIT) {
-          exitCode = chunk.exit_code || 0;
+          if (!Number.isInteger(chunk.exit_code)) throw new ExecutionError("The command stream did not report a valid exit code; completion is unconfirmed.");
+          exitCode = chunk.exit_code;
         }
       }
-      if (fmt.use_json) fmt.printData({ exit_code: exitCode });
+      if (exitCode === null) throw new ExecutionError("The command stream ended without an exit code; completion is unconfirmed.");
+      if (fmt.use_json) fmt.printData(captured.result(exitCode));
       sysExit(exitCode);
     }
 

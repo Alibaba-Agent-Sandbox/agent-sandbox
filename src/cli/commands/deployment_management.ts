@@ -81,7 +81,14 @@ export const status = command("status", {
     if (value.kind === "sandbox") {
       let remote: Record<string, unknown> | null = null;
       if (value.sandboxId) try { remote = sandboxInfo(await managementSeams.info(value.sandboxId, connection(value))); } catch (error) { if (!(error instanceof SandboxNotFoundError)) throw error; }
-      getFormatter(ctx).printDict({ ...deploymentSummary(value), remote, recovery_required: value.status === "requires_recovery" }); return;
+      getFormatter(ctx).printDict({
+        ...deploymentSummary(value),
+        status: remote ? (remote.status ?? "unknown") : value.sandboxId ? "missing" : "unknown",
+        recorded_status: value.status,
+        observation: remote ? "remote" : value.sandboxId ? "not_found" : "not_requested",
+        remote,
+        recovery_required: value.status === "requires_recovery",
+      }); return;
     }
     if (!value.receipt || !fs.existsSync(value.receipt)) { getFormatter(ctx).printData({ ...deploymentSummary(value), recovery_required: value.status !== "deleted", previous_deployment_retained: Boolean(value.previous) }); return; }
     const receipt = readReceipt(value.receipt), credential = await resolveDeployCredentials(receipt.plan.template.application.deployment.accessRef);

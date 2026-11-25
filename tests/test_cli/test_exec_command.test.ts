@@ -12,6 +12,8 @@ import { cli } from "../../src/cli/main.js";
 import { CommandTimeoutError } from "../../src/models/errors.js";
 import { ProcessChunk, ProcessChunkType, ProcessResult } from "../../src/models/process.js";
 import { CliRunner } from "../helpers/cliRunner.js";
+import { KeyboardInterrupt } from "../../src/cli/errors.js";
+import { spawn } from "node:child_process";
 
 beforeEach(() => { vi.spyOn(nativeSandbox, "isExpressReference").mockReturnValue(false); });
 
@@ -139,7 +141,87 @@ describe("TestExecStream", () => {
     sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.EXIT, "", 0)]));
     const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "true"]);
     expect(result.exit_code).toBe(0);
-    expect(JSON.parse(result.stdout)).toEqual({ exit_code: 0 });
+    expect(JSON.parse(result.stdout)).toEqual({ stdout: "", stderr: "", exit_code: 0 });
+  });
+
+  it.each([false, true])("returns one JSON result without raw stream output (CI=%s)", async ci => {
+    const sb = _sandbox();
+    sb.commands.stream.mockReturnValue(gen([
+      chunk(ProcessChunkType.STDOUT, "out\n"), chunk(ProcessChunkType.STDERR, "err\n"),
+      chunk(ProcessChunkType.STDOUT, "more\n"), chunk(ProcessChunkType.EXIT, "", 7),
+    ]));
+    const result = await runner().invoke(cli, [...(ci ? [] : ["--json"]), "exec", "--stream", "sbx-1", "--", "make"], { env: { CI: ci ? "true" : null } });
+    expect(result.exit_code).toBe(7);
+    expect(JSON.parse(result.stdout)).toEqual({ stdout: "out\nmore\n", stderr: "err\n", exit_code: 7 });
+    expect(result.stderr).toBe("");
+  });
+
+  it.each([{ ending: [] }, { ending: [chunk(ProcessChunkType.EXIT)] }])("rejects a stream with no confirmed exit ($ending)", async ({ ending }) => {
+    const sb = _sandbox();
+    sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.STDOUT, "partial"), ...ending]));
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "make"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ code: "E3000" });
+    expect(result.output).toContain("exit code");
+    expect(sb.commands.stream).toHaveBeenCalledOnce();
+    expect(sb.commands.run).not.toHaveBeenCalled();
+  });
+
+  it("preserves interruption without claiming command success", async () => {
+    const sb = _sandbox();
+    sb.commands.stream.mockReturnValue((async function* () { yield chunk(ProcessChunkType.STDOUT, "partial"); throw new KeyboardInterrupt(); })());
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "make"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(result.stdout).not.toContain('"exit_code": 0');
+    expect(sb.commands.stream).toHaveBeenCalledOnce();
+  });
+
+  it.each([ProcessChunkType.EXIT, ProcessChunkType.STDOUT])("rejects %s after a terminal exit instead of changing the result", async type => {
+    const sb = _sandbox();
+    sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.EXIT, "", 7), chunk(type, "late", 0)]));
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "make"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ code: "E3000" });
+    expect(result.output).toContain("inconsistent");
+  });
+
+  it("bounds JSON capture while consuming the confirmed exit without retry", async () => {
+    const sb = _sandbox();
+    let completed = false;
+    sb.commands.stream.mockReturnValue((async function* () {
+      yield chunk(ProcessChunkType.STDOUT, "汉".repeat(6 * 1024 * 1024));
+      yield chunk(ProcessChunkType.EXIT, "", 9);
+      completed = true;
+    })());
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "make"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ code: "E3000" });
+    expect(result.output).toContain("16 MiB");
+    expect(result.output).toContain("exit code 9");
+    expect(result.output.length).toBeLessThan(1024);
+    expect(completed).toBe(true);
+    expect(sb.commands.stream).toHaveBeenCalledOnce();
+  });
+
+  it("captures a real process's stdin response, stderr and nonzero exit through JSON CLI", async () => {
+    const sb = _sandbox();
+    sb.commands.stream.mockReturnValue((async function* () {
+      const child = spawn(process.execPath, ["-e", "process.stdin.on('data',data=>process.stdout.write(data));process.stdin.on('end',()=>{process.stderr.write('diagnostic\\n');process.exitCode=13})"], { stdio: "pipe" });
+      const done = new Promise<number | null>((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
+      let stderr = "";
+      child.stderr.on("data", data => { stderr += String(data); });
+      child.stdin.end("input 中文\n");
+      try {
+        for await (const data of child.stdout) yield chunk(ProcessChunkType.STDOUT, String(data));
+        const exitCode = await done;
+        yield chunk(ProcessChunkType.STDERR, stderr);
+        yield chunk(ProcessChunkType.EXIT, "", exitCode);
+      } finally { if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL"); }
+    })());
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "fixture"]);
+    expect(result.exit_code).toBe(13);
+    expect(JSON.parse(result.stdout)).toEqual({ stdout: "input 中文\n", stderr: "diagnostic\n", exit_code: 13 });
+    expect(result.stderr).toBe("");
   });
 });
 
