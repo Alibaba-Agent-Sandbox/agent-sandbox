@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Shorten interactive configuration, identify effective overrides, check Express Dockerfile prerequisites before billing approval, and report the preparation phase or recovery path. / 精简交互配置，显示生效的覆盖来源，将 Express Dockerfile 预检提前到计费确认前，并说明准备失败阶段或恢复文件路径。
+
 - Keep interrupted deployment recovery observational, clean failed pre-request admissions, and preserve source modes in private build snapshots. / 中断恢复只观察、不重放；可清理请求前失败的部署，私有构建快照保留源码权限。
 - CI output mode no longer authorizes managed-key creation or renewal; list reports partial Provider failures. / CI 输出模式不再授权管理 Key 创建或续期，列表明确报告部分 Provider 查询失败。
 

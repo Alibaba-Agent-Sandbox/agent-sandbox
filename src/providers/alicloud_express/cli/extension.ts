@@ -1,6 +1,7 @@
 import { TemplateBuildTimeoutError } from "../../../models/errors.js";
 import { isConditionalCommand } from "../conditional_commands.js";
 import { confirm } from "../../../cli/prompts.js";
+import { UsageError } from "../../../cli/errors.js";
 import type { ProviderCliExtension } from "../../../cli/provider_extensions.js";
 import { CONFIGURATION_UI } from "./configuration.js";
 /** Upper-layer CLI integration owned by Express. Static metadata never performs cloud I/O. */
@@ -11,13 +12,24 @@ import { templateUi } from "./metadata.js";
 import path from "node:path";
 import fs from "node:fs";
 import { stageProject } from "../../shared/project.js";
-import { resolveBuildPlan, commandWithStepEnvironment } from "../../../template/build_plan.js";
+import { BuildModeError, resolveBuildPlan, commandWithStepEnvironment } from "../../../template/build_plan.js";
 import { ProviderConfigError } from "../../../models/provider_errors.js";
 import type { PreparedTemplate } from "../../template_contract.js";
 export const CLI_EXTENSION = {
   id: CONFIG_METADATA.id, templateUi, configuration: CONFIGURATION_UI,
   generationBaseImage(options: Record<string, unknown>) {
     return options["build"] === "steps" ? materializeBaseImage(CONFIG_METADATA.templateProfile.base_image, loadLayeredConfig({ provider: CONFIG_METADATA.id }).region) : undefined;
+  },
+  async checkProjectPrerequisites(directory, buildProfile, ctx) {
+    const dockerfile = buildProfile ? path.join(directory, buildProfile.dockerfile) : undefined;
+    const plan = (() => {
+      try { return resolveBuildPlan(directory, { mode: dockerfile ? "dockerfile" : "auto", dockerfile }); }
+      catch (error) { if (error instanceof BuildModeError) throw new UsageError(error.message); throw error; }
+    })();
+    if (plan.kind === "dockerfile") {
+      const { checkDockerPrerequisite } = await import("./template.js");
+      await checkDockerPrerequisite(ctx);
+    }
   },
   async stageProject(directory, options) {
     const selected = options.build_profile ? path.join(directory, options.build_profile.dockerfile) : undefined;
@@ -41,7 +53,7 @@ export const CLI_EXTENSION = {
       envd_inject: plan.kind === "dockerfile" && !/^FROM\s+fc-e2b-registry\.[a-z0-9-]+\.cr\.aliyuncs\.com\/runtime\/base:/im.test(fs.readFileSync(plan.dockerfile, "utf8")) };
     return adapter.withDeployConfiguration(directory, deployOptions, async () => {
       if (!approved && !deployOptions.yes) await confirm("Build/register this template and create a billable sandbox?", { abort: true, err: true });
-    const result = await adapter.do_deploy(directory, deployOptions);
+    const result = await adapter.deployConfigured(directory, deployOptions);
     const reference = result["TemplateID"];
     if (typeof reference !== "string" || !reference || reference === "N/A") throw new Error("Template preparation returned no reference.");
     if (String(result["Status"]).toLowerCase() !== "ready") {

@@ -73,7 +73,7 @@ describe("one-operation configuration", () => {
     if (!(error instanceof Error)) throw new Error("Expected a missing-configuration error");
     expect(error.message).toContain("abx config set providers.alicloud-express.sandbox_api_key");
     expect(error.message).toContain("Agent Sandbox console");
-    expect(error.message).toContain("No cloud operation was submitted");
+    expect(error.message).toContain("The requested operation did not start");
     expect(error.message).not.toContain("sandbox:CreateApiKey");
     expect(error.message).not.toContain("30 days");
     expect(ask).not.toHaveBeenCalled(); expect(action).not.toHaveBeenCalled(); unchanged();

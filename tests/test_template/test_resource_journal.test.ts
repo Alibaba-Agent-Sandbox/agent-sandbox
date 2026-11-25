@@ -85,7 +85,8 @@ it("still rejects failed Windows file synchronization before acknowledging inten
   try {
     Object.defineProperty(process, "platform", { value: "win32" });
     const journal = new ResourceJournal("opensandbox", "plan");
-    await expect(journal.intent({ kind: "sandbox", correlation_key: "owned", cleanup: "sandbox.delete" })).rejects.toThrow("file sync failed");
+    await expect(journal.intent({ kind: "sandbox", correlation_key: "owned", cleanup: "sandbox.delete" })).rejects.toThrow("Could not save the pending resource operation");
+    expect(journal.hasRecordedIntent).toBe(false);
     expect(fs.existsSync(journal.file)).toBe(false);
   } finally { Object.defineProperty(process, "platform", platform); opened.mockRestore(); }
 });

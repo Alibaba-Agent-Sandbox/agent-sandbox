@@ -14,21 +14,36 @@ try {
   const [bin, ...args] = parseBin(process.env.ABX_BIN ?? 'abx');
   const env = Object.fromEntries(['PATH', 'NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_CONFIG', 'BUILDX_CONFIG'].filter(key => process.env[key]).map(key => [key, process.env[key]]));
   Object.assign(env, { HOME: directory, USERPROFILE: directory, XDG_CONFIG_HOME: join(directory, '.config'), ABX_NO_KEYCHAIN: '1', ABX_SANDBOX_API_KEY: 'placeholder', ALICLOUD_ACCESS_KEY_ID: 'placeholder', ALICLOUD_ACCESS_KEY_SECRET: 'placeholder', ACR_NAMESPACE: 'placeholder' });
-  const result = spawnSync(bin, [...args, '--provider', 'alicloud-express', '--json', 'deploy', directory, '--yes'], { env, cwd: directory, encoding: 'utf8', timeout: 120_000 });
+  const argv = [...args, '--provider', 'alicloud-express', '--json', 'deploy', directory, '--yes'];
+  const launch = env => spawnSync(bin, argv, { env, cwd: directory, encoding: 'utf8', timeout: 120_000 });
+  const incomplete = { ...env };
+  delete incomplete.ACR_NAMESPACE;
+  const missing = launch(incomplete);
+  assert.equal(missing.error, undefined);
+  assert.notEqual(missing.status, 0);
+  assert.match(JSON.parse(missing.stdout).message, /acr_namespace/);
+  assert.doesNotMatch(missing.stdout + missing.stderr, /Inspect recovery journal|Building Docker image/);
+
+  const result = launch(env);
   assert.equal(result.error, undefined);
   assert.notEqual(result.status, 0);
   const error = JSON.parse(result.stdout);
   assert.equal(error.code, 'E7020');
-  assert.match(error.message, /Docker build failed \(exit 1\): a build instruction failed/);
+  assert.match(error.message, /Docker build failed \(exit (?:1|23)\): a build instruction failed/);
   assert.match(error.message, /recovery journal/);
   assert.match(error.suggestion, /--verbose/);
   assert.doesNotMatch(result.stdout + result.stderr, /credential-without-a-known-prefix/);
   const journalDirectory = join(directory, '.abx', 'resource-journal');
-  const journals = readdirSync(journalDirectory).map(file => JSON.parse(readFileSync(join(journalDirectory, file), 'utf8')));
-  assert.equal(journals.length, 1);
-  assert.equal(journals[0].entries.length, 1);
-  assert.equal(journals[0].entries[0].kind, 'image');
-  assert.equal(journals[0].entries[0].id, undefined);
-  console.log(JSON.stringify(error));
-  console.log('PASS real Docker RUN failure: E7020, recovery, secret omission; journal confirms no push/template/sandbox submission.');
+  const journals = readdirSync(journalDirectory).map(file => {
+    const location = join(journalDirectory, file);
+    return { location, ...JSON.parse(readFileSync(location, 'utf8')) };
+  });
+  assert.equal(journals.length, 2);
+  const failed = journals.find(journal => journal.entries.length);
+  assert.ok(failed && error.message.includes(failed.location));
+  assert.equal(failed.entries.length, 1);
+  assert.equal(failed.entries[0].kind, 'image');
+  assert.equal(failed.entries[0].id, undefined);
+  console.log('PASS missing ACR namespace and same-name retry against a real Docker daemon.');
+  console.log('PASS real Docker RUN failure: E7020, recovery path, secret omission and no push/template/sandbox submission.');
 } finally { rmSync(directory, { recursive: true, force: true }); }

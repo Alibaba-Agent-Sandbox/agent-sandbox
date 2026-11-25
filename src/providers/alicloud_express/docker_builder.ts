@@ -413,6 +413,13 @@ interface RunResult {
   stderr: string;
 }
 
+/** Expected host failures when probing a Docker executable that cannot run. */
+function dockerProbeUnavailable(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return isFileNotFound(error) || error instanceof TimeoutExpired ||
+    code === "EACCES" || code === "EPERM" || code === "EAGAIN";
+}
+
 /**
  * `true` when `docker build` can take buildx-only flags (`--provenance`, `--progress=plain`).
  * `DOCKER_BUILDKIT=0` forces the legacy builder. A missing `buildx` plugin is also the legacy builder.
@@ -423,7 +430,7 @@ export async function dockerBuildxAvailable(docker = "docker"): Promise<boolean>
     const result = await runCaptured([docker, "buildx", "version"], { timeout: 10 });
     return result.returncode === 0;
   } catch (err) {
-    if (isFileNotFound(err) || err instanceof TimeoutExpired) return false;
+    if (dockerProbeUnavailable(err)) return false;
     throw err;
   }
 }
@@ -619,7 +626,7 @@ export class DockerBuilder {
       const result = await runCaptured([this._docker, "info"], { timeout: 15 });
       return result.returncode === 0;
     } catch (err) {
-      if (isFileNotFound(err) || err instanceof TimeoutExpired) return false;
+      if (dockerProbeUnavailable(err)) return false;
       throw err;
     }
   }

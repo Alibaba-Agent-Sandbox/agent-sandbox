@@ -12,6 +12,7 @@ import { renderScaffold } from "../../src/cli/scaffold.js";
 import { paths, _setPaths } from "../../src/transport/config_layers.js";
 import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { Sandbox } from "../../src/api/sandbox.js";
+import { templateSeams } from "../../src/providers/alicloud_express/cli/template.js";
 import { sourceDigest } from "../../src/application/config.js";
 const tmp = useTmpPath();
 const run = (args: string[]) => new CliRunner().invoke(cli, args, {env: {ABX_SANDBOX_API_KEY: "test-key", ABX_REGION: "cn-hangzhou"}});
@@ -24,6 +25,7 @@ function project(): string {
   return folder;
 }
 function fakeLaunch() {
+  vi.spyOn(deploymentSeams, "checkPrerequisites").mockResolvedValue();
   return vi.spyOn(deploymentSeams, "launch").mockImplementation(async (_ctx, params, options = {}) => {
     expect(fs.existsSync(String(params.template_ref))).toBe(true);
     options.onTarget?.({provider:"alicloud-express",providerOptions:{region:"cn-hangzhou"},connection:{api_url:"https://example.test",domain:"example.test"}});
@@ -40,6 +42,32 @@ describe("unified deploy", () => {
     expect(result.exit_code,result.output).toBe(0); expect(JSON.parse(result.stdout)).toMatchObject({name:"demo",kind:"sandbox",builds_or_cloud_changes:false});
     expect(launch).not.toHaveBeenCalled(); expect(readDeployment("demo")).toBeUndefined();
   });
+  it("rejects unavailable Docker before creating a source deployment record", async () => {
+    const source = project();
+    const docker = vi.spyOn(templateSeams.DockerBuilder.prototype, "checkDocker").mockResolvedValue(false);
+    const launch = vi.spyOn(deploymentSeams, "launch");
+    const result = await run(["--json", "deploy", source, "--name", "missing-docker", "--yes"]);
+    expect(result.exit_code).not.toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ code: "E7020" });
+    expect(docker).toHaveBeenCalledOnce();
+    expect(launch).not.toHaveBeenCalled();
+    expect(readDeployment("missing-docker")).toBeUndefined();
+  });
+
+  it("allows a corrected source deployment to reuse a name after preparation recorded no resource intent", async () => {
+    const source = project();
+    const launch = fakeLaunch();
+    launch.mockImplementationOnce(async (_ctx, _params, options) => {
+      const journal = new ResourceJournal("alicloud-express", "test");
+      await journal.initialize();
+      options?.onJournal?.(journal);
+      throw new Error("no intent");
+    });
+    expect((await run(["deploy", source, "--name", "source-retry", "--yes"])).exit_code).not.toBe(0);
+    expect(readDeployment("source-retry")).toMatchObject({ effectsStarted: false, status: "deleted" });
+    expect((await run(["deploy", source, "--name", "source-retry", "--yes"])).exit_code).toBe(0);
+  });
+
   it("rejects an invalid manifest during preview", async () => {
     const source=project(); fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");
     expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);
@@ -65,7 +93,9 @@ describe("unified deploy", () => {
     expect((await run(["deploy","--template-id","base","--name","uncertain","--yes"])).exit_code).not.toBe(0);expect(create).toHaveBeenCalledTimes(1);
   });
   it("retains the known identity when service startup fails", async () => {
-    const source=project();vi.spyOn(deploymentSeams,"launch").mockImplementation(async(_ctx,_params,options={})=>{await options.onCreated?.("known-owned");throw new Error("startup");});
+    const source=project();
+    vi.spyOn(deploymentSeams, "checkPrerequisites").mockResolvedValue();
+    vi.spyOn(deploymentSeams,"launch").mockImplementation(async(_ctx,_params,options={})=>{await options.onCreated?.("known-owned");throw new Error("startup");});
     expect((await run(["deploy",source,"--name","failed","--yes"])).exit_code).not.toBe(0);
     expect(readDeployment("failed")).toMatchObject({sandboxId:"known-owned",status:"requires_recovery"});
   });

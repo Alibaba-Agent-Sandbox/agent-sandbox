@@ -11,7 +11,7 @@ import { UsageError } from "../errors.js";
 import { INT, FLOAT, Choice } from "../types.js";
 import { acquireTemplateSource, _findTemplateYaml } from "../template_catalog.js";
 import { snapshotTemplateSource } from "../template_build.js";
-import { executeTemplateLaunch } from "../template_launch.js";
+import { checkTemplatePrerequisites, executeTemplateLaunch } from "../template_launch.js";
 import { ApplicationError, readTemplate, readYaml, record, sourceDigest, writeJson } from "../../application/config.js";
 import { applicationProfile } from "../../application/profile/normalize.mjs";
 import { buildApplication } from "../../application/tools.js";
@@ -30,7 +30,7 @@ import { validateTemplateManifest, planTemplateLaunch } from "../../template/lau
 import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
 
-export const deploymentSeams = { launch: executeTemplateLaunch, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
+export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
 export async function approve(ctx: Context, params: Params, message: string): Promise<void> {
   if (params.yes) return;
   if (!canGuideConfiguration(ctx, false)) throw new UsageError("Review the operation and pass --yes to authorize it.");
@@ -105,7 +105,14 @@ export const deploy_shortcut = command("deploy", {
     if (profile && source) readTemplate(path.join(source, "template.yaml"));
     const summary = { name, kind, provider, profile, source: params.source ?? params.template_id ?? artifact?.projectRoot ?? ".", resources: profile ? ["server image", "sandbox template", "worker", "dispatcher", "gateway"] : ["sandbox", ...(source && !artifact ? ["template build when required"] : [])] };
     if (params.plan) { getFormatter(ctx).printData({ ...summary, status: "preview", builds_or_cloud_changes: false }); return; }
-    await approve(ctx, params, `Deploy ${name}? This may build images and create billable cloud resources.`);
+    if (!profile && source && !artifact) {
+      const yaml = _findTemplateYaml(source);
+      await deploymentSeams.checkPrerequisites(ctx, provider, yaml ? path.dirname(yaml) : source, manifest, params.build_profile);
+    }
+    const buildsTemplate = !profile && !artifact && !params.template_id && source && !manifest["template_id"] && !manifest["image"];
+    const consent = profile ? "This may create billable cloud resources." : buildsTemplate
+      ? "Build or register the template and create a billable Sandbox." : "Create a billable Sandbox.";
+    await approve(ctx, params, `Deploy ${name}? ${consent}`);
     await withApplicationLock(path.join(paths.abxDir, "deployment-locks"), name, async () => {
       const recorded = readDeployment(name);
       const previous = recorded?.status === "deleted" ? undefined : recorded;
@@ -120,6 +127,7 @@ export const deploy_shortcut = command("deploy", {
       else if (!params.template_id) { value.source = path.join(folder, "source"); fs.mkdirSync(value.source); fs.writeFileSync(path.join(value.source, "template.yaml"), JSON.stringify(manifest)); }
       if (previous) { value.previous = path.join(folder, "previous.json"); writeJson(value.previous, previous); }
       saveDeployment(value);
+      let preparationJournal: ResourceJournal | undefined;
       try {
         if (kind === "application") {
           const file = path.join(value.source!, "template.yaml"), template = readTemplate(file);
@@ -154,11 +162,21 @@ export const deploy_shortcut = command("deploy", {
             ...(artifact ? { prepared: artifact.prepared as PreparedTemplate, builtTarget: artifact.target as Record<string, unknown> } : {}),
             onTarget: target => { Object.assign(value, target); saveDeployment(value); },
             afterCreate: params.upload ? async sandbox => { const local = fs.realpathSync(String(params.upload)); if (fs.statSync(local).isDirectory()) { const files = fs.readdirSync(local, { recursive: true, withFileTypes: true }); for (const file of files) if (file.isFile()) { const absolute = path.join(file.parentPath, file.name); await sandbox.files.write(`/home/user/${path.relative(local, absolute).split(path.sep).join("/")}`, fs.readFileSync(absolute)); } } else await sandbox.files.write(`/home/user/${path.basename(local)}`, fs.readFileSync(local)); } : undefined,
-            onJournal: journal => { value.journal = journal.file; value.effectsStarted = true; saveDeployment(value); }, onCreated: async id => { value.sandboxId = id; saveDeployment(value); },
+            onJournal: journal => { preparationJournal = journal; value.journal = journal.file; value.effectsStarted = true; saveDeployment(value); }, onCreated: async id => { value.sandboxId = id; saveDeployment(value); },
           }); value.launch = launched.receipt;
         }
         value.status = "ready"; saveDeployment(value); getFormatter(ctx).printData(deploymentSummary(value));
-      } catch (error) { value.status = "requires_recovery"; saveDeployment(value); throw error; }
+      } catch (error) {
+        // The callback runs before requests so a crash stays conservative. A returned error
+        // with an acknowledged empty journal proves that this deployment started no requests.
+        if (kind === "sandbox" && source && !artifact && !value.sandboxId &&
+            (value.effectsStarted === false || preparationJournal?.hasRecordedIntent === false)) {
+          value.effectsStarted = false;
+          value.status = "deleted";
+        } else value.status = "requires_recovery";
+        saveDeployment(value);
+        throw error;
+      }
     });
   }),
 });

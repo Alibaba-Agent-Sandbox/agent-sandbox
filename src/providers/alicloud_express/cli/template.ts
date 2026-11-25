@@ -431,14 +431,18 @@ export interface BuildImageOptions {
 }
 
 /** Read-only prerequisites run before any build ownership intent is registered. */
-async function ensureDockerDaemon(builder: DockerBuilder): Promise<void> {
+async function ensureDockerDaemon(builder: DockerBuilder, ctx = getCurrentContext(true)): Promise<void> {
     while (!(await builder.checkDocker())) {
-        const ctx = getCurrentContext(true);
         const error = new DockerSetupError(which("docker") ? "unavailable" : "missing");
-        if (!canGuideConfiguration(ctx ?? undefined, Boolean(ctx?.params["yes"]))) throw error;
+        if (!canGuideConfiguration(ctx, Boolean(ctx?.params["yes"]))) throw error;
         getOutput(ctx).warning(error.message);
         if (!(await confirm("After fixing Docker, check again?", { default: true, err: true }))) throw new DockerSetupError("cancelled");
     }
+}
+
+/** Check the selected Docker daemon without changing local or cloud resources. */
+export async function checkDockerPrerequisite(ctx: Context): Promise<void> {
+    await ensureDockerDaemon(new templateSeams.DockerBuilder(), ctx);
 }
 
 /**
@@ -742,6 +746,7 @@ async function withPushConfiguration<T>(ctx: Context, params: Any, action: () =>
 
 /** Resolve the complete operation requirements before local builds or cloud mutations. */
 export async function withDeployConfiguration<T>(directory: string, opts: DoDeployOptions, action: () => Promise<T>): Promise<T> {
+    requireTemplateFeature("templates.build");
     let plan: BuildPlan;
     try { plan = resolveBuildPlan(directory, { mode: opts.build ?? "auto", dockerfile: opts.dockerfile }); }
     catch (error) { if (error instanceof BuildModeError) throw usageError(error.message); throw error; }
@@ -786,11 +791,11 @@ function effectiveAcrCredentials(options: Pick<DoDeployOptions, "acr_username" |
  * TemplateID, Status, etc.
  */
 export async function _doDeploy(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
-    requireTemplateFeature("templates.build");
     return withDeployConfiguration(template_dir, opts, () => deployConfigured(template_dir, opts));
 }
 
-async function deployConfigured(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
+/** Execute in the resolved build configuration without repeating setup or target output. */
+export async function deployConfigured(template_dir: string, opts: DoDeployOptions): Promise<Record<string, Any>> {
     const { acr_namespace: requestedNamespace, acr_registry = "registry.cn-hangzhou.aliyuncs.com", acr_repo = null, acr_username = null, acr_password = null, acree_instance_id = "", vpc_id = "", vswitch_ids = "", security_group_id = "", alias = null, tag = "latest", platform = "linux/amd64", cpu = null, memory = null, start_cmd = null, ready_cmd = null, timeout = 600, dockerfile = null, disk_size = null, internet_access = null, team_id = null, envd_inject = false, generation = null, force = false, target_image = null, region = null, ctx = null, verbose = false, build = null, explicit_acr_namespace = false, } = opts;
     const config = templateSeams.loadConfig({ region });
     const yamlDefaults = _readYamlDefaults(template_dir);

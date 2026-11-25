@@ -22,7 +22,7 @@ Runtime calls need the selected Provider's API credentials and endpoint. Builds 
 
 When the template declares an empty application token, deployment generates a random value, saves it privately and reuses it for later commands. This also works with `--yes`. To choose a custom value, use hidden input with `abx config set server_token`. External clients send that application token separately from Provider traffic authentication. Changing saved configuration does not change an already running application's startup environment.
 
-Interactive prompts show the Provider, region and API host where relevant. Empty input or Ctrl+C cancels collection before saving. Secrets use hidden input. Invalid saved configuration is diagnosed rather than silently replaced. Detailed source information is available with `--verbose` and the [configuration reference](../reference/configuration.md).
+The wizard shows the selected Provider and region. Secrets use hidden input. In `config init`, Enter keeps the effective value without copying environment variables or project `.env` values to your user configuration. Ctrl+C during input cancels the current collection. If a saved value is overridden, the wizard names the variable and its source. Update or remove that override to use the saved value. Use `--verbose` for API host and managed-key details.
 
 ```bash
 abx config set sandbox_api_key

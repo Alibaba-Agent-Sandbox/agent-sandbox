@@ -118,7 +118,7 @@ describe("provider-owned project launch", () => {
       expect(result.exit_code).not.toBe(0);
       expect(JSON.parse(result.stdout)).toMatchObject({ code });
       expect(result.output).toContain(phase);
-      expect(result.output).toContain("recovery journal");
+      expect(result.output).not.toContain("recovery journal");
       expect(result.output).not.toContain("private-index-credential");
       expect(f.provider.prepare).toHaveBeenCalledOnce();
       expect(f.provider.close).toHaveBeenCalledOnce();
@@ -143,6 +143,19 @@ describe("provider-owned project launch", () => {
       expect(fs.readFileSync(path.join(f.directory, "Dockerfile"), "utf8")).toBe(original);
     } finally { f.create.mockRestore(); }
   });
+  it("reports unusable recovery storage before starting preparation", async () => {
+    const f = setup();
+    fs.writeFileSync(path.join(iso.home, "resource-journal"), "not a directory");
+    try {
+      const result = await f.invoke();
+      expect(JSON.parse(result.stdout)).toMatchObject({ code: "E8002" });
+      expect(result.output).toContain("Could not save local recovery state");
+      expect(result.output).not.toContain("Inspect recovery journal");
+      expect(f.provider.prepare).not.toHaveBeenCalled();
+      expect(f.create).not.toHaveBeenCalled();
+    } finally { f.create.mockRestore(); }
+  });
+
   it("preserves controlled prerequisite guidance without an ambiguous recovery warning", async () => {
     const f=setup();f.provider.prepare.mockRejectedValue(new DockerSetupError("missing"));
     try {
@@ -156,12 +169,17 @@ describe("provider-owned project launch", () => {
   });
   it("keeps the safe failed Docker phase and recovery journal visible without exposing raw output", async () => {
     const f = setup();
-    f.provider.prepare.mockRejectedValue(new ProjectToolError("docker", "push", { killed: true }));
+    f.provider.prepare.mockImplementation(async (_directory, options) => {
+      await options.journal!.intent({ kind: "image", correlation_key: "published-image", cleanup: "manual" });
+      throw new ProjectToolError("docker", "push", { killed: true });
+    });
     try {
       const result = await f.invoke();
       expect(result.exit_code).not.toBe(0);
       expect(result.output).toContain("Docker push exceeded its time limit");
-      expect(result.output).toContain("recovery journal");
+      const directory = path.join(iso.home, "resource-journal");
+      const [journal] = fs.readdirSync(directory);
+      expect(result.output).toContain(`recovery journal ${path.join(directory, journal!)}`);
       expect(f.create).not.toHaveBeenCalled();
     } finally { f.create.mockRestore(); }
   });
@@ -360,7 +378,7 @@ describe("Express preparation readiness", () => {
     const { CLI_EXTENSION } = await import("../../src/providers/alicloud_express/cli/extension.js");
     const adapter = await import("../../src/providers/alicloud_express/cli/template.js");
     const fc = await import("../../src/providers/alicloud_express/fc_template.js");
-    const deploy = vi.spyOn(adapter, "do_deploy").mockResolvedValue({ TemplateID: "submitted-template", Status: "submitted" });
+    const deploy = vi.spyOn(adapter, "deployConfigured").mockResolvedValue({ TemplateID: "submitted-template", Status: "submitted" });
     const source = path.join(iso.root, "readiness-project");
     fs.mkdirSync(source);
     fs.writeFileSync(path.join(source, "template.yaml"), "name: fixture\nbase:\n  image: python:3.12-slim\nbuild:\n  run: ['true']\n");

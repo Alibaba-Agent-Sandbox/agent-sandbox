@@ -47,6 +47,7 @@ import { collectSources } from "../../transport/config_layers.js";
 import { getOperationConfig } from "../../utils/operation_config.js";
 import { canPrompt } from "../interaction.js";
 import { configurationTargetSummary } from "../config_target.js";
+import { getOutput } from "../output.js";
 import { getCurrentContext } from "../kit.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1024,8 +1025,23 @@ export const init = command("init", {
     const profile = providerCliExtension(provider.id)?.configuration;
     assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
     assertConfigValuesValid([...CORE_KEYS.filter((key) => !GENERIC_ENDPOINT_KEYS.includes(key.key) || provider.inherit.has(key.key)), ...provider.configKeys()], collectSources(), provider.id);
-    echo(configurationTargetSummary(provider.id), { err: true });
-    if (profile?.runtimeAuthentication) echo(profile.runtimeAuthentication.help, { err: true });
+    const out = getOutput(ctx);
+    const summary = configurationTargetSummary(provider.id);
+    out.info(summary.split("\n").slice(0, 2).map(line => line.replace(/ \([^)]*\)$/, "")).join(" · "));
+    out.debug(summary);
+    const runtimeAuth = profile?.runtimeAuthentication;
+    if (runtimeAuth) out.debug(runtimeAuth.help);
+    const fieldTarget = (key: string): extras.ExtraTarget | null => key === "llm_api_key"
+      ? null : extras.resolveExtraKey(`providers.${provider.id}.${key}`);
+    const readField = (key: string): extras.ExtraValue => {
+      const target = fieldTarget(key);
+      if (target) return extras.readExtra(target);
+      const [value, source] = _effectiveValue(key);
+      const project = source === "user" ? collectSources().dotenv?.[0] : undefined;
+      const projectName = (_ENV_OVERRIDES.get(key) ?? []).find(name => project?.[name]);
+      return { value, source, name: _envOverrideName(key) ?? projectName ?? _ENV_STORED_KEYS.get(key) ?? key,
+        file: projectName ? ".env" : source === "user" ? configSeams._ENV_FILE : undefined };
+    };
     const declared: readonly ConfigPrompt[] = profile?.initFields ?? (await extras.initializationKeys(provider.id, async (groups) => {
       const index = await select("Choose an authentication method", {
         choices: [...groups.map((group, index) => ({ name: group.join(" + "), value: index })), { name: "Cancel", value: -1 }],
@@ -1034,32 +1050,32 @@ export const init = command("init", {
       if (index === -1) throw new Abort();
       return index;
     })).map((key) => ({
-      key: key.key, prompt: key.description || key.key, hidden: key.secret, current: !key.secret, result: "stored" as const,
+      key: key.key, prompt: key.description || key.key, hidden: key.secret, current: !key.secret,
     }));
     const fields = [...declared, ...(build ? profile?.buildFields ?? [] : [])];
     const total = fields.length + (llm ? 1 : 0);
     const pending: Array<{ field: ConfigPrompt; value: string }> = [];
     let step = 0;
     const label = (text: string): string => `${++step}/${total} ${text}`;
-    assertConfigFilesReadable(configSeams._CONFIG_FILE, [configSeams._ENV_FILE]);
-    echo("abx guided configuration (press Enter to keep the current value; missing required values remain incomplete):", { err: true });
     for (const field of fields) {
+      const effective = readField(field.key);
       const help = configurationFieldHelp(field.key, provider.id);
-      if (help) echo(help, { err: true });
-      let current: unknown = field.default ?? "";
-      if (field.current) {
-        const target = profile ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
-        current = (target ? extras.readExtra(target).value : _effectiveValue(field.key)[0]) ?? current;
-      }
-      const question = label(field.prompt);
+      if (help && !effective.value) out.info(help);
+      const shown = field.current ? effective.value ?? field.default : undefined;
+      const keepDefault = field.default !== undefined && (effective.source === "default" || effective.source === "unset");
+      const hint = field.hidden
+        ? effective.value ? " [Enter to keep saved or supplied value]"
+          : field.key === runtimeAuth?.key && runtimeAuth.alternativeLabel ? ` [Enter for ${runtimeAuth.alternativeLabel}]` : ""
+        : shown ? ` [${pyStr(shown)}]` : "";
+      const question = label(field.prompt + hint);
       for (;;) {
         const answer = field.hidden ? await configSeams._promptSecret(question) : await prompt(question, {
-          default: pyStr(current), show_default: Boolean(current), err: true,
+          default: "", show_default: false, err: true,
         });
-        const value = pyStrip(String(answer));
+        const value = pyStrip(String(answer)) || (keepDefault ? field.default! : "");
         if (!value) break;
         try {
-          const target = extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
+          const target = fieldTarget(field.key);
           if (target?.key) extras.parseExtraValue(target, value);
           pending.push({ field, value });
           break;
@@ -1071,14 +1087,15 @@ export const init = command("init", {
     }
     if (llm) {
       const value = pyStrip(await configSeams._promptSecret(label("LLM API key (DashScope/ModelStudio, input masked)")));
-      if (value) pending.push({ field: { key: "llm_api_key", env: "ABX_LLM_API_KEY", prompt: "LLM API key", hidden: true, result: "stored" }, value });
+      if (value) pending.push({ field: { key: "llm_api_key", env: "ABX_LLM_API_KEY", prompt: "LLM API key", hidden: true }, value });
     }
-    const runtimeAuth = profile?.runtimeAuthentication;
-    const configured = (key: string): boolean => Boolean(pending.find(item => item.field.key === key)?.value || _effectiveValue(key)[0]);
+    const configured = (key: string): boolean => Boolean(pending.find(item => item.field.key === key)?.value || readField(key).value);
     if (runtimeAuth && !configured(runtimeAuth.key)) {
       const alternative = runtimeAuth.alternatives.find(group => !group.includes(runtimeAuth.key));
-      if (alternative) {
-        echo(`No API key supplied. You can configure ${alternative.join(" + ")} instead. ${runtimeAuth.help}`, { err: true });
+      if (alternative?.some(key => !configured(key) && !fields.some(field => field.key === key))) {
+        out.info("AccessKeys let abx prepare a Sandbox API key after you approve it.");
+        const help = configurationFieldHelp(alternative[0]!, provider.id);
+        if (help) out.info(help);
         for (const key of alternative) {
           if (configured(key) || fields.some(field => field.key === key)) continue;
           const field = profile.buildFields.find(candidate => candidate.key === key);
@@ -1105,8 +1122,7 @@ export const init = command("init", {
           destination = configSeams._CONFIG_FILE;
         }
         saved.push(field.key);
-        if (field.result === "set" && !field.hidden) fmt.printSuccess(`Set ${field.key} = ${value}`);
-        else fmt.printSuccess(`Stored ${field.key} in ${destination}`);
+        out.debug(`Saved ${field.key} in ${destination}.`);
       }
     } catch (error) {
       if (error instanceof extras.ConfigurationCleanupError) saved.push(error.field);
@@ -1115,12 +1131,11 @@ export const init = command("init", {
       });
     }
 
-    echo();
     resetConfigurationCaches();
-    const runtimeConfigured = runtimeAuth?.alternatives.some(group => group.every(key => Boolean(_effectiveValue(key)[0])));
+    const runtimeConfigured = runtimeAuth?.alternatives.some(group => group.every(key => Boolean(readField(key).value)));
     const required = profile ? [...(runtimeAuth || runtimeConfigured ? [] : ["sandbox_api_key"]), ...(build ? ["acr_namespace", "access_key_id", "access_key_secret"] : []), ...(llm ? ["llm_api_key"] : [])] : fields.filter((field) => provider.configKeys().find((key) => key.key === field.key)?.required).map((field) => field.key);
     const missing = required.filter((key) => {
-      const value = profile ? _effectiveValue(key)[0] : extras.readExtra(extras.resolveExtraKey(`providers.${provider.id}.${key}`)!).value;
+      const value = readField(key).value;
       return value === null || value === undefined || value === "";
     });
     let authError = runtimeAuth && !runtimeConfigured ? ` Configure one authentication method: ${runtimeAuth.alternatives.map(group => group.join(" + ")).join("; or ")}.` : "";
@@ -1128,33 +1143,31 @@ export const init = command("init", {
       try { provider.validateConfig((await import("../../transport/config_layers.js")).loadLayeredConfig({ provider: provider.id })); }
       catch { authError = ` Required fields or an authentication combination for '${provider.id}' are still missing; see 'abx provider info ${provider.id}'.`; }
     }
+    let hasOverride = false;
+    for (const { field, value } of pending) {
+      const target = fieldTarget(field.key);
+      const effective = readField(field.key);
+      const expected = target ? extras.parseExtraValue(target, value) : value;
+      if (String(effective.value) === String(expected)) continue;
+      hasOverride = true;
+      const source = effective.file ? `${effective.name} in ${effective.file}`
+        : effective.source === "env" ? `environment variable ${effective.name}` : `${effective.source} (${effective.name})`;
+      out.warning(`Saved ${field.key} locally. Still using ${source}. Update or remove that override to use the saved value.`);
+    }
     if (missing.length || authError) {
       fmt.printError(`Configuration incomplete.${missing.length ? ` Missing: ${missing.join(", ")}.` : ""}${authError}`, { suggestion: "Run 'abx config init' again, or 'abx config set KEY' to enter a value safely." });
       return sysExit(2);
     }
-    const overridden: string[] = [];
-    for (const { field, value } of pending) {
-      const target = field.key === "llm_api_key" ? null : extras.resolveExtraKey(`providers.${provider.id}.${field.key}`);
-      const effective = target ? extras.readExtra(target) : { value: _effectiveValue(field.key)[0], source: _effectiveValue(field.key)[1], name: _envOverrideName(field.key) ?? field.env ?? field.key };
-      const expected = target ? extras.parseExtraValue(target, value) : value;
-      if (effective.value !== expected) overridden.push(`${field.key} (${effective.source}: ${effective.name || "see abx config list"})`);
-    }
-    if (overridden.length) echo(`Saved values overridden by another configuration source: ${overridden.join(", ")}. Update or remove that source to use the newly saved values; values are not shown.`, { err: true });
-    const destinations = [...new Set(pending.map(({ field }) => field.env ? configSeams._ENV_FILE : configSeams._CONFIG_FILE))];
+    let savedLocally = pending.length > 0;
     if (!_effectiveValue("server_token")[0]) {
       const location = saveGuidedValue("server_token", randomBytes(32).toString("hex"));
-      echo(`Generated an application access token and saved it in ${location.path}. Deployment and abx sandbox command run use it automatically.`, { err: true });
+      out.debug(`Generated an application access token in ${location.path}.`);
+      savedLocally = true;
     }
-    fmt.printSuccess(`Configuration complete.${destinations.length ? ` Saved to ${destinations.join(" and ")}.` : " Existing values were kept."} Review values and sources with 'abx config list'.`);
-    echo("To change a value later: abx config set KEY (omit VALUE for masked secret input).", { err: true });
+    fmt.printSuccess(`Configuration complete.${savedLocally ? " Saved locally." : ""} Review with 'abx config list'.`);
     if (!build && !llm) {
       const { continueSetup } = await import("../setup.js");
-      await continueSetup(ctx);
-    } else if (!build || !llm) {
-      const more: string[] = [];
-      if (!build) more.push("template build/push: 'abx config init --build'");
-      if (!llm) more.push("template generation: 'abx config init --llm'");
-      echo(`More settings: ${more.join("; ")}.`);
+      await continueSetup(ctx, hasOverride);
     }
   }),
 });

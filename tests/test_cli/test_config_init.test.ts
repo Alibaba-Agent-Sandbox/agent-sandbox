@@ -85,7 +85,8 @@ describe("TestConfigInitWizard", () => {
     );
     expect(result.exit_code, result.output).toBe(0);
     expect(result.output).toContain("Configuration complete");
-    expect(result.output).toContain("sandbox:CreateApiKey");
+    expect(result.output).toContain("AccessKeys let abx prepare a Sandbox API key after you approve it");
+    expect(result.output).not.toContain("sandbox:CreateApiKey");
     expect(readText(path.join(tmp, ".env"))).toContain("ALICLOUD_ACCESS_KEY_SECRET=placeholder-secret");
     expect(readText(path.join(tmp, ".env"))).not.toContain("ABX_SANDBOX_API_KEY=");
     expect(load).not.toHaveBeenCalled();
@@ -107,15 +108,10 @@ describe("TestConfigInitWizard", () => {
     expect(envContent).toContain("ACR_NAMESPACE=my-ns");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_ID=LTAIexampleAk");
     expect(envContent).toContain("ALICLOUD_ACCESS_KEY_SECRET=SecretValue123456");
-    expect(result.output).toContain("Set acr_namespace = my-ns");
-    expect(result.output).toContain("Stored access_key_id");
-    expect(result.output).toContain("Stored access_key_secret");
     expect(result.output).not.toContain("SecretValue123456");
     expect(envContent).not.toContain("ABX_QWEN_CODE_API_KEY");
     const configContent = readText(configFile);
     expect(configContent).toContain('region = "cn-shanghai"');
-    expect(result.output).toContain("Stored sandbox_api_key");
-    expect(result.output).toContain("Stored llm_api_key");
     expect(result.output).toContain("Configuration complete");
   });
 
@@ -131,7 +127,10 @@ describe("TestConfigInitWizard", () => {
     expect(result.output).toContain("2/2 ");
     expect(result.output).not.toContain("ACR namespace");
     expect(result.output).not.toContain("LLM API key");
-    expect(result.output).toContain("Generated an application access token");
+    expect(result.output).not.toContain("sandbox:CreateApiKey");
+    expect(result.output).not.toContain("Stored sandbox_api_key");
+    expect(result.output).not.toContain("Generated an application access token");
+    expect(result.output.match(/Configuration complete/g)).toHaveLength(1);
     expect(readText(envFile)).toContain("ABX_SANDBOX_API_KEY=sk-platform\n");
     expect(readText(envFile)).toMatch(/ABX_SERVER_TOKEN=[a-f0-9]{64}/);
   });

@@ -203,11 +203,8 @@ export function readDotenv(p: string): Record<string, string> {
 }
 
 export function dotenvLayers(): Array<Record<string, string>> {
-  const layers: Array<Record<string, string>> = [];
-  for (const candidate of paths.envFiles) {
-    if (isFile(candidate)) layers.push(readDotenv(candidate));
-  }
-  return layers;
+  // Keep the resolver's dotenv indices aligned with the configured paths.
+  return paths.envFiles.map(candidate => isFile(candidate) ? readDotenv(candidate) : {});
 }
 
 /** Snapshot the live sources (process env, `.env` files, `config.toml`). */

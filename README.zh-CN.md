@@ -38,7 +38,7 @@ abx config init
 abx deploy --template-id base --name demo --yes
 ```
 
-极速版需要对应账号和地域的 Sandbox API Key。[凭据与权限指南](docs/zh/guide/permissions.md)说明凭据来源、所需授权，以及可选的 AccessKey 准备方式。交互输入的配置保存在本机，后续命令复用。
+极速版需要对应账号和地域的 Sandbox API Key。[凭据与权限指南](docs/zh/guide/permissions.md)说明凭据来源、所需授权，以及可选的 AccessKey 准备方式。交互输入的配置保存在本机，后续命令复用。若进程环境变量或项目 `.env` 覆盖了保存值，CLI 会提示实际来源。
 
 后续操作使用部署名称：
 

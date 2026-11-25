@@ -113,6 +113,8 @@ export interface ExtraValue {
   name: string;
   /** `env`, `user`, `default` or `unset` (the labels `config list` uses). */
   source: string;
+  /** The file used by the resolver for a dotenv or TOML value. */
+  file?: string;
 }
 
 export function readExtra(target: ExtraTarget): ExtraValue {
@@ -129,7 +131,8 @@ export function readExtra(target: ExtraTarget): ExtraValue {
   const res = resolveKey(key, collectSources(overrides), { scopedFor: target.provider_id });
   if (res === null) return { value: null, name: "", source: "unset" };
   const source = res.layer === "override" ? "override" : res.layer === "environ" ? "env" : res.layer === "default" || res.layer === "derived" ? "default" : "user";
-  return { value: res.value, name: res.name, source };
+  const file = res.layer === "dotenv" ? paths.envFiles[res.layer_index] : res.layer === "toml" ? paths.configFile : undefined;
+  return { value: res.value, name: res.name, source, file };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
