@@ -134,7 +134,7 @@ The MCP Server provides 21 tools: the core and extended tools below for the curr
 | `get_template_build` | Inspect build state; readiness is not runtime validation | `team_id, template_id` |
 | `validate_template` | Create temporary runtime; verify effects and independent cleanup | `template_id, region?` |
 
-Template submitted, ready and runtime validation are separate states. Inspect the build reason and image permissions on failure. The Express adapter handles runtime preparation; the MCP tool has no injection toggle. Management uses AK/SK; sandbox execution uses its own key. Do not automatically create management keys or overwrite existing templates.
+Template submitted, ready and runtime validation are separate states. Inspect the build reason and image permissions on failure. The Express adapter handles runtime preparation; the MCP tool has no injection toggle. In the separate native Provider template operation, `envd_inject=true` requests injection; false or omission leaves the build block absent and does not force the service to disable injection. Management uses AK/SK; sandbox execution uses its own key. Do not automatically create management keys or overwrite existing templates.
 
 
 ---

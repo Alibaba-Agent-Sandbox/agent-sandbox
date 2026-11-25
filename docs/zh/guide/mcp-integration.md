@@ -128,7 +128,7 @@ MCP Server 提供 21 个工具：下面按用途列出当前源码默认 Provide
 | `get_template_build` | 查询构建状态；就绪不等于运行验证 | `team_id, template_id` |
 | `validate_template` | 创建临时沙箱，验证运行与独立清理 | `template_id, region?` |
 
-模板构建的 `submitted`、`ready` 与实际运行验证是不同阶段。构建失败先查看 reason 和镜像权限。极速版适配器负责运行环境准备，MCP 工具不提供注入开关。模板管理用 AK/SK，沙箱运行用 Sandbox Key；不自动创建管理 Key 或覆盖已有模板。
+模板构建的 `submitted`、`ready` 与实际运行验证是不同阶段。构建失败先查看 reason 和镜像权限。极速版适配器负责运行环境准备，MCP 工具不提供注入开关。独立的 Provider 原生模板操作中，`envd_inject=true` 表示请求注入；false 或省略表示不发送构建配置，并不能强制云端关闭注入。模板管理用 AK/SK，沙箱运行用 Sandbox Key；不自动创建管理 Key 或覆盖已有模板。
 
 > **命名说明**：MCP 工具 `run_command` 通过 `sh -c` 执行命令（SDK 中 `sandbox.commands.run(..., shell=True)`），与 SDK 中已弃用的 `Sandbox.run_command()` 方法无关——后者用于调度命名自定义命令，请使用 `Sandbox.custom()` 替代。
 >

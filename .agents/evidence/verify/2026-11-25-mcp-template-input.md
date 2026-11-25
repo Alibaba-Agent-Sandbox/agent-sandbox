@@ -29,3 +29,12 @@ Scoped ESLint and hygiene passed. Repository health passed 105 checks with 11
 registered historical warnings and zero failures after correcting the new ADR
 template. Independent second review accepted the strict-input/default-preservation
 boundary; Python MCP has no corresponding template-submission tool.
+
+Native Provider schema help now states true/request versus false/omission semantics;
+redundant false values were removed from conditional-acceptance examples. The
+existing wire-model regression was renamed to describe its actual null-build-block
+assertion rather than implying that cloud injection is disabled.
+
+The final three focused suites passed 74 tests. The native request-model check
+asserts the serialized body has no buildConfig property for false. Typecheck,
+scoped lint, hygiene and health remained passing after the descriptive change.

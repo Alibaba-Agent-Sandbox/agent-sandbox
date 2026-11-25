@@ -18,7 +18,7 @@ const inputs = {
   "template.get": z.strictObject({ team_id: id.optional(), template_id: id }),
   "template.create": z.strictObject({
     team_id: id.optional(), name: id, image: text, cpu: z.number().positive().optional(), memory_size: z.number().int().positive().optional(), disk_size: z.number().int().positive().optional(),
-    internet_access: z.boolean().optional(), generation: z.union([z.literal(1), z.literal(2)]).optional(), start_command: text.optional(), ready_command: text.optional(), envd_inject: z.boolean().optional(),
+    internet_access: z.boolean().optional(), generation: z.union([z.literal(1), z.literal(2)]).optional(), start_command: text.optional(), ready_command: text.optional(), envd_inject: z.boolean().optional().describe("True requests injection; false or omission leaves the build block absent and does not force the service to disable injection."),
     registry_type: text.optional(), acr_instance_id: id.optional(), registry_username: text.optional(), registry_password: text.optional(),
     registry_vpc_id: id.optional(), registry_vswitch_id: id.optional(), registry_security_group_id: id.optional(), target_image: text.optional(),
     steps: z.array(z.strictObject({ type: text, args: z.array(z.string()) })).optional(),
