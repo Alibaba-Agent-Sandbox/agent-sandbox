@@ -1,8 +1,10 @@
 # Binary Installation
 
 `abx` is distributed as a **precompiled standalone binary** — a single
-executable that bundles the Node.js runtime, the Agent Sandbox CLI, and all
-of its dependencies. **No Node.js installation is required.**
+executable that bundles the Node.js runtime, the Agent Sandbox CLI, and its
+bundled runtime dependencies. **No Node.js installation is required for standalone Sandbox operations.**
+
+Managed FC application build/deploy uses the [Node.js 20+ npm CLI](managed-applications.md), whose component files remain on disk. The binary can preview those deployments with `deploy --plan`.
 
 Binaries are attached to each GitHub Release
 ([releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases)):
@@ -25,12 +27,12 @@ The official website mirrors the complete stable release: all five binaries, the
 Repository guides use the 0.6 preview command layout. Select that preview explicitly; the default stable installers and npm `latest` retain 0.5.10. See [upgrading from 0.5.10](upgrading-to-0.6.md) before updating automation.
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 # Or install its standalone binary directly from GitHub:
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.0 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.1 sh
 ```
 
-On Windows, set `$env:ABX_VERSION = "0.6.0-alpha.0"` before running the PowerShell installer. Preview artifacts come from their matching GitHub prerelease, independently of the stable website mirror.
+On Windows, set `$env:ABX_VERSION = "0.6.0-alpha.1"` before running the PowerShell installer. Preview artifacts come from their matching GitHub prerelease, independently of the stable website mirror.
 
 ## Install
 

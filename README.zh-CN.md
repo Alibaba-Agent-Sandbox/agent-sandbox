@@ -18,7 +18,7 @@
 显式选择 0.6 预览版本（需要 Node.js 20+）：
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```

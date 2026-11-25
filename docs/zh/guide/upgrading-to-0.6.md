@@ -3,12 +3,14 @@
 0.6 预览版本调整了命令布局与自动化授权规则。请显式选择预览版本，并在修改脚本前确认安装结果：
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```
 
-npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复执行的自动化时，请固定完整版本号。独立二进制可通过 [GitHub 安装器](binary-installation.md) 指定 `ABX_VERSION=0.6.0-alpha.0`。默认稳定版安装器及官网镜像不会自动选择预览版本。
+npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复执行的自动化时，请固定完整版本号。独立二进制可通过 [GitHub 安装器](binary-installation.md) 指定 `ABX_VERSION=0.6.0-alpha.1`。默认稳定版安装器及官网镜像不会自动选择预览版本。
+
+已下载的 alpha.0 二进制请替换为 alpha.1。托管 FC 应用的构建与部署需要 npm 安装及 Node.js 20+；二进制保留 `deploy --plan` 预览。完整要求见[托管应用前置条件](managed-applications.md)。
 
 ## 更新命令
 
@@ -45,7 +47,7 @@ abx --ci delete demo --yes
 
 ## 更新运行时时重新构建应用镜像
 
-新生成的 Server SDK 模板与 MCP 应用分别选择各自所需的 0.5.0a0 服务端或客户端包。已有 Dockerfile 保留其显式依赖选择。已有 Server SDK 应用要使用文件上传修复，需要更新 `agent-sandbox-server` 依赖并重新构建、部署镜像；单独更新 CLI 不会替换运行中应用的代码。上传与下载接口仍在内存中缓冲 JSON/base64 内容，策略限制见 [Server SDK 文件指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/zh/guide/server-sdk.md)。
+新生成的 Server SDK 模板与 MCP 应用分别选择各自所需的 0.5.0a0 服务端或客户端包。已有 Server SDK 应用要使用文件上传修复，需要更新 `agent-sandbox-server` 依赖并重新构建、部署镜像；单独更新 CLI 不会替换运行中应用的代码。上传与下载接口仍在内存中缓冲 JSON/base64 内容，策略限制见 [Server SDK 文件指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/zh/guide/server-sdk.md)。
 
 ## 继续使用现有 0.5.10 脚本
 

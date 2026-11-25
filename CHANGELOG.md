@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.6.0-alpha.1] - 2026-11-25
+
+### Fixed
+
+- Make standalone management command help and template authoring work without a development dependency tree. Managed FC build/deploy now explains its Node.js 20+ npm CLI prerequisite before preparation or cloud changes. / 独立二进制的管理命令帮助及模板创作不再依赖开发依赖目录；托管 FC 构建与部署在准备或云端变更前说明 Node.js 20+ npm CLI 前置条件。
+
 ## [0.6.0-alpha.0] - 2026-11-25
+
+Withdrawn before npm publication: standalone executables require checkout dependencies. Use alpha.1 instead. / npm 发布前已撤回：独立二进制仍依赖开发目录，请改用 alpha.1。
 
 ### Fixed
 

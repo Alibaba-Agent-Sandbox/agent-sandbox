@@ -3,12 +3,14 @@
 The 0.6 preview changes the command layout and automation consent rules. Select the preview explicitly and check the installed version before updating scripts:
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```
 
-The npm `next` channel tracks previews; `latest` retains 0.5.10. Use an exact version in reproducible automation. For a standalone executable, select `ABX_VERSION=0.6.0-alpha.0` with the [GitHub installer](binary-installation.md). The default stable installer and website mirror do not opt into previews.
+The npm `next` channel tracks previews; `latest` retains 0.5.10. Use an exact version in reproducible automation. For a standalone executable, select `ABX_VERSION=0.6.0-alpha.1` with the [GitHub installer](binary-installation.md). The default stable installer and website mirror do not opt into previews.
+
+Replace any downloaded alpha.0 executable with alpha.1. Managed FC application build/deploy requires the npm installation and Node.js 20+; the binary retains `deploy --plan` previews. See the [managed application prerequisites](managed-applications.md).
 
 ## Update commands
 
@@ -45,7 +47,7 @@ Configuration, Sandbox API credentials, application tokens and model credentials
 
 ## Rebuild application images when updating the runtime
 
-New generated Server SDK templates and MCP applications select the matching 0.5.0a0 server or client package for their respective roles. Existing Dockerfiles keep their explicit dependency choices. To use the file-upload corrections in an existing Server SDK application, update its `agent-sandbox-server` requirement and rebuild/redeploy its image; updating the CLI alone does not replace a running application's code. Upload and download endpoints still buffer JSON/base64 content. See the [Server SDK file guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/en/guide/server-sdk.md) for policy limits.
+New generated Server SDK templates and MCP applications select the matching 0.5.0a0 server or client package for their respective roles. To use the file-upload corrections in an existing Server SDK application, update its `agent-sandbox-server` requirement and rebuild/redeploy its image; updating the CLI alone does not replace a running application's code. Upload and download endpoints still buffer JSON/base64 content. See the [Server SDK file guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/en/guide/server-sdk.md) for policy limits.
 
 ## Keep an existing 0.5.10 script
 

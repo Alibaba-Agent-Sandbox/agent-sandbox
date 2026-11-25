@@ -15,6 +15,7 @@ import { withApplicationLock } from "../application/lock.js";
 import { resolveDeployCredentials } from "../application/fc.js";
 import { cliProvider } from "../providers/selection.js";
 import { resolveProviderId } from "../providers/registry.js";
+import { assertManagedApplicationHost } from "../application/host.js";
 
 const ignored = new Set([".git", ".abx", ".agents", "node_modules", ".venv", "__pycache__", ".pytest_cache"]);
 
@@ -52,6 +53,11 @@ export async function buildTemplate(ctx: Context, params: Params): Promise<void>
   const acquired = await acquireTemplateSource(ctx, String(params.source ?? "."));
   if (!acquired.directory) throw new UsageError("This catalog entry has no source to build.");
   const source = fs.realpathSync(acquired.directory), id = randomUUID();
+  const sourceManifest = _findTemplateYaml(source);
+  if (sourceManifest) {
+    const raw = readYaml(sourceManifest);
+    if (record(raw) && raw.application) { readTemplate(sourceManifest); assertManagedApplicationHost(); }
+  }
   const output = path.resolve(String(params.out ?? path.join(acquired.ref.registry_type === "local" ? source : process.cwd(), ".abx", `build-${id}.json`)));
   if (fs.existsSync(output)) throw new ApplicationError("Build artifact already exists; retain its resources/journal and choose a new --out path.");
   fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
