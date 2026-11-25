@@ -2,7 +2,7 @@
 
 托管应用对外提供一个 Gateway 地址，Session 按需创建隔离的 Sandbox 计算环境。
 用户在不同会话和应用升级后仍使用同一地址。此流程支持阿里云极速版与函数计算上的
-明确声明 `application.deployment.profile: fc-managed-agents` 的模板。请安装[当前源码 CLI](../../../README.zh-CN.md#安装)；已发布的 0.5.10 使用原命令布局。部署主机需要 Node.js 20+、Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
+明确声明 `application.deployment.profile: fc-managed-agents` 的模板。托管应用的构建与部署请使用 [Node.js 20+ npm CLI](../../../README.zh-CN.md#安装)。独立二进制支持 `deploy --plan` 预览；准备该 profile 需要 npm 安装中的组件文件及外部 Node 运行时。在 npm CLI 中，可用 `ABX_APP_NODE` 指定该运行时。部署主机还需要 Docker、ACR 命名空间及模板 smoke 脚本的 Python 依赖。
 
 从 [Agents API 模板](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api)开始。
 模板包含 Sandbox 镜像、Server 构建文件、绑定示例和业务验证脚本。API 是受 OpenAI Agents 启发的子集，

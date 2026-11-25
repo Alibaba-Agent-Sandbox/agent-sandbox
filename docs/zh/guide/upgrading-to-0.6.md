@@ -3,12 +3,14 @@
 0.6 预览版本调整了命令布局与自动化授权规则。请显式选择预览版本，并在修改脚本前确认安装结果：
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```
 
-npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复执行的自动化时，请固定完整版本号。独立二进制可通过 [GitHub 安装器](binary-installation.md) 指定 `ABX_VERSION=0.6.0-alpha.0`。默认稳定版安装器及官网镜像不会自动选择预览版本。
+npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复执行的自动化时，请固定完整版本号。独立二进制可通过 [GitHub 安装器](binary-installation.md) 指定 `ABX_VERSION=0.6.0-alpha.1`。默认稳定版安装器及官网镜像不会自动选择预览版本。
+
+已下载的 alpha.0 二进制请替换为 alpha.1。托管 FC 应用的构建与部署需要 npm 安装及 Node.js 20+；二进制保留 `deploy --plan` 预览。完整要求见[托管应用前置条件](managed-applications.md)。
 
 ## 更新命令
 

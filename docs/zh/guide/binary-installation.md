@@ -1,7 +1,9 @@
 # 二进制安装
 
 `abx` 同时以**预编译独立二进制**的形式发布 —— 单个可执行文件内嵌了
-Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Node.js。**
+Node.js 运行时、Agent Sandbox CLI 及其打包的运行时依赖。**独立沙箱操作无需安装 Node.js。**
+
+托管 FC 应用的构建与部署请使用 [Node.js 20+ npm CLI](managed-applications.md)，其组件文件保留在磁盘中。二进制可通过 `deploy --plan` 预览这些部署。
 
 二进制随每个 GitHub Release 发布
 （[Releases](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases)）：
@@ -24,12 +26,12 @@ Node.js 运行时、Agent Sandbox CLI 以及其全部依赖。**无需安装 Nod
 本仓库指南使用 0.6 预览版本的命令布局。请显式选择该预览版本；默认稳定版安装器及 npm `latest` 保持 0.5.10。更新自动化脚本前先阅读[从 0.5.10 升级](upgrading-to-0.6.md)。
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
 # 或直接从 GitHub 安装对应的独立二进制：
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.0 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.1 sh
 ```
 
-Windows 请在运行 PowerShell 安装器前设置 `$env:ABX_VERSION = "0.6.0-alpha.0"`。预览产物来自对应的 GitHub 预发布版本，与官网稳定版镜像分别提供。
+Windows 请在运行 PowerShell 安装器前设置 `$env:ABX_VERSION = "0.6.0-alpha.1"`。预览产物来自对应的 GitHub 预发布版本，与官网稳定版镜像分别提供。
 
 ## 安装
 

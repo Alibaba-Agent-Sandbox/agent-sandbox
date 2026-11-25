@@ -3,7 +3,7 @@
 Managed applications expose one Gateway endpoint. Sessions create isolated Sandbox compute as needed;
 clients keep using the Gateway URL across sessions and application updates. This workflow supports
 the explicit `application.deployment.profile: fc-managed-agents` profile on Alibaba Cloud Express and Function Compute.
-Use the [current source CLI](../../../README.md#installation); published 0.5.10 uses the previous command layout.
+Use the [Node.js 20+ npm CLI](../../../README.md#installation) for managed application builds and deployments. The standalone binary supports `deploy --plan` previews; preparing this profile requires the npm installation's component files and an external Node runtime. `ABX_APP_NODE` can select that runtime when using the npm CLI.
 Node.js 20+, Docker, an ACR namespace and the template's Python smoke dependencies are required on the deployment host.
 
 Start from the [Agents API template](https://github.com/Alibaba-Agent-Sandbox/awesome-templates/tree/main/agents-api).

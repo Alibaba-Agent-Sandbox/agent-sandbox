@@ -31,6 +31,7 @@ import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
 import { loadRegistryApis, type ApiContract } from "../api_contract.js";
 import { saveApiBinding, selectResource } from "../api_binding.js";
+import { assertManagedApplicationHost } from "../../application/host.js";
 
 export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
 export async function approve(ctx: Context, params: Params, message: string): Promise<void> {
@@ -112,6 +113,7 @@ export const deploy_shortcut = command("deploy", {
     if (profile && source) readTemplate(path.join(source, "template.yaml"));
     const summary = { name, kind, provider, profile, source: params.source ?? params.template_id ?? artifact?.projectRoot ?? ".", resources: profile ? ["server image", "sandbox template", "worker", "dispatcher", "gateway"] : ["sandbox", ...(source && !artifact ? ["template build when required"] : [])] };
     if (params.plan) { getFormatter(ctx).printData({ ...summary, status: "preview", builds_or_cloud_changes: false }); return; }
+    if (profile) assertManagedApplicationHost();
     if (!profile && source && !artifact) {
       const yaml = _findTemplateYaml(source);
       await deploymentSeams.checkPrerequisites(ctx, provider, yaml ? path.dirname(yaml) : source, manifest, params.build_profile);

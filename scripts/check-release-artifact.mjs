@@ -2,22 +2,51 @@
 import assert from "node:assert/strict";
 import { TERMINAL_DRIVER } from "./terminal-driver.mjs";
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync, statSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync, copyFileSync, chmodSync, realpathSync, openSync, readSync, closeSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve, dirname, join } from "node:path";
+import { resolve, dirname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const version = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version;
 assert.ok(process.argv[2], "Pass an installed abx path or a binary directory");
 let artifact = resolve(process.argv[2]);
-if (statSync(artifact).isDirectory()) {
+const binaryDirectory = statSync(artifact).isDirectory();
+if (binaryDirectory) {
   const binaries = readdirSync(artifact).filter((name) => name.startsWith(`abx-${version}-`) && !name.endsWith(".sha256"));
   assert.equal(binaries.length, 1, "Expected one actual executable for this platform");
   artifact = join(artifact, binaries[0]);
 }
+function isNativeExecutable(file) {
+  const descriptor = openSync(file, "r"), header = Buffer.alloc(4);
+  try { readSync(descriptor, header, 0, 4, 0); } finally { closeSync(descriptor); }
+  return header.subarray(0, 2).toString("hex") === "4d5a" ||
+    ["7f454c46", "feedface", "feedfacf", "cefaedfe", "cffaedfe", "cafebabe", "bebafeca", "cafebabf", "bfbafeca"].includes(header.toString("hex"));
+}
+const standalone = isNativeExecutable(artifact);
+assert.ok(!binaryDirectory || standalone, "Binary directory must contain a native executable");
+const verificationRoot = mkdtempSync(join(tmpdir(), "abx-release-artifact-"));
+try {
+  // Executable-relative resolution, not only cwd, must leave every dependency tree.
+  for (let ancestor = realpathSync(verificationRoot);; ancestor = dirname(ancestor)) {
+    assert.ok(!existsSync(join(ancestor, "node_modules")), "Artifact isolation has a node_modules ancestor: " + ancestor);
+    if (dirname(ancestor) === ancestor) break;
+  }
+  if (standalone) {
+    const source = realpathSync(artifact), copied = join(verificationRoot, basename(artifact));
+    copyFileSync(source, copied);
+    chmodSync(copied, statSync(source).mode & 0o777);
+    assert.notEqual(realpathSync(copied), source, "The standalone executable must be copied, not symlinked");
+    artifact = copied;
+  }
+  // A real npm installation keeps its package tree. Every invocation gets a clean host context.
+  const baseEnvironment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+    ["path", "systemroot", "windir", "comspec", "pathext", "tmp", "temp", "lang", "lc_all", "ci", "github_actions"].includes(key.toLowerCase())));
+  Object.assign(baseEnvironment, { HOME: verificationRoot, USERPROFILE: verificationRoot,
+    XDG_CONFIG_HOME: join(verificationRoot, ".config"), ABX_NO_KEYCHAIN: "1" });
+  console.log(standalone ? "Checking copied standalone executable without dependency ancestors" : "Checking the actual installed npm package");
 const run = (args) => {
-  const result = spawnSync(artifact, args, { encoding: "utf8", timeout: 60000, maxBuffer: 4 * 1024 * 1024, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+  const result = spawnSync(artifact, args, { cwd: verificationRoot, env: baseEnvironment, encoding: "utf8", timeout: 60000, maxBuffer: 4 * 1024 * 1024, windowsHide: true, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
   assert.ifError(result.error);
   assert.equal(result.status, 0, `${args.join(" ")} failed`);
   return result.stdout;
@@ -43,8 +72,7 @@ const projectRoot = mkdtempSync(join(tmpdir(), "abx-onboarding-"));
 try {
   const project = join(projectRoot, "project");
   // Isolate credentials/config before verifying continuation into provider preflight.
-  const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
-    ["path", "systemroot", "windir", "comspec", "pathext", "tmp", "temp", "lang", "lc_all", "ci", "github_actions"].includes(key.toLowerCase())));
+  const environment = { ...baseEnvironment };
   environment.HOME = projectRoot;
   environment.USERPROFILE = projectRoot;
   environment.XDG_CONFIG_HOME = join(projectRoot, ".config");
@@ -55,6 +83,31 @@ try {
     assert.ifError(result.error);
     return result;
   };
+  const aliases = invokeProject(["provider", "test", "artifact-missing-provider", "--opt", "a=b", "--option", "c=d", "-o", "e=f"]);
+  assert.equal(aliases.status, 4, "Mixed aliases must parse before the missing-Provider error");
+  assert.match(aliases.stderr, /E8001/);
+  assert.doesNotMatch(aliases.stdout + aliases.stderr, /Unexpected extra|No such option/);
+  const aliasHelp = invokeProject(["provider", "test", "--help"]);
+  assert.equal(aliasHelp.status, 0);
+  assert.match(aliasHelp.stdout, /--option <KEY=VALUE>/);
+  assert.doesNotMatch(aliasHelp.stdout, /Opposite of --opt/);
+  if (standalone) {
+    const managed = join(projectRoot, "managed-runtime");
+    mkdirSync(managed);
+    copyFileSync(join(root, "tests", "fixtures", "application-managed", "template.yaml"), join(managed, "template.yaml"));
+    const preview = invokeProject(["deploy", managed, "--plan", "--name", "managed-probe"]);
+    assert.equal(preview.status, 0, preview.stderr);
+    assert.match(preview.stdout, /builds_or_cloud_changes/);
+    for (const args of [["deploy", managed, "--name", "managed-probe", "--yes"], ["template", "build", managed, "--yes"]]) {
+      const refused = invokeProject(args);
+      assert.equal(refused.status, 1);
+      assert.match(refused.stdout + refused.stderr, /Node.js 20\+ and the npm CLI/);
+      assert.doesNotMatch(refused.stdout + refused.stderr, /MODULE_NOT_FOUND|Missing configuration/);
+    }
+    assert.ok(!existsSync(join(managed, ".abx")), "Unsupported managed preparation must not copy sources or write a build");
+    assert.ok(!existsSync(join(projectRoot, ".abx", "deployments")), "Unsupported managed deployment must not write an owned record");
+    assert.ok(!existsSync(join(projectRoot, ".abx", ".env")), "Unsupported managed preparation must not save credentials");
+  }
   // Unrelated upstream state must never break ABX help or supply a different identity.
   mkdirSync(join(projectRoot, ".e2b"));
   writeFileSync(join(projectRoot, ".e2b", "config.json"), "{invalid unrelated configuration");
@@ -167,3 +220,7 @@ const runtimeDeclaration = /^export const RUNTIME_DEPENDENCY_NOTICES = (.+);$/m.
 assert.ok(runtimeDeclaration, "Missing complete reviewed runtime dependency notice declaration");
 assert.equal(run(["--licenses"]), JSON.parse(declaration[1]) + JSON.parse(runtimeDeclaration[1]), "Installed artifact notices differ from the complete source");
 console.log(`PASS: installed abx ${version}: version, isolated guidance, target-first API help, retired-wrapper rejection, scaffold OpenAPI assets, one JSON result and complete notices`);
+
+} finally {
+  rmSync(verificationRoot, { recursive: true, force: true });
+}

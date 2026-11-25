@@ -4,10 +4,12 @@ import { ApplicationError, record } from "../../../application/config.js";
 import type { CredentialSnapshot } from "../../../application/bindings.js";
 import type { OwnedServerImage } from "../../../application/types.js";
 
-const require = createRequire(import.meta.url);
+const nodeRequire = createRequire(import.meta.url);
 interface Models { Config: new (value: unknown) => unknown; Params: new (value: unknown) => unknown; OpenApiRequest: new (value: unknown) => unknown }
-const core = require("@alicloud/openapi-core") as { default: new (value: unknown) => { callApi(params: unknown, request: unknown, runtime: unknown): Promise<Record<string, unknown>> }; $OpenApiUtil: Models };
-const dara = require("@darabonba/typescript") as { RuntimeOptions: new (value: unknown) => unknown };
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal CJS edge is bundled; npm ESM retains nodeRequire exports.
+const core = (typeof require === "function" ? require("@alicloud/openapi-core") : nodeRequire("@alicloud/openapi-core")) as { default: new (value: unknown) => { callApi(params: unknown, request: unknown, runtime: unknown): Promise<Record<string, unknown>> }; $OpenApiUtil: Models };
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Literal CJS edge is bundled; npm ESM retains nodeRequire exports.
+const dara = (typeof require === "function" ? require("@darabonba/typescript") : nodeRequire("@darabonba/typescript")) as { RuntimeOptions: new (value: unknown) => unknown };
 export interface RegistryClient {
   token(): Promise<{ username: string; password: string }>;
   inspect(namespace: string, repository: string, tag: string, timeoutSeconds?: number): Promise<{ digest: string; imageId: string } | null>;

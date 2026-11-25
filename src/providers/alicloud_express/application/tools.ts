@@ -15,6 +15,7 @@ import { ResourceJournal } from "../../../template/resource_journal.js";
 import { createRegistryClient, type RegistryClient } from "./registry.js";
 import { setTimeout as delay } from "node:timers/promises";
 import { withApplicationLock } from "../../../application/lock.js";
+import { assertManagedApplicationHost } from "../../../application/host.js";
 
 const require = createRequire(import.meta.url);
 export interface ComponentInvocation { command: "deploy" | "info" | "remove" | "logs"; resource: string; props: Record<string, unknown>; credential: CredentialSnapshot }
@@ -39,6 +40,7 @@ async function runComponent(node: string, loaderPath: string, component: string,
 }
 /** Download/load the exact component before plan freeze, then lock every dependency byte. */
 export async function prepareTools(project: string, component: string): Promise<ToolchainLock> {
+  assertManagedApplicationHost();
   if (!/^fc3@\d+\.\d+\.\d+$/.test(component)) throw new ApplicationError("Managed applications require one exact fc3 component version.");
   const node = process.env.ABX_APP_NODE || process.execPath;
   const home = path.join(project, ".abx", "app", "tools"); fs.mkdirSync(home, { recursive: true, mode: 0o700 });
