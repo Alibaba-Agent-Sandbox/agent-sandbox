@@ -66,7 +66,7 @@
     "@alicloud/openapi-core": "^1.0.8",
     "@alicloud/sandbox20260820": "1.2.0",
     "@alicloud/sts20150401": "1.2.0",
-    "@darabonba/typescript": "1.0.5",
+    "@darabonba/typescript": "1.0.6",
     "@inquirer/prompts": "^8.7.3",
     "@serverless-devs/credential": "0.0.10",
     "@serverless-devs/load-component": "0.0.10-beta.7",
