@@ -1,5 +1,5 @@
 # Decision: bundle static managed SDKs and verify copied standalone executables
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -73,3 +73,5 @@ same exit code and error identity rather than combining both streams.
 
 - [Verification](../../../evidence/verify/2026-11-25-sea-dependency-isolation.md).
 - [Artifact output-channel regression](../../../evidence/verify/2026-11-25-artifact-output-channel.md).
+
+- [Public alpha.1 delivery](../../../evidence/verify/2026-11-25-cli-060-alpha1-public-release.md).
