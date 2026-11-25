@@ -173,7 +173,7 @@ Non-interactive setup. Run these commands to configure abx:
 
   # Option 1: existing Sandbox API key
   abx config set sandbox_api_key <ABX_SANDBOX_API_KEY>
-  # Option 2: AK/SK; prepare a managed API key after confirmation (or --ci)
+  # Option 2: AK/SK; prepare a managed API key with provider run api-key.prepare --yes
   abx config set access_key_id <ALICLOUD_ACCESS_KEY_ID>
   abx config set access_key_secret <ALICLOUD_ACCESS_KEY_SECRET>
   # Choose an existing Sandbox API key, or AK/SK-managed authentication. Creating a managed key requires sandbox:CreateApiKey; reuse requires sandbox:DescribeApiKey; renewal requires sandbox:UpdateApiKey, scoped to the target Team's API keys. Creation/renewal requires confirmation (in automation, run provider run api-key.prepare --yes); a managed key expires after 30 days and is renewed on use within its final day. Optional Team: abx config set team_id <TEAM_ID>; otherwise the API uses your default Team. Permissions: https://help.aliyun.com/zh/agent-sandbox/authorize-ram-users-to-access-the-console

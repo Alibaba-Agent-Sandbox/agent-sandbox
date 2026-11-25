@@ -243,10 +243,20 @@ it("test_nl_init_explicit_directory_keeps_source_local", async () => {
   _assertLocalTemplate(path.join(tmp, "explicit"));
 });
 
-it.each([["create"], ["sandbox", "create"], ["init"]])("removed generation alias is rejected [%s]", async (...command) => {
-  const result = await runner().invoke(cli, [...command.flat(), "--prompt", _DESCRIPTION]);
+it.each([
+  { name: "create", command: ["create"], error: "No such command 'create'" },
+  { name: "sandbox create", command: ["sandbox", "create"], error: "No such option '--prompt'" },
+  { name: "init", command: ["init"], error: "No such command 'init'" },
+])("removed generation alias is rejected [$name]", async ({ command, error }) => {
+  const prepare = vi.spyOn(codegen.seams, "prepareWorkdir").mockImplementation(() => {
+    throw new Error("A retired generation entry must not prepare a workdir");
+  });
+  const generate = vi.spyOn(codegen.seams, "generateTemplateFiles").mockRejectedValue(new Error("A retired generation entry must not generate files"));
+  const result = await runner().invoke(cli, [...command, "--prompt", _DESCRIPTION]);
   expect(result.exit_code).toBe(2);
-  expect(_shown(result)).toContain("No such command");
+  expect(_shown(result)).toContain(error);
+  expect(prepare).not.toHaveBeenCalled();
+  expect(generate).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------

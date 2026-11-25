@@ -39,4 +39,20 @@ The complete `make ci` run on the original base passed hygiene, typecheck, lint 
 
 An independent reviewer ran the unchanged tests against a pristine Git archive of `57c7632706aac739171fcdb7c2849938e58295ef`, with Node 22.22.2 and the same dependencies. Both MCP failures reproduced (13 passed, 2 failed). All nine requested transport failures reproduced (18 passed, 10 failed); that baseline also failed the short Content-Length case which had passed in the feature run. Therefore the failed cases are established baseline observations in this runtime, but their underlying cause and identical failure totals are not claimed. They still prevent declaring the full gate green.
 
-Final-head checks, remote CI and delivery status are recorded below after main's independent option-alias correction is incorporated. No transport/MCP assertion was weakened or skipped to make this feature pass.
+Main's independent option-alias and onboarding corrections were integrated, ending at base `5fc267392424931e2a8923cdfb54f144de895111`. The quiet generated-token diagnostic and both sets of deployment regressions were preserved when resolving overlap. No transport/MCP assertion was weakened or skipped to make this feature pass.
+
+The second complete test run, invoked through `npm run parity:coverage` on base `6150436`, recorded 4,581 passed, 15 failed and 61 skipped assertions. Eleven failures were the previously reproduced MCP/transport cases. Four were integration-only legacy argv/error assertions, subsequently corrected: both integration suites passed all 22 tests. The original ledger reported three missing retired test names; explicit Issue 265 replacement mappings preserve those historical rows, and the seven affected ledger entries pass against the original report. Mappings describe changed contracts, not compatibility with old syntax.
+
+The six template-guide skips were due to an unavailable adjacent SDK path. A pristine archive of the exact CI SDK commit `8e610a3658040d8d6973e7951f9590ea50a4d70a`, selected with `ABX_SERVER_SDK_SRC`, passed all 23 guide tests with zero skips. This does not imply that all other repository skips were eliminated.
+
+## Final integration checks
+
+- Typecheck and build: PASS after integrating base `5fc2673`; final test edits also pass typecheck.
+- Final focused set (binding, OpenAPI, HTTP, deploy, option aliases, help, guide and captures): 397 passed with one stale config-init snapshot from the independently merged onboarding change. That snapshot was regenerated from the actual CLI; the entire capture regression then passed 86 tests. No product assertion was removed.
+- Both parser-to-service/source-generation integration suites: 22 passed, including exact syntax errors and no-generation side-effect assertions.
+- Strict help coverage: 224 passed; ordinary automatic help retains its original Usage-prefix assertion, and the custom Sandbox help has its own exact usage assertion.
+- Offline capture: 85 cases, zero skips, 10 Markdown files; historical batches unchanged.
+- Package entry/reference closure: PASS. The release artifact verifier passed against the built executable, including root platform tools, target-first help, retired-wrapper rejection, generated OpenAPI assets, isolated configuration, PTY cancellation and notices. This is built-artifact validation, not publication.
+- Final ESLint: no errors, 258 warnings. Hygiene passed. Repository health: 105 passed, 11 existing warnings, zero failures. The generated ignored parity report was moved out of the checkout after analysis so local temporary paths do not pollute the health scan. Delivery status is recorded with the PR.
+
+The complete repository test gate remains PARTIAL because of reproduced baseline failures; focused reruns are not described as a fresh all-green full suite. The raw full-run report is kept as local verification output, not committed. This change does not assert complete OpenAPI support, cloud signing, SSE, all Providers, or SDK protocol migration. No npm package, SDK, website, Registry or blog release is part of this PR.
