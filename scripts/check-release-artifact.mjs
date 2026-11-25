@@ -77,16 +77,30 @@ try {
   environment.USERPROFILE = projectRoot;
   environment.XDG_CONFIG_HOME = join(projectRoot, ".config");
   environment.ABX_NO_KEYCHAIN = "1";
-  const invokeProject = (args, extraEnvironment = {}) => {
+  const invokeProject = (args, extraEnvironment = {}, excludedEnvironment = []) => {
+    const invocationEnvironment = { ...environment, ...extraEnvironment };
+    for (const key of Object.keys(invocationEnvironment)) {
+      if (excludedEnvironment.includes(key.toLowerCase())) delete invocationEnvironment[key];
+    }
     const result = spawnSync(artifact, args, { encoding: "utf8", timeout: 60000, maxBuffer: 4 * 1024 * 1024, windowsHide: true,
-      cwd: projectRoot, env: { ...environment, ...extraEnvironment }, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
+      cwd: projectRoot, env: invocationEnvironment, shell: process.platform === "win32" && artifact.endsWith(".cmd") });
     assert.ifError(result.error);
     return result;
   };
-  const aliases = invokeProject(["provider", "test", "artifact-missing-provider", "--opt", "a=b", "--option", "c=d", "-o", "e=f"]);
-  assert.equal(aliases.status, 4, "Mixed aliases must parse before the missing-Provider error");
-  assert.match(aliases.stderr, /E8001/);
-  assert.doesNotMatch(aliases.stdout + aliases.stderr, /Unexpected extra|No such option/);
+  const aliasArguments = ["provider", "test", "artifact-missing-provider", "--opt", "a=b", "--option", "c=d", "-o", "e=f"];
+  const humanAliases = invokeProject(aliasArguments, {}, ["ci", "github_actions"]);
+  assert.equal(humanAliases.status, 4, "Mixed aliases must parse before the missing-Provider error");
+  assert.equal(humanAliases.stdout, "", "Human errors must not write a result to stdout");
+  assert.match(humanAliases.stderr, /E8001/);
+  assert.doesNotMatch(humanAliases.stderr, /Unexpected extra|No such option/);
+  const machineAliases = invokeProject(aliasArguments, { CI: "true", GITHUB_ACTIONS: "true" });
+  assert.equal(machineAliases.status, 4, "Mixed aliases must retain the missing-Provider exit code in CI");
+  assert.equal(machineAliases.stderr, "", "Machine errors must use the JSON result channel");
+  const aliasFailure = JSON.parse(machineAliases.stdout);
+  assert.ok(aliasFailure && typeof aliasFailure === "object" && !Array.isArray(aliasFailure), "Expected one JSON error object");
+  assert.equal(aliasFailure.status, "error");
+  assert.equal(aliasFailure.code, "E8001");
+  assert.doesNotMatch(aliasFailure.message, /Unexpected extra|No such option/);
   const aliasHelp = invokeProject(["provider", "test", "--help"]);
   assert.equal(aliasHelp.status, 0);
   assert.match(aliasHelp.stdout, /--option <KEY=VALUE>/);

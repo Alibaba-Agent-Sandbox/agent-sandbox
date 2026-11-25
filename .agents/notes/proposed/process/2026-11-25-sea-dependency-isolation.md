@@ -56,6 +56,9 @@ isolated CJS factories, the five-package metafile closure and lazy module marker
 Run an actual copied SEA through complete help/scaffolds/notices/value aliases and
 managed plan/admission checks. Require normal CI/review and all five platform SEA
 checks before an immutable alpha.1 release and independent public readback.
+Verify alias failure channels explicitly in both human and ambient CI modes:
+human errors use stderr; CI errors use a single stdout JSON result. Preserve the
+same exit code and error identity rather than combining both streams.
 
 ## Acceptance criteria
 
@@ -69,3 +72,4 @@ checks before an immutable alpha.1 release and independent public readback.
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-11-25-sea-dependency-isolation.md).
+- [Artifact output-channel regression](../../../evidence/verify/2026-11-25-artifact-output-channel.md).
