@@ -62,11 +62,11 @@ abx status my-agents
 ```
 
 `--plan` 检查本地模板并摘要列出资源，不构建或修改云端资源。`deploy` 构建 Server 镜像、准备
-Sandbox Template、部署三个函数、验证候选应用并发布 Gateway，返回 `endpoint`、`credentials_file`
-和 `receipt_file`。外部客户端使用 endpoint 和业务 Key；FC 内置域名用于测试，生产使用既有 HTTPS 自定义域名。
+Sandbox Template、部署三个函数、验证候选应用并发布 Gateway，返回应用名称、`endpoint` 和 `credentials_file`。
+外部客户端使用 endpoint 和业务 Key；FC 内置域名用于测试，生产使用既有 HTTPS 自定义域名。
 
 更新时修改项目，使用同一个名称再次执行 `deploy`。既有 Session 保留原 Worker 和 Sandbox Template，
-新 Session 使用当前 revision。请保留本机部署记录及收据用于清理；多台主机的部署须由流水线串行调度，
+新 Session 使用当前 revision。请保留本机配置目录用于清理，部署记录由 CLI 管理；多台主机的部署须由流水线串行调度，
 本机锁不会协调独立主机。
 
 ```bash
@@ -79,7 +79,7 @@ abx delete my-agents --yes
 `recover` 观察中断操作，不重复资源创建或发布。本机停止等待不能证明云端工作已经停止。
 退役旧 revision 会先排空再删除其资源；删除应用会排空所有记录的 revision。
 清理未完成时保留记录，通过 `recover` 查看进度，处理不确定结果后再重试删除。
-已有收据可通过 `abx recover my-agents --receipt PATH` 导入。
+恢复时直接使用已保存的应用名称，无需向 CLI 传递内部部署文件。
 
 `abx logs my-agents --role gateway` 读取已有 FC 日志库。默认配方没有配置 FC 日志，使用前需要配置函数
 `logConfig` 及日志访问权限；暂不支持持续跟随应用日志。

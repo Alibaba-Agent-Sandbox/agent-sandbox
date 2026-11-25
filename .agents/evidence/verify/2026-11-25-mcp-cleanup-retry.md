@@ -93,3 +93,12 @@ fixture corrected in PR 277 and a DNS-specific transport expectation: without an
 external resolver the isolated namespace returned temporary DNS failure instead of
 NXDOMAIN. Neither result was converted into a passing assertion. The original shared-host
 failures remain above. The focused final run and real cloud journey remain separate scopes.
+
+## Current-main integration
+
+Merged current main `c9a068cbdd2bb00cfae2917f50e3f31ea0bfcb9d` (PR 277) through a
+normal merge, preserving both changelog entries. This supplies the independent
+missing-token fixture correction. CLI MCP changes are tracked in
+[PR 280](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/280); source merge,
+CI completion and release remain separate statuses. No additional cloud creation was
+needed for the documentation and main integration changes.

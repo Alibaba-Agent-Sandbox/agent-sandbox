@@ -30,7 +30,8 @@ import { validateTemplateManifest, planTemplateLaunch } from "../../template/lau
 import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
 import { loadRegistryApis, type ApiContract } from "../api_contract.js";
-import { saveApiBinding, selectResource } from "../api_binding.js";
+import { applicationToken } from "../template_environment.js";
+import { saveApiBinding, selectResource, verifiedApplicationCredentials } from "../api_binding.js";
 import { assertManagedApplicationHost } from "../../application/host.js";
 
 export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
@@ -49,7 +50,12 @@ export function applicationLock<T>(plan: ApplicationPlan, account: string, work:
 }
 export function deploymentSummary(value: Deployment): Record<string, unknown> {
   const receipt = value.receipt && fs.existsSync(value.receipt) ? readReceipt(value.receipt) : undefined;
-  return { ...value.launch, name: value.name, kind: value.kind, provider: value.provider, status: value.status, ...(value.sandboxId ? { sandbox_id: value.sandboxId } : {}), ...(value.launch?.services ? { services: value.launch.services } : {}), ...(receipt ? { endpoint: receipt.endpoint, revision: receipt.plan.revision, receipt_file: value.receipt, ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}) } : {}) };
+  const services = record(value.launch?.services) ? Object.fromEntries(Object.entries(value.launch.services).filter(([, service]) => record(service)).map(([name, service]) => [name, { port: (service as Record<string, unknown>).port, url: (service as Record<string, unknown>).url }])) : undefined;
+  return { name: value.name, kind: value.kind, provider: value.provider, status: value.status,
+    ...(value.sandboxId ? { sandbox_id: value.sandboxId } : {}),
+    ...(typeof value.launch?.template_reference === "string" ? { template: value.launch.template_reference } : {}),
+    ...(services ? { services } : {}),
+    ...(receipt ? { endpoint: receipt.endpoint, revision: receipt.plan.revision, ...(receipt.credentialsFile ? { credentials_file: receipt.credentialsFile } : {}) } : {}) };
 }
 function pairs(values: string[] = [], unique = false): Record<string, string> {
   const entries = values.map(value => { const index = value.indexOf("="); if (index < 1) throw new UsageError("Expected KEY=VALUE."); return [value.slice(0, index), value.slice(index + 1)] as const; });
@@ -146,6 +152,7 @@ export const deploy_shortcut = command("deploy", {
       if (previous) { value.previous = path.join(folder, "previous.json"); writeJson(value.previous, previous); }
       saveDeployment(value);
       let preparationJournal: ResourceJournal | undefined;
+      const apiCredentials: Record<string, string> = {}, credentialFingerprints: Record<string, string> = {};
       try {
         if (kind === "application") {
           const file = path.join(value.source!, "template.yaml"), template = readTemplate(file);
@@ -176,16 +183,20 @@ export const deploy_shortcut = command("deploy", {
             });
           }
           const launched = await deploymentSeams.launch(ctx, { template_ref: value.source, alias: name, timeout: params.build_timeout, sandbox_timeout: params.sandbox_timeout, build_profile: params.build_profile ?? artifact?.build_profile, yes: Boolean(params.yes) }, {
-            approved: true, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
+            approved: true, recoveryTarget: value.name, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
             ...(artifact ? { prepared: artifact.prepared as PreparedTemplate, builtTarget: artifact.target as Record<string, unknown> } : {}),
             onTarget: target => { Object.assign(value, target); saveDeployment(value); },
+            onVerifiedApplication: service => {
+              const verified = verifiedApplicationCredentials(apis, service, applicationToken());
+              Object.assign(apiCredentials, verified.credentials); Object.assign(credentialFingerprints, verified.credentialFingerprints);
+            },
             afterCreate: params.upload ? async sandbox => { const local = fs.realpathSync(String(params.upload)); if (fs.statSync(local).isDirectory()) { const files = fs.readdirSync(local, { recursive: true, withFileTypes: true }); for (const file of files) if (file.isFile()) { const absolute = path.join(file.parentPath, file.name); await sandbox.files.write(`/home/user/${path.relative(local, absolute).split(path.sep).join("/")}`, fs.readFileSync(absolute)); } } else await sandbox.files.write(`/home/user/${path.basename(local)}`, fs.readFileSync(local)); } : undefined,
             onJournal: journal => { preparationJournal = journal; value.journal = journal.file; value.effectsStarted = true; saveDeployment(value); }, onCreated: async id => { value.sandboxId = id; saveDeployment(value); },
           }); value.launch = launched.receipt;
         }
         if (apis.length && value.sandboxId) saveApiBinding({ version: 1,
           target: { id: value.sandboxId, provider: value.provider, providerOptions: value.providerOptions, connection: value.connection },
-          deployment: { name: value.name, createdAt: value.createdAt }, apis, credentials: {}, aliases: {} });
+          deployment: { name: value.name, createdAt: value.createdAt }, apis, credentials: apiCredentials, credentialFingerprints, aliases: {} });
         value.status = "ready"; saveDeployment(value); getFormatter(ctx).printData(deploymentSummary(value));
       } catch (error) {
         // The callback runs before requests so a crash stays conservative. A returned error

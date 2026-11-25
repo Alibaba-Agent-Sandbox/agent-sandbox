@@ -57,6 +57,8 @@ abx template build --clean BUILD_FILE --yes
 
 `abx sandbox TARGET --help` lists the operations in a locally bound OpenAPI contract. `abx sandbox TARGET OPERATION --help` shows its parameters, request body, responses and authentication requirements. Invoke it with `abx sandbox TARGET OPERATION --body @request.json`. TARGET must be an existing Sandbox ID or a local Sandbox deployment name. An operation ID shared by several APIs requires `--api NAME`.
 
+Declared scalar inputs have generated options such as `--path-id VALUE`, `--query-limit VALUE` and `--body-message VALUE`; use `--id` or `--message` when the name is unambiguous. Operation help shows the available flags and client support. Keep `--body @request.json` for complete JSON, or use `--body -` for piped JSON. Use `--output FILE` for exact response bytes saved to a new file; errors do not create the file. Repeated body input and mixing whole-body input with body-field flags fail before calling the service.
+
 A template with a single Sandbox resource in `registry.yaml.apis` is bound automatically when its Sandbox deployment succeeds. For an existing Sandbox or a template without an API declaration, bind a local registry first. Binding describes an existing service; it does not install or start one. See [Sandbox API operations](../guide/sandbox-api.md) for the full example, aliases, credential sources and supported OpenAPI subset.
 
 Platform and runtime tools use root commands: `exec`, `connect`, `upload`, `download`, `files`, `process`, `system`, `capabilities`, `pause`, `resume`, `metrics`, `snapshot`, `fork` and `network`. Their availability depends on the Provider and installed services.

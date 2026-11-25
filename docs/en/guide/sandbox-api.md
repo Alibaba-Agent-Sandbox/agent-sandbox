@@ -35,7 +35,9 @@ abx sandbox report-demo --bind ./registry.yaml \
   --alias totals=report:report_totals
 ```
 
-Set `REPORT_API_TOKEN` in the shell through your secret-management mechanism to the application token accepted by this service. It is separate from cloud credentials and the Sandbox management key. Binding stores the variable name, not its value; it does not read application credentials or call the business API. It connects to the existing Sandbox to establish identity. For a service configured with the CLI-managed application token, explicitly choose `report.token=config:server_token` instead. Binding does not change the server's token.
+Set `REPORT_API_TOKEN` in the shell through your secret-management mechanism to the application token accepted by this service. It is separate from cloud credentials and the Sandbox management key. Binding stores the variable name, not its value; it does not read application credentials or call the business API. It connects to the existing Sandbox to establish identity. For an existing service configured with the CLI-managed application token, explicitly choose `report.token=config:server_token` instead. Binding does not change the server's token.
+
+When deploying a template that declares `ABX_SERVER_TOKEN` and a Server SDK v2 service, the CLI can reuse application authentication automatically. It first verifies that service, matches the API port and an unambiguous bearer scheme, and confirms that the token injected into this Sandbox matches the current CLI token source. It saves a source reference and an identity check, never the token in the API binding. If that source later changes, invocation stops before HTTP; restore the original token or explicitly rebind a reference to the token accepted by this service. A custom token supplied only with deployment `--env` is not saved automatically: bind an environment-variable reference explicitly for later calls. Importing an arbitrary OpenAPI file does not grant it access to CLI credentials.
 
 `--bind` replaces this target's contract, credential references and aliases. Supply the full set again when rebinding. An alias maps to one `API:OPERATION_ID`, cannot shadow an operation ID, and is local to this binding. Bind references for exactly one authentication alternative required by an operation. If the contract explicitly allows anonymous access and no authenticated alternative is configured, anonymous access is used; an attempted authenticated request never retries anonymously.
 
@@ -51,7 +53,7 @@ abx sandbox report-demo totals --body '{"values":[10,20,30]}'
 abx --json sandbox report-demo report_totals --api report --body @request.json
 ```
 
-Target help lists operations and aliases. Operation help includes method/path, request schemas, responses/examples and authentication requirements. Both are offline and do not read credentials. Help shows declared behavior, not live availability or permissions.
+Target help lists operations and aliases, including unsupported request contracts. Operation help includes generated options with types, method/path, request schemas, responses/examples, authentication requirements and client limitations. Both are offline and do not read credentials. Help shows declared behavior, not live availability or permissions.
 
 HTTP output preserves status and body:
 
@@ -64,7 +66,11 @@ Non-2xx responses retain this structure and exit with code 1. Invalid input fail
 | Option | Usage |
 | --- | --- |
 | `--api NAME` | Select among APIs with duplicate operation IDs |
-| `--body JSON` / `--body @FILE` | JSON body; objects, arrays and scalars follow the schema |
+| `--path-NAME VALUE`, `--query-NAME VALUE`, `--header-NAME VALUE` | Qualified options generated from declared scalar parameters |
+| `--body-NAME VALUE` | Top-level scalar property of a plain object JSON body |
+| `--NAME VALUE` | Shorthand when the name is unambiguous and does not conflict with a CLI option |
+| `--body JSON` / `--body @FILE` / `--body -` | Full JSON body; objects, arrays and scalars follow the schema; `-` reads piped stdin |
+| `--output FILE` | Save successful response bytes to a new local file, up to 8 MiB; preserve binary and JSON bytes exactly |
 | `--path NAME=VALUE` | Repeat for declared path parameters |
 | `--query NAME=VALUE` | Repeat for declared query parameters |
 | `--header NAME=VALUE` | Declared non-authentication headers, without overriding gateway/transport headers |
@@ -73,12 +79,25 @@ Non-2xx responses retain this structure and exit with code 1. Invalid input fail
 For a service that declares these operations and parameters:
 
 ```bash
-abx sandbox report-demo get_report --path reportId=daily --query detailed=false
-abx sandbox report-demo update_report --path reportId=daily \
-  --header X-Request-Id=request-123 --body @request.json --timeout 60
+abx sandbox report-demo get_report --reportId daily --detailed false
+abx sandbox report-demo update_report --path-reportId daily \
+  --header-x-request-id request-123 --body @request.json --timeout 60
 ```
 
-These two names illustrate parameter combinations, not additional operations in the report example. `false`, `0` and explicit empty strings are not missing values. Unknown parameters and duplicate assignments fail. Schema defaults and examples are documentation; the CLI does not insert them automatically.
+For an operation whose JSON body declares a string `message` and boolean `stream`:
+
+```bash
+abx sandbox support-api ask --message "Summarize this report" --stream false
+abx sandbox support-api ask --body-message "Summarize this report" --body-stream false
+cat request.json | abx sandbox support-api ask --body -
+abx sandbox support-api artifact_content --id artifact-123 --output ./report.pdf
+```
+
+These additional operation names illustrate contracts you supply, rather than operations in the report example. Scalar options take explicit values, including booleans. If `id` occurs in both path and body, use `--path-id` or `--body-id`; a body field named `timeout` requires `--body-timeout`. Use `--body @FILE` for nested objects, arrays or composed body schemas. Do not combine whole-body input with body-field options. An `@` in an ordinary string field is literal; it never uploads or reads a file. For a value beginning with `--`, use `--message=--literal`.
+
+`--output` never overwrites an existing file and publishes only after the complete successful response arrives. Non-2xx responses remain status/body results and do not create a download file. The output JSON reports the destination and byte count. A binary response without `--output` fails with a clear instruction instead of converting arbitrary bytes to text. Receiving a response and failing to save it never retries the request.
+
+The illustrative operation names above require matching declarations; they are not additional operations in the report example. `false`, `0` and explicit empty strings are not missing values. Unknown parameters, duplicate assignments and repeated singleton options such as `--body` fail. Schema defaults and examples are documentation; the CLI does not insert them automatically.
 
 ## Scope and lifecycle
 

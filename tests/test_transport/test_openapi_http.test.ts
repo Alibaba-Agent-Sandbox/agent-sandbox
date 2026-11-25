@@ -27,3 +27,27 @@ it("returns non-JSON error bodies without replaying or unwrapping", async () => 
   expect(await requestOpenApi(endpoint(),{method:"POST",path:"/report",query:[],headers:{},body:[]})).toEqual({status:403,body:"forbidden"});
   expect(fetch).toHaveBeenCalledOnce();
 });
+it("preserves binary bytes only for an explicit output request", async () => {
+  const bytes = new Uint8Array([0, 255, 128, 65, 13, 10]);
+  const fetch = vi.spyOn(openApiHttpSeams,"fetch").mockImplementation(async () => new Response(bytes,{headers:{"content-type":"application/octet-stream"}}));
+  const request = {method:"GET",path:"/download",query:[],headers:{}};
+  await expect(requestOpenApi(endpoint(),request)).rejects.toThrow("--output");
+  const response = await requestOpenApi(endpoint(),request,30,true);
+  expect(response.status).toBe(200); expect(response.bytes).toEqual(Buffer.from(bytes)); expect(response.body).toBeNull();
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+it("never decodes invalid UTF-8 silently and never returns error bytes as successful output", async () => {
+  const fetch = vi.spyOn(openApiHttpSeams,"fetch").mockResolvedValueOnce(new Response(new Uint8Array([255]),{headers:{"content-type":"text/plain"}}))
+    .mockResolvedValueOnce(new Response(new Uint8Array([255]),{status:403,headers:{"content-type":"application/octet-stream"}}));
+  const request = {method:"GET",path:"/download",query:[],headers:{}};
+  await expect(requestOpenApi(endpoint(),request)).rejects.toThrow("UTF-8");
+  const response = await requestOpenApi(endpoint(),request,30,true);
+  expect(response).toEqual({status:403,body:{error:"non_text_response",content_type:"application/octet-stream",bytes:1}});
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+it("preserves successful JSON response bytes verbatim when saving a file", async () => {
+  const raw = '{ "value" : 1 }\n';
+  vi.spyOn(openApiHttpSeams,"fetch").mockResolvedValue(new Response(raw,{headers:{"content-type":"application/json"}}));
+  const response = await requestOpenApi(endpoint(),{method:"GET",path:"/download",query:[],headers:{}},30,true);
+  expect(Buffer.from(response.bytes!).toString("utf8")).toBe(raw);
+});

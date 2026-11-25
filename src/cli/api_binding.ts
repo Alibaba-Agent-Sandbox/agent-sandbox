@@ -1,7 +1,7 @@
 /** Fixed local contracts for actual Sandbox identities; imports never grant credentials. */
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { ApplicationError, digest, record } from "../application/config.js";
 import { paths } from "../transport/config_layers.js";
 import { cliOptions, cliProvider } from "../providers/selection.js";
@@ -14,6 +14,7 @@ export interface ApiBinding {
   deployment?: { name: string; createdAt: string };
   apis: ApiContract[];
   credentials: Record<string, string>;
+  credentialFingerprints?: Record<string, string>;
   aliases: Record<string, { api: string; operation: string }>;
 }
 
@@ -56,6 +57,27 @@ export function bindingOptions(apis: ApiContract[], credentialPairs: string[], a
   return { credentials, aliases };
 }
 
+/** Only verified Server SDK services receive a reference to the token actually injected at creation. */
+export function verifiedApplicationCredentials(apis: ApiContract[], service: { port: number; token: string }, currentToken: string | undefined): Pick<ApiBinding, "credentials" | "credentialFingerprints"> {
+  const credentials: Record<string, string> = Object.create(null), credentialFingerprints: Record<string, string> = Object.create(null);
+  if (!service.token || service.token !== currentToken) return { credentials, credentialFingerprints };
+  for (const api of apis.filter(api => api.port === service.port)) {
+    let schemes: ReturnType<typeof apiSecuritySchemes>;
+    try { schemes = apiSecuritySchemes(api); } catch { continue; }
+    // Never guess between multiple identities or convert an apiKey into the Server SDK token.
+    const entries = Object.entries(schemes);
+    if (entries.length !== 1 || entries[0][1].type !== "http" || entries[0][1].scheme?.toLowerCase() !== "bearer") continue;
+    const key = `${api.name}.${entries[0][0]}`;
+    credentials[key] = "config:server_token";
+    credentialFingerprints[key] = credentialFingerprint(service.token);
+  }
+  return { credentials, credentialFingerprints };
+}
+
+export function credentialFingerprint(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export function selectResource(apis: ApiContract[], resource?: string): ApiContract[] {
   const resources = new Set(apis.map(api => api.resource));
   if (!resource && resources.size !== 1) throw new ApplicationError("This registry describes multiple resources. Select one with --resource sandbox.NAME.");
@@ -88,7 +110,7 @@ export function readApiBinding(reference: string): ApiBinding {
     const absolute = path.join(directory(), file);
     if (fs.statSync(absolute).size > 8 * 1024 * 1024) throw new ApplicationError("Stored API binding exceeds the supported size.");
     const value = JSON.parse(fs.readFileSync(absolute, "utf8")) as ApiBinding;
-    if (value.version !== 1 || !record(value.target) || !Array.isArray(value.apis) || !record(value.credentials) || !record(value.aliases) || `${identity(value)}.json` !== file)
+    if (value.version !== 1 || !record(value.target) || !Array.isArray(value.apis) || !record(value.credentials) || !record(value.aliases) || (value.credentialFingerprints !== undefined && (!record(value.credentialFingerprints) || Object.entries(value.credentialFingerprints).some(([key, fingerprint]) => !Object.hasOwn(value.credentials, key) || typeof fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(fingerprint)))) || `${identity(value)}.json` !== file)
       throw new ApplicationError("Invalid local API binding. Bind its registry again.");
     return value;
   }) : [];

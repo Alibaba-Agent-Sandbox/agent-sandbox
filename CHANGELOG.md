@@ -6,10 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- Generate unambiguous scalar API options from OpenAPI, accept piped JSON with `--body -`, and save response bytes with `--output FILE` without overwriting existing files. / 从 OpenAPI 生成无歧义的标量参数选项，支持 `--body -` 读取管道 JSON，以及通过 `--output FILE` 保存原始响应字节且不覆盖已有文件。
+
 ### Fixed
 
 - Keep failed Sandbox deletion clients usable for retry, retry only local cleanup after an acknowledged deletion, and reject unsupported MCP HTTP protocol headers before session mutation. / 沙箱删除失败后保留可重试客户端，云端确认删除后仅重试本地清理，并在会话变更前拒绝不支持的 MCP HTTP 协议版本。
 - Preserve MCP sessions and failed sandbox handles when cleanup fails; HTTP clients can retry the same DELETE, and expired-session retries are paced by the session TTL. / MCP 清理失败时保留会话与失败句柄，HTTP 客户端可重试相同 DELETE，过期会话按 Session TTL 间隔重试清理。
+- Reuse verified template application authentication without copying temporary secrets, reject conflicting request inputs, and show client support separately from service availability in offline help. / 复用已验证的模板应用认证而不复制临时密钥，拒绝冲突的请求输入，并在离线帮助中区分客户端支持与服务实际可用性。
+- Distinguish remote Sandbox state from saved deployment state and return consistent bounded execution JSON across Providers, including nonzero exits and unconfirmed completion. / 区分沙箱远端状态与本机部署记录；统一 Provider 执行 JSON 的大小限制、非零退出与未确认完成语义。
+- Keep deployment recovery records internal, use resource identities and named recovery instructions, and correct retired commands and configuration examples in both language guides. / 部署恢复记录保留在内部，对外使用资源身份与具名恢复指引，并修正双语指南中过时的命令与配置示例。
+
+### Removed
+
+- Remove manual `recover --receipt` import; named recovery uses the tool's saved ownership information. / 删除手动 `recover --receipt` 导入入口；具名恢复使用工具内部保存的归属信息。
 
 ## [0.6.0-alpha.1] - 2026-11-25
 

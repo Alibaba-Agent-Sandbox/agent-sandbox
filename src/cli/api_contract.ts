@@ -226,15 +226,60 @@ export function selectApiOperation(apis: ApiContract[], operationId: string, api
 /** Cached, public operation metadata for offline help. */
 export function describeApiOperations(apis: ApiContract[]): JsonObject[] {
   return apis.flatMap(api => operations(api).map(operation => ({ api: api.name, operationId: operation.operationId,
-    method: operation.method, path: operation.path, summary: operation.definition["summary"], description: operation.definition["description"] })));
+    method: operation.method, path: operation.path, summary: operation.definition["summary"], description: operation.definition["description"],
+    client: apiOperationSupport({ api, operation }) })));
 }
 /** Include examples and response documentation without evaluating any parameter source. */
 export function describeApiOperation(selected: SelectedApiOperation): JsonObject {
   const { api, operation } = selected;
   return { api: api.name, operationId: operation.operationId, method: operation.method, path: operation.path,
     ...operation.definition, parameters: operation.parameters, security: effectiveSecurity(selected),
+    client: apiOperationSupport(selected), flags: apiOperationFlags(selected),
     openapi: api.document["openapi"],
     ...(api.document["components"] !== undefined ? { components: api.document["components"] } : {}) };
+}
+
+export interface ApiFlag { flag: string; location: "path" | "query" | "header" | "body"; name: string; type: string; required: boolean; description?: string }
+const CLI_OPTIONS = new Set(["help", "api", "body", "output", "path", "query", "header", "timeout", "bind", "resource", "credential", "alias"]);
+
+/** Predictable scalar conveniences; the original schema remains the sole request validator. */
+export function apiOperationFlags(selected: SelectedApiOperation): ApiFlag[] {
+  const fields: Omit<ApiFlag, "flag">[] = [];
+  const add = (location: ApiFlag["location"], name: string, definition: unknown, required: boolean, description?: unknown): void => {
+    if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(name)) return;
+    try { fields.push({ location, name, type: scalarType(schema(definition, selected.api.document)), required, ...(typeof description === "string" ? {description} : {}) }); }
+    catch { /* Complex shapes remain available through explicit JSON/request parameters. */ }
+  };
+  for (const param of selected.operation.parameters) add(param.in, param.name, param.schema, param.required === true, param.description);
+  try {
+    const rawBody = selected.operation.definition.requestBody;
+    if (rawBody !== undefined) {
+      const body = reference(rawBody, selected.api.document, "Request body");
+      const content = object(body.content, "Request body content");
+      const definition = object(schema(object(content["application/json"], "JSON body").schema, selected.api.document), "Body schema");
+      // Composition/nested collections need the JSON escape hatch; do not guess property ownership.
+      if (definition.type === "object" && !["allOf", "anyOf", "oneOf", "if", "then", "else"].some(key => own(definition,key))) {
+        for (const [name, raw] of Object.entries(object(definition.properties ?? {}, "Body properties")))
+          add("body", name, raw, Array.isArray(definition.required) && definition.required.includes(name), typeof raw === "object" && raw !== null ? (raw as JsonObject).description : undefined);
+      }
+    }
+  } catch { /* Unsupported bodies still appear with their support status in help. */ }
+  const normalizedName = (field: Omit<ApiFlag,"flag">): string => field.location === "header" ? field.name.toLowerCase() : field.name;
+  const qualified = fields.map(field => `${field.location}-${normalizedName(field)}`);
+  const result: ApiFlag[] = fields.map((field,index) => ({...field,flag:`--${qualified[index]}`}));
+  for (const field of fields) {
+    const name=normalizedName(field);
+    if (!CLI_OPTIONS.has(name) && !qualified.includes(name) && fields.filter(other => normalizedName(other) === name).length === 1)
+      result.push({...field,flag:`--${name}`});
+  }
+  return result;
+}
+
+/** Inspect the selected contract without credentials, input defaults, filesystem or network activity. */
+export function apiOperationSupport(selected: SelectedApiOperation): { supported: boolean; reason?: string; response: string } {
+  const response = "JSON/UTF-8 text, or bounded response bytes with --output; no SSE or multipart responses. Availability and authorization are checked by the service.";
+  try { prepareOperation(selected, {}, true); return { supported: true, response }; }
+  catch (error) { return { supported: false, reason: error instanceof Error ? error.message : "Unsupported operation contract.", response }; }
 }
 function effectiveSecurity({ api, operation }: SelectedApiOperation): unknown {
   return own(operation.definition, "security") ? operation.definition["security"] : own(api.document, "security") ? api.document["security"] : [];
@@ -294,6 +339,10 @@ function scalarType(definition: unknown): string {
 
 /** Validate and serialize one JSON operation before the caller connects to a Sandbox. */
 export function prepareApiOperation(selected: SelectedApiOperation, input: ApiOperationInput): PreparedApiRequest {
+  return prepareOperation(selected, input, false);
+}
+
+function prepareOperation(selected: SelectedApiOperation, input: ApiOperationInput, inspectOnly: boolean): PreparedApiRequest {
   const { api, operation } = selected;
   checkJson(api.document); scanReferences(api.document);
   const authentication = auth(selected);
@@ -326,7 +375,7 @@ export function prepareApiOperation(selected: SelectedApiOperation, input: ApiOp
         if (!/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(raw)) fail("Numeric parameters must be JSON numbers.");
         value = Number(raw);
       }
-    } else if (param.required === true) fail(`Missing required ${param.in} parameter '${param.name}'.`);
+    } else if (param.required === true && !inspectOnly) fail(`Missing required ${param.in} parameter '${param.name}'.`);
     else continue;
     checkJson(value); validate(value, validator, `${param.in} parameter`);
     const serialized = String(value);
@@ -340,10 +389,13 @@ export function prepareApiOperation(selected: SelectedApiOperation, input: ApiOp
     }
   }
   if (Object.values(supplied).some(values => values.size > 0)) fail("An input parameter is not declared by the selected operation.");
-  if (/[{}]/.test(request.path) || request.path.split("/").some(part => part === "." || part === "..") || /\/\/|%(?:2e|2f|5c|25)/i.test(request.path)) fail("Operation path escapes its Sandbox binding or has an undeclared path parameter.");
+  if (placeholders.some(name => !operation.parameters.some(param => param.in === "path" && param.name === name))) fail("Operation path has an undeclared path parameter.");
+  const checkedPath = inspectOnly ? request.path.replace(/\{[^{}]+\}/g, "parameter") : request.path;
+  if (/[{}]/.test(checkedPath) || checkedPath.split("/").some(part => part === "." || part === "..") || /\/\/|%(?:2e|2f|5c|25)/i.test(checkedPath)) fail("Operation path escapes its Sandbox binding or has an undeclared path parameter.");
   const rawBody = operation.definition["requestBody"];
   if (rawBody !== undefined) {
     const body = reference(rawBody, api.document, "OpenAPI requestBody");
+    if (body["required"] === true && ["GET", "HEAD"].includes(operation.method)) fail("GET and HEAD request bodies are not supported.");
     if (body["required"] !== undefined && typeof body["required"] !== "boolean") fail("Request body required must be boolean.");
     const content = object(body["content"], "requestBody.content");
     if (!own(content, "application/json")) fail("Only application/json request bodies are supported.");
@@ -352,7 +404,7 @@ export function prepareApiOperation(selected: SelectedApiOperation, input: ApiOp
     if (media["schema"] === undefined) fail("JSON request bodies require a schema.");
     const validator = compile(media["schema"], api.document, "Request body");
     if (input.body === undefined) {
-      if (body["required"] === true) fail("This operation requires --body JSON or @FILE.");
+      if (body["required"] === true && !inspectOnly) fail("This operation requires --body JSON, @FILE or - for stdin.");
     } else {
       if (operation.method === "GET" || operation.method === "HEAD") fail("GET and HEAD request bodies are not supported.");
       checkJson(input.body); validate(input.body, validator, "Request body"); request.body = input.body;

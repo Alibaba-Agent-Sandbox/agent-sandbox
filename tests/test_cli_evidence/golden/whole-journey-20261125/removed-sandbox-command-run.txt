@@ -1,0 +1,3 @@
+[exit_code:2]
+[stderr]
+Unexpected positional argument; provide application inputs as options.

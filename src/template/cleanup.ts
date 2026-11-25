@@ -7,7 +7,9 @@ import { loadLayeredConfig } from "../transport/config_layers.js";
 import { ApplicationError, writeJson } from "../application/config.js";
 export interface CleanupTarget { provider: string; providerOptions?: Record<string, unknown>; connection?: {api_url?: string; domain?: string} }
 export async function cleanupResourceJournal(file: string, target: CleanupTarget): Promise<{ complete: boolean; failures: string[]; retained: unknown[] }> {
-  const journal = JSON.parse(fs.readFileSync(file, "utf8"));
+  let journal;
+  try { journal = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch { throw new ApplicationError("Saved cleanup information cannot be read. Keep the local configuration and restore a trusted backup before continuing."); }
   if (journal.version !== 1 || journal.provider !== target.provider || !Array.isArray(journal.entries)) throw new ApplicationError("Resource journal does not match the selected target.");
   const entries = journal.entries as Array<{kind: string; id?: string; state: string; cleanup: string}>;
   const failures: string[] = [];
