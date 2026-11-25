@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve value arity, conversion and repeat order across long CLI option aliases; keep boolean flag polarity and defaults. / 修复长选项别名的值参数、转换与重复顺序，保留布尔开关极性和默认值。
+- Remove the expired stable-release date from the bilingual preview notice. / 移除双语预览说明中过期的正式版发布日期。
+
 ### Documentation
 
 - Add practical bilingual MCP client, file-delivery, background-task and diagnostic guidance, with scoped real STDIO/HTTP/Qwen/template evidence.

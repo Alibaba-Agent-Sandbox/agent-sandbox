@@ -11,7 +11,7 @@ Alibaba Cloud Express (`alicloud-express`) is the default backend. Additional ba
 
 [Website](https://www.agent-sandbox.cn/en/) · [Documentation](docs/en/README.md) · [Templates](https://registry.agent-sandbox.cn/en/templates/)
 
-> **Preview release:** Agent Sandbox is currently in preview and may introduce breaking changes. The stable **1.0.0** release is expected on **November 15, 2026**. Stay tuned!
+> **Preview release:** Agent Sandbox is currently in preview and may introduce breaking changes.
 
 ## Installation
 

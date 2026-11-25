@@ -11,7 +11,7 @@
 
 [官网](https://www.agent-sandbox.cn) · [使用文档](docs/zh/README.md) · [模板目录](https://registry.agent-sandbox.cn/templates/)
 
-> **预览版说明：** Agent Sandbox 目前处于预览阶段，可能会有不兼容变更。预计于 **2026 年 11 月 15 日**发布 **1.0.0 正式版**，敬请期待！
+> **预览版说明：** Agent Sandbox 目前处于预览阶段，可能会有不兼容变更。
 
 ## 安装
 
