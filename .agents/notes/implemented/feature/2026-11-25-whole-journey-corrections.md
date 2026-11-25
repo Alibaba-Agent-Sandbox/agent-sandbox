@@ -1,5 +1,5 @@
 # Decision: Correct the observable Sandbox user journey
-Status: proposed
+Status: implemented
 
 ## Problem
 

@@ -2,7 +2,7 @@
 
 - Date: 2026-11-25
 - Change: Issue276; whole-journey-corrections ADR
-- Result: PARTIAL — focused/local and real Express paths passed; remote full CI is pending. Broader workflow migration is separate.
+- Result: PARTIAL — focused/local and real Express paths passed; the remote Node20/22 test and parity matrix passed; the final package/check gate is tracked by PR277. Broader workflow migration is separate.
 - Baseline: b095ab0001f40f1f148e0552d0bdbc378eae11fd, CLI 0.6.0-alpha.1 source. This work does not publish a new package.
 
 ## Reviews
@@ -44,3 +44,11 @@ A temporary current-v5 source recipe borrowed `base`, uploaded a small actual Se
 Earlier attempts remain failures: one fixture omitted the required provider for an existing template; two attempts used a readiness executable before pip installation made it available and were cleaned up automatically. A separately held diagnostic instance established that upload and pinned pip installation worked, and was then deleted and independently checked. The corrected successful recipe uses Python's standard-library HTTP readiness probe, available before SDK installation. No product startup behavior was changed to hide these fixture failures. The final run reused the normal saved application token; it was not a new clean-HOME onboarding test. Wrong-token/changed-token rejection is covered locally, not by a separate cloud run here.
 
 All owned instances from these attempts were confirmed absent. The borrowed base template remains. No database, FC function, built image or native template was created. This validates the current v5 launch-and-bind path only, not the proposed native-v1 bootstrap or an OpenSandbox/Serving deployment.
+
+## Remote integration and review status
+
+[PR277](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/277), source head `5cdae350a640f8cf01c5984dadff30a6d0626564`: [CI45588774710](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/45588774710) completed the Node20 and Node22 test/parity jobs successfully with the pinned SDK/Provider checkouts. Typecheck/lint, installer, Markdown links and the executed Express workflow steps also passed. The Express workflow's aggregate does not establish optional cloud steps; the separate real cloud evidence above is the actual cloud run. Package validation and the final documentation-only head remain subject to the PR's required checks; this record does not predate those outcomes.
+
+A final local repository-health run initially saw the generated, ignored parity JSON containing machine paths. Moving that temporary report outside the checkout restored 105 passes, 11 existing warnings and zero failures. This changed no product or checker behavior. The pre-commit secret check passed; the optional pre-commit framework was unavailable. Independent typecheck, lint, hygiene, test and package checks are recorded above.
+
+The broader review also opened [CLI278](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/278) and [Python181](https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/181) for MCP cleanup returning success while discarding failed owned handles, and [Python182](https://github.com/Alibaba-Agent-Sandbox/python-sdk/issues/182) for nonexistent harness-install guidance. Their fixes have independent branches and evidence; Issue276 does not close them or the native migration work.

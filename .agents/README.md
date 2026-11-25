@@ -1,6 +1,6 @@
 # `.agents/` — engineering record of the cli repository
 
-- [Sandbox user journey corrections](notes/proposed/feature/2026-11-25-whole-journey-corrections.md) · [integrated verification](evidence/verify/2026-11-25-whole-journey-corrections.md). Request/authentication, observed state and public recovery results; this is not the native YAML migration or a new release.
+- [Sandbox user journey corrections](notes/implemented/feature/2026-11-25-whole-journey-corrections.md) · [integrated verification](evidence/verify/2026-11-25-whole-journey-corrections.md). Request/authentication, observed state and public recovery results; this is not the native YAML migration or a new release.
 
 ## Public CLI 0.6.0-alpha.1 — 2026-11-25
 
