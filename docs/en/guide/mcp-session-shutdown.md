@@ -39,16 +39,3 @@ The HTTP endpoint accepts `MCP-Protocol-Version: 2025-06-18`. An explicitly diff
 or malformed version returns HTTP 400 before tools, expiration or deletion execute.
 Requests without that header keep the session's negotiated behavior. `/health` does
 not require the protocol header. Origin and authentication checks still run first.
-
-Maintainers can exercise the real handle path with:
-
-```bash
-npm run build
-node e2e/skill-mcp-shutdown-acceptance.mjs --output ./mcp-shutdown-new.json
-```
-
-Supply the configured sandbox runtime API key/origin through environment variables. The scenario
-uses actual Express create/connect/command/kill operations. Its test hooks delay real SDK handles
-and control lock scheduling to reproduce the race deterministically. It verifies new owned-resource
-HTTP404, a borrowed sandbox's surviving business command and final independent deletion of both
-task-owned test sandboxes. The hooks do not mock cloud responses.
