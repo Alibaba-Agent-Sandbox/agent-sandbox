@@ -57,6 +57,8 @@ abx template build --clean BUILD_FILE --yes
 
 `abx sandbox TARGET --help` 列出本地已绑定 OpenAPI 契约中的操作；`abx sandbox TARGET OPERATION --help` 展示参数、请求体、响应和认证要求。通过 `abx sandbox TARGET OPERATION --body @request.json` 调用。TARGET 必须是已有 Sandbox ID 或本地沙箱部署名称；多个 API 有同名操作时使用 `--api NAME` 消歧。
 
+声明的标量输入会生成 `--path-id VALUE`、`--query-limit VALUE`、`--body-message VALUE` 等选项；名称无歧义时可以简写为 `--id`、`--message`。操作帮助展示实际选项和客户端支持范围。完整 JSON 保留 `--body @request.json`，管道输入使用 `--body -`；`--output FILE` 将原始响应字节保存到一个新文件，错误响应不生成文件。重复请求体以及完整请求体与字段选项混用，会在调用服务前报错。
+
 模板的 `registry.yaml.apis` 只描述一个 Sandbox 资源时，部署成功会自动绑定。已有实例或没有 API 声明的模板，可先绑定本地 registry。绑定只描述已有服务，不安装或启动服务。完整示例、别名、凭据来源与 OpenAPI 支持范围见 [Sandbox API 操作](../guide/sandbox-api.md)。
 
 平台和运行环境工具使用根命令：`exec`、`connect`、`upload`、`download`、`files`、`process`、`system`、`capabilities`、`pause`、`resume`、`metrics`、`snapshot`、`fork`、`network`。能否使用取决于 Provider 和已安装的服务。

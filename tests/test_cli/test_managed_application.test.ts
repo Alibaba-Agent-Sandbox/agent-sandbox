@@ -304,7 +304,7 @@ describe("managed application effects", () => {
     const gateway = external.native.get(value.plan.identities.gateway)!; expect(JSON.stringify(gateway.environmentVariables)).not.toContain(businessTokenDigest(temporaryToken));
     const persisted = fs.readFileSync(value.receiptFile, "utf8"); for (const secret of [temporaryToken, external.deps.binding.internal.token, "private-model-key", "private-sandbox-key", "postgresql://"]) expect(persisted).not.toContain(secret);
     expect(external.aliases.get(`${value.plan.identities.gateway}/prod`)).toBe(receipt.gatewayVersion); expect(external.calls).toContain(`timer:${value.plan.identities.dispatcher}:true`);
-    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/already has a receipt/);
+    await expect(applyPlan(value.plan, external.deps, value.receiptFile)).rejects.toThrow(/operation already started.*abx recover/);
   });
   it("refuses same-name preexisting functions and keeps the borrowed resource", async () => {
     const value = fixture(), external = services(value.plan); external.native.set(value.plan.identities.worker, { functionName: value.plan.identities.worker });
@@ -664,7 +664,7 @@ describe("managed application effects", () => {
     const value = fixture(), external = services(value.plan); await applyPlan(value.plan, external.deps, value.receiptFile);
     const remove = external.deps.fc.deleteFunction; let fail = true;
     external.deps.fc.deleteFunction = async name => { if (name === value.plan.identities.worker && fail) { fail = false; throw new Error("transient deletion unknown"); } await remove(name); };
-    await expect(destroyPlan(createDestroyPlan(value.receiptFile), external.deps)).rejects.toThrow(/Some owned resources/); expect(external.native.size).toBe(1); expect(readReceipt(value.receiptFile).drainConfirmed).toBe(true);
+    await expect(destroyPlan(createDestroyPlan(value.receiptFile), external.deps)).rejects.toThrow(/Some resource deletions remain unconfirmed.*abx recover/); expect(external.native.size).toBe(1); expect(readReceipt(value.receiptFile).drainConfirmed).toBe(true);
     const count = external.calls.filter(item => item === "control").length;
     const final = await destroyPlan(createDestroyPlan(value.receiptFile), external.deps); expect(final.status).toBe("destroyed"); expect(external.native.size).toBe(0); expect(external.calls.filter(item => item === "control")).toHaveLength(count);
     await destroyPlan(createDestroyPlan(value.receiptFile), external.deps); expect(external.native.size).toBe(0);

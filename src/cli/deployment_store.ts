@@ -39,13 +39,19 @@ export function readDeployment(name: string): Deployment | undefined {
   if (!/^[a-z][a-z0-9-]{0,62}$/.test(name)) return undefined;
   const file = path.join(deploymentDirectory(name), "deployment.json");
   if (!fs.existsSync(file)) return undefined;
-  const data: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
+  let data: unknown;
+  try { data = JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch { throw new ApplicationError("Saved deployment information cannot be read. Keep the local configuration and restore a trusted backup before continuing."); }
   if (!record(data) || data.version !== 1 || data.name !== name || !["application", "sandbox"].includes(String(data.kind)) || typeof data.provider !== "string") throw new ApplicationError("Invalid local deployment record; preserve it for recovery.");
   return data as unknown as Deployment;
 }
 export function saveDeployment(value: Deployment): void {
   value.updatedAt = new Date().toISOString();
-  writeJson(path.join(deploymentDirectory(value.name), "deployment.json"), value);
+  try { writeJson(path.join(deploymentDirectory(value.name), "deployment.json"), value); }
+  catch (error) {
+    if (error instanceof ApplicationError) throw error;
+    throw new ApplicationError("Could not save deployment information. Check write permissions and free disk space in your local abx configuration directory.");
+  }
 }
 export function listDeployments(): Deployment[] {
   const directory = path.join(paths.abxDir, "deployments");

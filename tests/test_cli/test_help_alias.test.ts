@@ -4,11 +4,16 @@
 
 import "../_support/isolatedHome.js";
 
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { Sandbox } from "../../src/api/sandbox.js";
+import { digest } from "../../src/application/config.js";
+import { saveApiBinding } from "../../src/cli/api_binding.js";
 import { cli } from "../../src/cli/main.js";
 import { type Command } from "../../src/cli/kit.js";
+import { paths } from "../../src/transport/config_layers.js";
 import { CliRunner, type Result } from "../helpers/cliRunner.js";
 import { ALL_COMMANDS } from "./conftest.js";
 
@@ -119,12 +124,22 @@ describe("registered API help", () => {
   });
 
   it("rejects undeclared CLI options before connecting", async () => {
+    const target = {id: "help-options-test", provider: "alicloud-express"};
+    const document = {openapi: "3.1.0", info: {title: "Report", version: "1"}, paths: {
+      "/report": {get: {operationId: "report", responses: {"200": {description: "Report"}}}},
+    }};
+    saveApiBinding({version: 1, target, credentials: {}, aliases: {}, apis: [
+      {name: "report", resource: "sandbox.report", port: 9000, digest: digest(document), document},
+    ]});
     const connect = vi.spyOn(Sandbox, "connect");
     try {
-      const result = await new CliRunner().invoke(cli, ["sandbox", "sandbox-id", "report", "--target", "staging"]);
-      expect(result.exit_code).toBe(2);
-      expect(result.output).toContain("No such option");
+      const result = await new CliRunner().invoke(cli, ["sandbox", target.id, "report", "--target", "staging"]);
+      expect(result.exit_code, result.output).toBe(2);
+      expect(result.output).toContain("Unknown or ambiguous option '--target'");
       expect(connect).not.toHaveBeenCalled();
-    } finally { connect.mockRestore(); }
+    } finally {
+      connect.mockRestore();
+      fs.rmSync(path.join(paths.abxDir, "api-bindings", `${digest(target)}.json`), {force: true});
+    }
   });
 });

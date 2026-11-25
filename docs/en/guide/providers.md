@@ -55,7 +55,7 @@ Compared with a native Python adapter calling the same backend directly, the eng
 
 Selecting a provider chooses its configuration and protocol adapter. Unsupported operations must fail with E8004 on that provider; they must never retry against alicloud-express. Explicit provider:sandbox-id references retain ownership even when the default changes. An unknown namespace raises E8001 and an empty sandbox id raises E8002 before backend requests. Explicit provider/reference conflicts raise E8030.
 
-The standard E2B command frontend is used only for Express. Qualified sandbox references enter the provider router. Other providers currently retain the project CLI syntax; selecting one does not promise that every E2B-specific option or result model is implemented there. Local generation with template scaffold can use a generic Docker profile; that changes the image contract, not the cloud backend.
+Express and installed providers use the same CLI command parser. Selecting a provider changes the backend and its supported operations; it does not select an E2B command style or promise E2B parameter and result compatibility. `template init` prepares local source; its build profile does not change the selected cloud backend.
 
 Template commands use the selected provider's implemented template manager or its specialized command handlers. Native FC/ACR handlers belong to Express. The public `abx --provider <id> deploy SOURCE --name my-app` path uses provider-owned preparation and startup; OpenSandbox implements source preparation for the documented default recipe. Missing operations fail on the selected provider without silently switching to Express. See [launch a template](template-launch.md) for build/configuration requirements and [template workflows](template-workflows.md) for the operation checks. Natural-language cloud deployment still requires its own matching provider handler.
 
@@ -113,13 +113,14 @@ Highest priority first:
 | Flag (before the sandbox ID for exec) | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
-| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`, `abx config set provider my-cloud`) |
+| `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`) |
 | Built-in | `alicloud-express` |
 
 ```bash
-abx config set provider                   # effective default, one line (--json: {"default": ..., "source": ...})
+abx config get provider                   # effective default
 abx config set provider my-cloud          # persist it
-abx config set provider --unset           # back to alicloud-express
+abx config delete provider                # remove the saved default; environment overrides still apply
+abx config list                           # inspect effective values and their sources
 ```
 
 An unknown id exits with 4 (`E8001`). Provider options for one command are given with `--opt KEY=VALUE` (repeatable; before the sandbox ID for exec); options marked `secret` in the manifest are refused on the command line (`E8002`) so that secrets never reach shell history, set them with `abx config set providers.<id>.<key>` instead.
@@ -137,7 +138,7 @@ abx list --all-providers                                 # every configured prov
 abx delete local-process:sbx-1 --yes
 ```
 
-`list --all-providers` is an explicit native project extension even when Express is the default; ordinary list filters follow the standard contract. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
+`list --all-providers` queries each configured provider. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered; this is a partial inventory, not proof that every provider was reached. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
 
 A command that needs a feature the provider does not declare (for example `abx process` on a provider without `process.manage`) fails with `E8004` before any request is sent.
 
@@ -149,12 +150,12 @@ Installing a plugin does not implement every interface. Inspect `abx provider in
 
 | Task | CLI | Python ProviderSandbox |
 |---|---|---|
-| Create, connect and clean up | `create`, `connect`, `kill` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
+| Create, connect and clean up | `deploy --template-id ID --name NAME`, `connect`, `delete` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
 | Execute a process | `exec` | `commands.run` |
 | Read and write files | `upload`, `download` | `files.read/write` |
 | Call a template application | `sandbox TARGET OPERATION`; see [command reference](../reference/cli-commands.md) | `await application_client(port, token=...)`, then `client.commands.run` |
 | Resolve an application endpoint | No standalone URL command | `await network.resolve(port)` returns the URL and gateway headers |
-| Prepare source and launch | `template launch`; see [launch guide](template-launch.md) | Prepare with the CLI, then connect to its sandbox or use the prepared reference |
+| Prepare source and launch | `deploy SOURCE --name NAME`; see [deployment guide](template-launch.md) | Prepare with the CLI, then connect to its sandbox or use the prepared reference |
 
 Process execution, application commands, interpreters and PTY are separate interfaces. Supporting one does not imply the others. A provider's EPP transport does not itself prevent calling an application over HTTP: the selected workflow must expose a reachable application endpoint and satisfy its authentication contract. Preserve gateway headers and supply the application token explicitly.
 
@@ -232,11 +233,11 @@ abx config get providers.my-cloud.token                      # always masked
 abx config list --provider my-cloud                          # the provider's keys and where each value comes from
 ```
 
-A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx --provider <id> config list|get|set|unset|init` is the same surface scoped to one provider.
+A bare key that exists only in another installed provider is rejected with `Did you mean 'providers.<id>.<key>'?`. `abx --provider <id> config list|get|set|delete|init` is the same surface scoped to one provider.
 
 `abx config list` prints the names in the table above. A name that is not in the table is not read. For the built-in provider that means `ABX_SANDBOX_API_KEY`, `ABX_SANDBOX_BASE_URL`, `ABX_SANDBOX_DOMAIN`, `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, and `ALIBABA_CLOUD_REGION_ID`. `E2B_API_KEY`, `E2B_API_URL`, `E2B_DOMAIN`, `AccessKey`, `AccessSecret`, `ALIBABA_CLOUD_ACCESS_KEY_ID`, and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` are not read. A missing credential error lists the names that are read.
 
-The preceding table and policy apply to native providers and MCP. The standard Express entry also maps `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` at its boundary and otherwise uses project configuration; see the [migration guide](migrate-from-e2b.md).
+Use the `ABX_SANDBOX_*` names for the current CLI. An older compatibility client or an MCP server may have its own explicit environment mapping; that does not add aliases to `abx config`. See the [migration guide](migrate-from-e2b.md).
 
 ---
 
@@ -275,7 +276,7 @@ abx --json --provider alicloud-express provider run volume.list --input '{"max_r
 
 Writes and deletes require `--yes`. Supply credentials through configuration; `--opt` rejects secret fields. Use `--input-file` for complex input. Discovery works without cloud credentials. FC commands require Alibaba Cloud AK/SK, and do not authenticate with a sandbox API key. See the [command contract](../design/provider-commands.md) and [Alibaba Cloud capability matrix](../design/alicloud-provider-commands.md), including custom-domain limits and safe API-key export.
 
-To mount an existing FC Volume, use the native Python SDK `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` argument from the [SDK API reference](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md). The default standard Express CLI does not expose the native `--volume-mount` option.
+To mount an existing FC Volume when creating an instance, pass `--volume-mount /mnt/workspace=workspace` to `abx deploy --template-id TEMPLATE_ID --name NAME`, or use the native Python SDK `Sandbox.create(volume_mounts={"/mnt/workspace": "workspace"})` argument from the [SDK API reference](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/en/reference/api-reference.md).
 This selects the Volume by name and requires its Team's sandbox API key and a storage-access role.
 It does not create underlying storage. Volume currently requires invitation access; confirm it through
 an Alibaba Cloud support ticket as described in the [official OSS Volume guide](https://help.aliyun.com/zh/agent-sandbox/user-guide/create-oss-volume).

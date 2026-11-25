@@ -74,13 +74,13 @@ abx status my-agents
 
 `--plan` checks the local template and summarizes resources without building or making cloud changes.
 `deploy` builds the Server image, prepares its Sandbox Template, deploys the three functions, validates
-the candidate and publishes the Gateway. It returns `endpoint`, `credentials_file` and `receipt_file`.
+the candidate and publishes the Gateway. It returns the application name, `endpoint` and `credentials_file`.
 External clients use the endpoint and business key. FC built-in domains are for testing; production
 uses an existing HTTPS custom domain.
 
 To update, edit the project and run the same `deploy` command with the same name. Existing Sessions
 retain their Worker and Sandbox Template; new Sessions use the current revision. Keep local deployment
-records and receipts available for cleanup. Deployments from multiple hosts must be serialized by your
+configuration directory available for cleanup; the CLI manages its deployment records. Deployments from multiple hosts must be serialized by your
 pipeline; the local lock does not coordinate independent hosts.
 
 ```bash
@@ -94,7 +94,7 @@ abx delete my-agents --yes
 wait does not prove cloud work stopped. Retiring a revision drains it before removing its resources;
 deleting the application drains all recorded revisions. If cleanup is incomplete, keep the records,
 inspect with `recover`, resolve the reported uncertainty, and retry deletion.
-An existing receipt can be imported with `abx recover my-agents --receipt PATH`.
+Use the saved application name for recovery; no internal deployment file needs to be passed to the CLI.
 
 `abx logs my-agents --role gateway` reads an existing FC log store. The default recipe does not
 configure FC logging; configure the function's `logConfig` and required logging access before using

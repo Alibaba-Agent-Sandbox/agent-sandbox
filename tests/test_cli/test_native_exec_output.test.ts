@@ -22,6 +22,24 @@ it("returns one JSON object, remote argv and nonzero status through the public e
   expect(run.mock.calls[0]?.[1]).toMatchObject({ user: "root" });
 });
 
+it("applies the same bounded JSON capture to native execution and waits for its exit", async () => {
+  iso.setenv("ABX_SANDBOX_API_KEY", "fixture-key");
+  vi.spyOn(process.stdin, Symbol.asyncIterator).mockImplementation(async function* () {});
+  const wait = vi.fn(async () => ({ exitCode: 11 }));
+  const run = vi.fn(async (_command: string, options: { onStdout: (data: string) => void; onStderr: (data: string) => void }) => {
+    options.onStdout("a".repeat(8 * 1024 * 1024));
+    options.onStderr("b".repeat(8 * 1024 * 1024 + 1));
+    return { pid: 7, wait, kill: async () => {}, disconnect: async () => {} };
+  });
+  vi.spyOn(Sandbox, "connect").mockResolvedValue({ commands: { supportsStdinClose: true, run, closeStdin: async () => {} } } as unknown as Sandbox);
+  const code = await main({ args: ["--json", "exec", "--provider", "alicloud-express", "raw-id", "tool"] });
+  const { out, err } = cap.readouterr();
+  expect(code).not.toBe(0);
+  expect(JSON.parse(out)).toMatchObject({ code: "E3000", message: expect.stringContaining("exit code 11") });
+  expect(out).toContain("16 MiB"); expect(out.length).toBeLessThan(1024); expect(err).toBe("");
+  expect(wait).toHaveBeenCalledOnce(); expect(run).toHaveBeenCalledOnce();
+});
+
 it.each([2147483, 2147484])("validates the representable command timer boundary %i before connecting", async seconds => {
   iso.setenv("ABX_SANDBOX_API_KEY", "fixture-key");
   const run = vi.fn(async () => ({pid: 7, wait: async () => ({exitCode:0}), kill:async () => {}, disconnect:async () => {}}));

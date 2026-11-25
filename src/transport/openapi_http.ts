@@ -5,8 +5,9 @@ import { applicationOperationUrl } from "./application_http.js";
 
 export const openApiHttpSeams = { fetch: globalThis.fetch };
 export interface OpenApiRequest { method: string; path: string; query: [string, string][]; headers: Record<string, string>; body?: unknown }
+export interface OpenApiResponse { status: number; body: unknown; bytes?: Uint8Array }
 
-export async function requestOpenApi(endpoint: ApplicationEndpoint, request: OpenApiRequest, timeout = 30): Promise<{ status: number; body: unknown }> {
+export async function requestOpenApi(endpoint: ApplicationEndpoint, request: OpenApiRequest, timeout = 30, outputBytes = false): Promise<OpenApiResponse> {
   if (!Number.isFinite(timeout) || timeout <= 0 || timeout > 300) throw new ProviderConfigError("Request timeout must be greater than zero and at most 300 seconds.");
   // Existing scope validation forbids path escapes; / is the one valid empty operation path.
   const url = new URL(applicationOperationUrl(endpoint, request.path === "/" ? "/__abx_root__" : request.path));
@@ -54,10 +55,21 @@ export async function requestOpenApi(endpoint: ApplicationEndpoint, request: Ope
         chunks.push(next.value);
       }
     } finally { reader.releaseLock(); }
-    const text = Buffer.concat(chunks).toString("utf8");
+    const bytes = Buffer.concat(chunks);
+    // Saving is an explicit caller action. Never decode successful download bytes.
+    if (outputBytes && response.status >= 200 && response.status < 300) return { status: response.status, body: null, bytes };
+    const media = (response.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+    const json = media === "application/json" || /^application\/[a-z0-9!#$&^_.+-]+\+json$/.test(media);
+    if (bytes.length && media && !json && !media.startsWith("text/")) {
+      if (response.status < 200 || response.status >= 300) return { status: response.status, body: { error: "non_text_response", content_type: media, bytes: bytes.length } };
+      throw new ProviderConfigError("Application returned binary content. For future calls, use --output FILE to save the original bytes. This request may already have changed the service; do not repeat it blindly.");
+    }
+    let text: string;
+    try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+    catch { throw new ProviderConfigError("Application response is not valid UTF-8. For future calls, use --output FILE to save original bytes. This request may already have changed the service; do not repeat it blindly."); }
     let value: unknown = text;
     if (!text) value = null;
-    else if (/\bjson\b/i.test(response.headers.get("content-type") ?? "")) {
+    else if (json) {
       try { value = JSON.parse(text); } catch { throw new ProviderConfigError("Application returned invalid JSON."); }
     }
     return { status: response.status, body: value };

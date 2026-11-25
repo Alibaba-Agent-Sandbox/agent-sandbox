@@ -37,6 +37,8 @@ abx sandbox report-demo --bind ./registry.yaml \
 
 通过自己的秘密管理方式，在 Shell 中设置 `REPORT_API_TOKEN`，值必须是该服务接受的应用令牌，与云凭据和 Sandbox 管理 Key 分开。绑定只保存变量名，不保存值；它不读取应用凭据或调用业务接口，会连接已有沙箱以确认身份。服务已使用 CLI 管理的应用令牌时，可显式指定 `report.token=config:server_token`。绑定不会改变服务端令牌。
 
+模板声明了 `ABX_SERVER_TOKEN` 和 Server SDK v2 服务时，部署可以自动复用应用认证。CLI 先验证服务，确认 API 端口相同、Bearer 认证方案唯一，且实际注入沙箱的令牌与当前 CLI 配置来源一致，才保存凭据来源引用和令牌身份校验信息；API 绑定不保存令牌本身。该来源后续变化时，调用会在发送 HTTP 前停止，需要恢复原令牌，或显式重新绑定到服务实际接受的令牌来源。仅通过部署 `--env` 提供的自定义令牌不会自动保存，后续调用应显式绑定环境变量引用。导入任意 OpenAPI 文件不会让它自动获得 CLI 凭据。
+
 `--bind` 替换该目标原有的契约、凭据引用和别名，重新绑定时需完整提供要保留的内容。别名固定映射一个 `API:OPERATION_ID`，不能覆盖已有操作名，只在本机此绑定中生效。对于一个操作，只绑定其一个认证分支需要的凭据引用。契约明确允许匿名访问且没有配置认证分支时，使用匿名访问；已尝试的认证请求不会降级成匿名重试。
 
 缓存位于 `~/.abx/api-bindings`，使用私有文件权限，包含规范和路由信息。不要在 Schema 或示例中填写秘密。修改或删除原始文件不会更新已保存的契约；API 变化后需审查并重新绑定。帮助不会触发绑定。
@@ -51,7 +53,7 @@ abx sandbox report-demo totals --body '{"values":[10,20,30]}'
 abx --json sandbox report-demo report_totals --api report --body @request.json
 ```
 
-目标帮助列出操作和别名；操作帮助展示方法、路径、请求结构、响应/示例及认证要求。两者均离线，不读取凭据。帮助反映声明的行为，不代表实时可用性或用户已获授权。
+目标帮助列出操作和别名，并标出客户端不支持的请求契约；操作帮助展示生成的选项及类型、方法、路径、请求结构、响应/示例、认证要求和客户端限制。两者均离线，不读取凭据。帮助反映声明的行为，不代表实时可用性或用户已获授权。
 
 HTTP 输出保留状态与响应正文：
 
@@ -64,7 +66,11 @@ HTTP 输出保留状态与响应正文：
 | 选项 | 用法 |
 | --- | --- |
 | `--api NAME` | 多个 API 有同名操作时选择 API |
-| `--body JSON` / `--body @FILE` | JSON 请求体，对象、数组、标量按 Schema 校验 |
+| `--path-NAME VALUE`、`--query-NAME VALUE`、`--header-NAME VALUE` | 从声明的标量参数生成的限定选项 |
+| `--body-NAME VALUE` | 普通 JSON 对象请求体中的顶层标量属性 |
+| `--NAME VALUE` | 字段名无歧义且不与 CLI 选项冲突时的简写 |
+| `--body JSON` / `--body @FILE` / `--body -` | 完整 JSON 请求体，对象、数组、标量按 Schema 校验；`-` 显式读取管道输入 |
+| `--output FILE` | 将成功响应保存到一个新文件，最多 8 MiB，保留原始二进制或 JSON 字节 |
 | `--path NAME=VALUE` | 路径参数，可重复填写不同参数 |
 | `--query NAME=VALUE` | 查询参数，可重复填写不同参数 |
 | `--header NAME=VALUE` | 声明过的非认证请求头，不能覆盖网关/传输层请求头 |
@@ -73,12 +79,25 @@ HTTP 输出保留状态与响应正文：
 对于声明了相应操作和参数的服务，可以组合使用：
 
 ```bash
-abx sandbox report-demo get_report --path reportId=daily --query detailed=false
-abx sandbox report-demo update_report --path reportId=daily \
-  --header X-Request-Id=request-123 --body @request.json --timeout 60
+abx sandbox report-demo get_report --reportId daily --detailed false
+abx sandbox report-demo update_report --path-reportId daily \
+  --header-x-request-id request-123 --body @request.json --timeout 60
 ```
 
-这两个名字用于说明参数组合，不属于前面的报表示例。`false`、`0`、显式空字符串不会被视为缺失。未知参数和重复赋值会报错。Schema 默认值和示例用于说明，CLI 不会自动填入。
+如果操作的 JSON 请求体声明了字符串 `message` 和布尔值 `stream`，可以使用：
+
+```bash
+abx sandbox support-api ask --message "总结这份报告" --stream false
+abx sandbox support-api ask --body-message "总结这份报告" --body-stream false
+cat request.json | abx sandbox support-api ask --body -
+abx sandbox support-api artifact_content --id artifact-123 --output ./report.pdf
+```
+
+这些操作名用于说明自己声明的契约，不属于前面的报表示例。标量选项都显式提供值，布尔值也不例外。如果路径和请求体都有 `id`，使用 `--path-id` 或 `--body-id`；请求体中名为 `timeout` 的属性使用 `--body-timeout`。嵌套对象、数组或组合请求体结构使用 `--body @FILE`。完整请求体与请求体字段选项不能混用。普通字符串属性中的 `@` 是字面内容，不会上传或读取本地文件。值以 `--` 开头时，使用 `--message=--literal`。
+
+`--output` 不会覆盖已有文件，只有收到完整成功响应后才生成目标文件。非 2xx 响应继续返回状态与正文，不生成下载文件。输出 JSON 提供文件位置和字节数。二进制响应未指定 `--output` 时会明确报错，不会将任意字节转换为文本；响应收到后保存文件失败也不会重试请求。
+
+上面的示意操作名需要服务提供对应声明，不属于前面的报表示例。`false`、`0`、显式空字符串不会被视为缺失。未知参数、重复赋值以及重复的 `--body` 等单值选项会报错。Schema 默认值和示例用于说明，CLI 不会自动填入。
 
 ## 支持范围与生命周期
 

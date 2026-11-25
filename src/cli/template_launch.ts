@@ -90,7 +90,7 @@ export interface TemplateLaunchResult {
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
-  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void } = {},
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; recoveryTarget?: string; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void; onVerifiedApplication?: (service: { port: number; token: string }) => void } = {},
 ): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
@@ -153,8 +153,9 @@ export async function executeTemplateLaunch(
   let manager: ProviderTemplateManager | undefined;
   let prepared: PreparedTemplate;
   let cleanupFailed = false;
-  const recoveryHint = (): string => journal.hasRecordedIntent ? ` Inspect recovery journal ${journal.file} before retrying.` : "";
-  const localStorageHint = `Check permissions and disk space under ${path.dirname(journal.file)}.`;
+  const recoveryHint = (): string => !journal.hasRecordedIntent ? "" : creationOptions.recoveryTarget
+    ? ` Run abx recover ${creationOptions.recoveryTarget} before retrying.` : " Inspect the deployment status before retrying; recovery information is saved locally.";
+  const localStorageHint = "Check write permissions and free disk space in your local abx configuration directory.";
   try {
     await journal.initialize();
     creationOptions.onJournal?.(journal);
@@ -258,8 +259,8 @@ export async function executeTemplateLaunch(
       finally { try { await sandbox.close(); } catch { /* Cleanup must survive client close failures. */ } }
     }
     try { await journal.mark(createIntent, cleaned ? "deleted" : "uncertain"); } catch { /* Journal failure must not prevent owned cleanup. */ }
-    if (knownSandboxId !== undefined) throw new ProviderConfigError(`Sandbox creation/session binding failed for owned sandbox ${knownSandboxId}; cleanup ${cleaned ? "completed" : "must be reconciled"}; recovery journal ${journal.id}.`);
-    throw new ProviderConfigError(`Sandbox creation has an uncertain outcome. Do not retry blindly; inspect resource journal ${journal.id} and reconcile by its correlation key.`);
+    if (knownSandboxId !== undefined) throw new ProviderConfigError(`Sandbox creation/session binding failed for owned sandbox ${knownSandboxId}; cleanup ${cleaned ? "completed" : "must be reconciled"}.${recoveryHint()}`);
+    throw new ProviderConfigError(`Sandbox creation has an uncertain outcome. Do not repeat creation until its outcome is known.${recoveryHint()}`);
   }
   try {
     await creationOptions.afterCreate?.(sandbox);
@@ -285,6 +286,7 @@ export async function executeTemplateLaunch(
       if (service.protocol === "agent-sandbox-server" && service.version === 2) {
         await sandbox.verifyApplicationOperation("health", serviceOptions);
         if (service.operations.includes("commands.list")) await sandbox.listCommands(serviceOptions);
+        if (Object.hasOwn(template.env, "ABX_SERVER_TOKEN") && environment["ABX_SERVER_TOKEN"]) creationOptions.onVerifiedApplication?.({ port: service.port, token: environment["ABX_SERVER_TOKEN"] });
       }
       const endpoint = await sandbox.network.resolveEndpoint(service.port);
       services[id] = { protocol: service.protocol, version: service.version, port: service.port, url: endpoint.url };
@@ -301,7 +303,7 @@ export async function executeTemplateLaunch(
   } catch {
     let cleaned = false;
     try { await sandbox.kill(); if (await sandbox.isRunning()) throw new Error("Still running"); await journal.mark(createIntent, "deleted"); cleaned = true; } catch { /* Report the owned ID if cleanup could not be confirmed. */ }
-    throw new ProviderConfigError(`Template startup failed; owned sandbox ${sandbox.id} cleanup ${cleaned ? "completed" : "could not be confirmed"}; recovery journal ${journal.id}.`);
+    throw new ProviderConfigError(`Template startup failed; owned sandbox ${sandbox.id} cleanup ${cleaned ? "completed" : "could not be confirmed"}.${recoveryHint()}`);
   } finally { await sandbox.close(); }
   });
   });

@@ -241,7 +241,7 @@ See [`.agents/notes/README.md`](.agents/notes/README.md) for the full template a
 
 Read `docs/en/guide/migrate-from-e2b.md` before changing standard APIs. Preserve the pinned behavior, synchronous/asynchronous distinction, pagination, return models, errors and terminal semantics. Project extensions use explicit entry points. Generated/source-ported code has provenance and licenses; update its reproducible source process when changing it. Do not imply unsupported Alibaba capabilities work because a client symbol exists.
 
-Standard commands are owned under `src/standard_cli/`; regenerate with the pinned `vendor/e2b-cli` lockfile. Standard template init and create keep E2B meanings; project workflows use template scaffold (--prompt/--adopt) and template from-image. Keep embedded scaffold assets and license notices working in npm and SEA artifacts.
+The executable dispatches through one command surface in `src/cli/`; selecting a Provider does not switch parsers or activate an E2B style. Read the actual command registry and help before documenting commands. Retained generated compatibility code is owned under `src/standard_cli/`; regenerate it with the pinned `vendor/e2b-cli` lockfile. Keep embedded template assets and license notices working in npm and SEA artifacts. Do not restore retired scaffold, launch or app entry points as compatibility aliases.
 
 Provider ownership is resolved before backend requests. Qualified references and remote exec flags must never switch an invocation to Express implicitly. A feature declaration is not a protocol implementation: native FC/ACR template handlers are Express-only until an adapter exists. Keep each provider's feature set independent of the host registry, and distinguish declaration from account/runtime availability. See docs/en/guide/providers.md.
 
@@ -254,8 +254,8 @@ Express template UI/build/authentication and shared envd adapters live under
 Retired Image/TemplateManager create, GlobalConfig, named-session persistence,
 PortClient, secret-store and generic-retry implementations remain removed. Pure
 configuration values are under utils; executable registry selection is composed
-above transport. The pinned standard CLI is a separate migration entry; maintain
-its generated source/notice provenance and explicit routing tests.
+above transport. Retained upstream code does not establish a second public CLI
+entry; maintain its generated source/notice provenance and explicit routing tests.
 
 For standard source updates, read `vendor/e2b-cli/README.md`. Preserve both external
 and upstream-prebundled package inventories, retained notices and source-map hashes.
