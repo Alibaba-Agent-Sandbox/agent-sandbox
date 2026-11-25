@@ -90,7 +90,7 @@ export interface TemplateLaunchResult {
 export async function executeTemplateLaunch(
   ctx: Context,
   params: Record<string, unknown>,
-  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void } = {},
+  creationOptions: Pick<CreateOptions, "envs" | "metadata" | "volume_mounts" | "request_timeout" | "lifecycle"> & { approved?: boolean; afterCreate?: (sandbox: Sandbox) => Promise<void>; onJournal?: (journal: ResourceJournal) => void; onCreated?: (id: string) => Promise<void>; prepareOnly?: boolean; prepared?: PreparedTemplate; builtTarget?: Record<string, unknown>; onTarget?: (target: ReturnType<typeof captureDeploymentTarget>) => void; onVerifiedApplication?: (service: { port: number; token: string }) => void } = {},
 ): Promise<TemplateLaunchResult> {
   const provider = getProvider(resolveProviderId(cliProvider()));
   const timeoutInput = Number(params["timeout"] ?? 600), sandboxTimeoutInput = Number(params["sandbox_timeout"] ?? 300);
@@ -285,6 +285,7 @@ export async function executeTemplateLaunch(
       if (service.protocol === "agent-sandbox-server" && service.version === 2) {
         await sandbox.verifyApplicationOperation("health", serviceOptions);
         if (service.operations.includes("commands.list")) await sandbox.listCommands(serviceOptions);
+        if (Object.hasOwn(template.env, "ABX_SERVER_TOKEN") && environment["ABX_SERVER_TOKEN"]) creationOptions.onVerifiedApplication?.({ port: service.port, token: environment["ABX_SERVER_TOKEN"] });
       }
       const endpoint = await sandbox.network.resolveEndpoint(service.port);
       services[id] = { protocol: service.protocol, version: service.version, port: service.port, url: endpoint.url };

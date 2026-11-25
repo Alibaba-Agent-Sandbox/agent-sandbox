@@ -484,3 +484,23 @@ it("snapshots eligible local untracked inputs while excluding Git-ignored files"
   fs.writeFileSync(path.join(directory,".gitignore"),"ignored.txt\n");fs.writeFileSync(path.join(directory,"ignored.txt"),"ignored-input");fs.writeFileSync(path.join(directory,"local.txt"),"local-untracked-input");fs.writeFileSync(path.join(directory,"Dockerfile"),"FROM python:3.12-slim\n");
   const snapshot=await stageProject(directory);try{expect(fs.existsSync(path.join(snapshot.directory,"ignored.txt"))).toBe(false);expect(fs.readFileSync(path.join(snapshot.directory,"local.txt"),"utf8")).toBe("local-untracked-input");await snapshot.verify();}finally{await snapshot.close();}
 });
+
+it.each(["verified", "no-env", "override-only", "other-protocol", "failed-health"])("reports private application auth provenance only after verified readiness: %s", async mode => {
+  const f=setup(), file=path.join(f.directory,"template.yaml"), manifest=JSON.parse(fs.readFileSync(file,"utf8"));
+  if(!["no-env","override-only"].includes(mode)) manifest.env={ABX_SERVER_TOKEN:""};
+  if(mode==="other-protocol") manifest.provides.app.protocol="custom-http";
+  fs.writeFileSync(file,JSON.stringify(manifest));
+  if(mode==="failed-health") f.sandbox.verifyApplicationOperation.mockRejectedValue(new Error("health failed"));
+  const verified=vi.fn(() => {expect(f.sandbox.verifyApplicationOperation).toHaveBeenCalled();expect(f.sandbox.listCommands).toHaveBeenCalled();});
+  const harness=group("verified-auth",{params:publicCli.params,...(publicCli.callback?{callback:publicCli.callback}:{})});
+  harness.addCommand(command("prepare",{params:[argument("template_ref")],callback:handleErrors(async(ctx,params)=>{
+    const result=await executeTemplateLaunch(ctx,{...params,yes:true},{onVerifiedApplication:verified, ...(mode==="override-only"?{envs:{ABX_SERVER_TOKEN:"provenance-only-private-token"}}:{})}); echo(JSON.stringify(result));
+  })}));
+  try {
+    const result=await new CliRunner().invoke(harness,["--json","prepare",f.directory],{env:{ABX_SERVER_TOKEN:"provenance-only-private-token"}});
+    expect(result.exit_code,result.output).toBe(mode==="failed-health"?2:0);
+    if(mode==="verified") {expect(verified).toHaveBeenCalledOnce(); expect(verified).toHaveBeenCalledWith({port:9000,token:"provenance-only-private-token"});}
+    else expect(verified).not.toHaveBeenCalled();
+    expect(result.output).not.toContain("provenance-only-private-token");
+  } finally { f.create.mockRestore(); }
+});

@@ -30,7 +30,8 @@ import { validateTemplateManifest, planTemplateLaunch } from "../../template/lau
 import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
 import { loadRegistryApis, type ApiContract } from "../api_contract.js";
-import { saveApiBinding, selectResource } from "../api_binding.js";
+import { applicationToken } from "../template_environment.js";
+import { saveApiBinding, selectResource, verifiedApplicationCredentials } from "../api_binding.js";
 import { assertManagedApplicationHost } from "../../application/host.js";
 
 export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
@@ -146,6 +147,7 @@ export const deploy_shortcut = command("deploy", {
       if (previous) { value.previous = path.join(folder, "previous.json"); writeJson(value.previous, previous); }
       saveDeployment(value);
       let preparationJournal: ResourceJournal | undefined;
+      const apiCredentials: Record<string, string> = {}, credentialFingerprints: Record<string, string> = {};
       try {
         if (kind === "application") {
           const file = path.join(value.source!, "template.yaml"), template = readTemplate(file);
@@ -179,13 +181,17 @@ export const deploy_shortcut = command("deploy", {
             approved: true, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
             ...(artifact ? { prepared: artifact.prepared as PreparedTemplate, builtTarget: artifact.target as Record<string, unknown> } : {}),
             onTarget: target => { Object.assign(value, target); saveDeployment(value); },
+            onVerifiedApplication: service => {
+              const verified = verifiedApplicationCredentials(apis, service, applicationToken());
+              Object.assign(apiCredentials, verified.credentials); Object.assign(credentialFingerprints, verified.credentialFingerprints);
+            },
             afterCreate: params.upload ? async sandbox => { const local = fs.realpathSync(String(params.upload)); if (fs.statSync(local).isDirectory()) { const files = fs.readdirSync(local, { recursive: true, withFileTypes: true }); for (const file of files) if (file.isFile()) { const absolute = path.join(file.parentPath, file.name); await sandbox.files.write(`/home/user/${path.relative(local, absolute).split(path.sep).join("/")}`, fs.readFileSync(absolute)); } } else await sandbox.files.write(`/home/user/${path.basename(local)}`, fs.readFileSync(local)); } : undefined,
             onJournal: journal => { preparationJournal = journal; value.journal = journal.file; value.effectsStarted = true; saveDeployment(value); }, onCreated: async id => { value.sandboxId = id; saveDeployment(value); },
           }); value.launch = launched.receipt;
         }
         if (apis.length && value.sandboxId) saveApiBinding({ version: 1,
           target: { id: value.sandboxId, provider: value.provider, providerOptions: value.providerOptions, connection: value.connection },
-          deployment: { name: value.name, createdAt: value.createdAt }, apis, credentials: {}, aliases: {} });
+          deployment: { name: value.name, createdAt: value.createdAt }, apis, credentials: apiCredentials, credentialFingerprints, aliases: {} });
         value.status = "ready"; saveDeployment(value); getFormatter(ctx).printData(deploymentSummary(value));
       } catch (error) {
         // The callback runs before requests so a crash stays conservative. A returned error
