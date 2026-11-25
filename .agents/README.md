@@ -343,3 +343,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Current CLI recipes and reachable MCP help](notes/proposed/process/2026-11-12-ecosystem-guidance-sync.md) · [verification](evidence/verify/2026-11-12-ecosystem-guidance-sync.md).
 
 - [CLI option aliases](notes/proposed/feature/2026-11-25-option-aliases.md) · [verification](evidence/verify/2026-11-25-option-aliases.md).
+
+- [CLI 0.6.0-alpha.0 release preparation](notes/proposed/process/2026-11-25-cli-060-alpha0-release.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha0-release.md).

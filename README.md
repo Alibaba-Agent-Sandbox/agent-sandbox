@@ -15,19 +15,15 @@ Alibaba Cloud Express (`alicloud-express`) is the default backend. Additional ba
 
 ## Installation
 
-These commands require the current source CLI; published 0.5.10 has the previous command layout. Build with Node.js 20+:
+Select the 0.6 preview explicitly (Node.js 20+):
 
 ```bash
-git clone https://github.com/Alibaba-Agent-Sandbox/agent-sandbox.git
-cd agent-sandbox
-npm ci
-npm run build
-npm link
-cd ..
+npm install -g @agent-sandbox/cli@0.6.0-alpha.0 --registry=https://registry.npmjs.org
+abx --version
 abx --help
 ```
 
-Published 0.5.10 can still be installed with `npm install -g @agent-sandbox/cli@0.5.10`; use that release’s `--help` for its command layout.
+The preview uses a new command layout. Read [upgrading from 0.5.10](docs/en/guide/upgrading-to-0.6.md) before updating scripts, especially those using `--ci`. The npm `latest` channel and default stable installers continue to select 0.5.10; use its own `--help` for that version. See [installation](docs/en/guide/binary-installation.md) for preview binaries and source builds.
 
 ## Quick start
 

@@ -20,6 +20,7 @@ CLI 从 `alibaba-agent-sandbox/awesome-providers//<id>` 安装目录提供方。
 | 文档 | 说明 |
 |------|------|
 | [快速开始](guide/getting-started.md) | 安装、配置、第一个沙箱 |
+| [升级到 0.6](guide/upgrading-to-0.6.md) | 预览版本安装、命令变化与自动化授权 |
 | [最佳实践](guide/best-practices.md) | 何时使用 `--provider`、`--model`、`llm_model`、凭证和独立二进制 |
 | [操作指南](guide/operations.md) | 每个命令组，以及做这件事时要运行的那一条命令 |
 | [二进制安装](guide/binary-installation.md) | 单文件 `abx` 二进制（Node SEA），无需 Node.js |
