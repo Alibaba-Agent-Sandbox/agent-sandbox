@@ -103,9 +103,10 @@ The final candidate is reviewed separately from the completed bounded UX fixes.
 - Actual Docker build/cache inspection and static Express template deploy/status/
   delete are now verified in the linked evidence. This host did not build Docker.
 - Native FC component publication, read-only state observation and owned deletion
-  are now verified. Native Invoke did not establish business execution; named
-  dynamic create from the native project and failure recovery remain separate
-  integration gates before normal release.
+  are now verified. Named dynamic creation from a borrowed native resource project,
+  ambiguous-selection rejection, saved Sandbox identity, live status and deletion
+  are also verified. Native Invoke did not establish business execution; native
+  application bootstrap remains a separate integration gate.
 - A supported API bootstrap/authentication contract and cross-repository catalog
   migration before claiming the full empty-Sandbox/OpenAPI product finished.
 - Reconcile source and public distribution, full repository CI, and platform

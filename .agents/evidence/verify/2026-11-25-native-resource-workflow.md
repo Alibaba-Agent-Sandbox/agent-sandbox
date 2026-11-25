@@ -244,3 +244,34 @@ installed-artifact checker, including authentication-menu cancellation and isola
 command guidance. Its npm shasum was 4375b5df2dafd90d6e0240a29bcd5c422a5c9fb2. This
 is an artifact built from candidate source; it is not a public release. Complete
 CI for the final reconciled candidate remains required.
+
+## Named dynamic creation from borrowed resource templates
+
+At 4b67161e735c7c1ddda7a711222865791fb3e195, after merging current main without
+changing the frozen alpha.2 release, a private resource project declared two logical
+references to one existing Ready Express template. A local service fixture first
+confirmed that this structure creates two borrowed records without cloud writes.
+The actual CLI then deployed those references without creating templates or images.
+
+Create without --resource exited 2 and listed both choices. One explicit selection
+created a uniquely named Sandbox with a 120-second lifetime, returning running.
+The returned Sandbox ID matched the saved identity. Named status and an independent
+SDK control-plane Get for that exact ID both confirmed the live instance. The
+optional comparison between create's returned template metadata and the selected
+native template ID was false; that response value was not retained, so this run
+does not establish template provenance from returned metadata. The selected ID
+mapping is separately covered by local contract tests; the two claims remain
+distinct.
+
+Finally, normal CLI delete returned deleted. Independent exact Get raised the
+typed SandboxNotFound error. Deleting the borrowed resource project succeeded, and
+an independent native template query still returned the original Ready template.
+The sequence took 11 seconds and made exactly one Sandbox create attempt, with
+zero new templates, images, volumes, functions, roles or databases. No application
+startup, OpenAPI binding or model execution was attempted. Private source, config
+and deployment state were removed after retaining a sanitized summary.
+
+The final independent API review of 4b67161 approved the narrowed publication,
+ownership and artifact-checker merge. It explicitly retained the business Invoke
+and native application bootstrap limitations; no native changes entered the
+already frozen alpha.2 tag.
