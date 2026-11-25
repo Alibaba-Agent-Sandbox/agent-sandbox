@@ -49,3 +49,37 @@ or complete MCP interoperability matrix. Recovery records remain process-local; 
 active-tool drain and process-restart durability are not implemented by this correction.
 Borrowed handles are closed rather than remotely deleted. Existing Provider kill
 acknowledgements retain their meaning; unknown failures do not prove absence.
+
+## Second-round corrections
+
+Independent review found concurrent borrowed connections could overwrite an owned
+handle. The CLI now preserves the owned handle and closes duplicate borrowed clients,
+retaining failed duplicate closes for retry. Source tracing also found actual
+`Sandbox.kill()` closed its client in `finally` even after failed remote deletion.
+The corrected implementation preserves that transport on failure and separately tracks
+acknowledged remote deletion and completed local cleanup. Real Sandbox class tests
+exercise a transport that refuses operations after close; retries succeed without
+repeating an already acknowledged remote delete.
+
+[Issue 279](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/279) covers
+explicit MCP protocol header validation. Origin and auth precede the version check;
+invalid/unsupported headers return 400 before cleanup or dispatch. Absent headers keep
+existing negotiated-session behavior. Source: the official
+[MCP 2025-06-18 transport specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports).
+This check alone is not a claim of complete MCP conformance.
+
+## Aggregate runs
+
+The first `make ci` run completed with 4,577 passed, 61 skipped and 14 failed tests.
+It overlapped a later listener-completion source/test edit, so that new listener result
+is not a stable-source verification. The stable focused rerun passed. Other failures
+were shared-loopback transport cases, the two baseline header-order assertions and the
+pre-existing missing-token fixture corrected separately in
+[PR 277](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/277).
+A separate parity coverage run reported 4,601 passed, 61 skipped and 12 failed tests
+in those remaining categories. The coverage tool exits successfully despite underlying
+test failures; it is not recorded as a fully passing test run. Package dry-run validation
+passed. A final stable-source isolated-network run is recorded separately when complete.
+
+Final scoped run after duplicate-handle, native-client and protocol corrections:
+155 tests passed across the cleanup, Sandbox API, ownership-race, lifecycle and HTTP suites.

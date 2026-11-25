@@ -233,11 +233,28 @@ describe("TestSandboxLifecycle", () => {
     expect(fx.http_client.close).toHaveBeenCalledTimes(1);
   });
 
-  it("test_kill_closes_http_even_on_protocol_error", async () => {
-    fx.sandbox_protocol.kill.mockRejectedValue(new Error("kill failed"));
-    await expect(fx.sandbox.kill()).rejects.toThrow(/kill failed/);
-    // HTTP client should still be closed
-    expect(fx.http_client.close).toHaveBeenCalledTimes(1);
+  it("keeps the client usable after a failed native delete", async () => {
+    let closed = false;
+    let attempts = 0;
+    fx.http_client.close.mockImplementation(async () => { closed = true; });
+    fx.sandbox_protocol.kill.mockImplementation(async () => {
+      if (closed) throw new Error("transport already closed");
+      if (++attempts === 1) throw new Error("kill failed");
+    });
+    await expect(fx.sandbox.kill()).rejects.toThrow("kill failed");
+    expect(fx.http_client.close).not.toHaveBeenCalled();
+    await fx.sandbox.kill();
+    expect(fx.sandbox_protocol.kill).toHaveBeenCalledTimes(2);
+    expect(fx.http_client.close).toHaveBeenCalledOnce();
+  });
+
+  it("retries failed local cleanup without repeating an acknowledged native delete", async () => {
+    fx.http_client.close.mockRejectedValueOnce(new Error("close failed")).mockResolvedValue(undefined);
+    await expect(fx.sandbox.kill()).rejects.toThrow("close failed");
+    await fx.sandbox.kill();
+    await fx.sandbox.kill();
+    expect(fx.sandbox_protocol.kill).toHaveBeenCalledOnce();
+    expect(fx.http_client.close).toHaveBeenCalledTimes(2);
   });
 
   it("test_set_timeout", async () => {

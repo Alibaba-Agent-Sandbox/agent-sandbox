@@ -27,6 +27,10 @@ settles its completion promise and blocks new session admission.
 - `POST /mcp`: 409 while the selected session is closing.
 - `SandboxManager.shutdown()` retains failed handles and throws `McpCleanupError`.
 - Existing owned kill versus borrowed/retained close behavior remains unchanged.
+- Failed native deletion keeps the SDK transport usable; acknowledged deletion retries
+  only failed local cleanup.
+- Explicit invalid MCP protocol headers return 400 before mutation, per
+  [Issue 279](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/279).
 
 ## Alternatives considered
 

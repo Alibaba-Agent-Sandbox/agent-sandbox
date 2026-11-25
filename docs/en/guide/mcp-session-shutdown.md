@@ -17,6 +17,10 @@ For Streamable HTTP, send `DELETE /mcp` with the session's `Mcp-Session-Id` and 
 same Bearer authentication used to initialize it. HTTP 200 means cleanup succeeded.
 HTTP 503 means cleanup is incomplete: keep the session ID and retry the same DELETE.
 Only handles that failed cleanup are retried; completed deletions are not repeated.
+A failed native deletion keeps its SDK client available for retry. After the remote
+delete succeeds, a failed client close retries only local cleanup. An SDK caller
+choosing to abandon retry can call `close()` to release local connections; this does
+not delete the remote sandbox.
 While cleanup is pending, tool requests for that session return HTTP 409. Borrowed
 or explicitly retained sandboxes are only disconnected, including during a retry.
 
@@ -30,6 +34,11 @@ use the provider's sandbox IDs and lifetime settings to manage remaining resourc
 Shutdown waits for already admitted create/connect requests to return their handles,
 but does not guarantee that every running tool or external side effect has stopped.
 A process shutdown reports cleanup failure instead of reporting successful release.
+
+The HTTP endpoint accepts `MCP-Protocol-Version: 2025-06-18`. An explicitly different
+or malformed version returns HTTP 400 before tools, expiration or deletion execute.
+Requests without that header keep the session's negotiated behavior. `/health` does
+not require the protocol header. Origin and authentication checks still run first.
 
 Maintainers can exercise the real handle path with:
 

@@ -224,7 +224,7 @@ export class SessionStore {
   async cleanupExpired(): Promise<number> {
     const now = time.monotonic();
     const expiredIds = [...this._sessions.entries()]
-      .filter(([, entry]) => now - entry.last_access >= this._session_ttl_seconds)
+      .filter(([id, entry]) => !this.destroying.has(id) && now - entry.last_access >= this._session_ttl_seconds)
       .map(([sessionId]) => sessionId);
     let removed = 0;
     for (const sessionId of expiredIds) {
@@ -558,6 +558,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
     }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
+    }
 
     let body: unknown;
     try {
@@ -633,6 +637,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
     }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
+    }
     return jsonResponse(
       { error: "SSE server notifications are not implemented. Use POST /mcp." },
       405,
@@ -647,6 +655,10 @@ export function createMcpApp(options: CreateMcpAppOptions = {}): McpHttpApp {
     }
     if (!_validateBearerToken(request, authToken)) {
       return _unauthorized();
+    }
+    const protocol = request.headers.get("mcp-protocol-version");
+    if (protocol !== null && protocol !== MCP_PROTOCOL_VERSION) {
+      return jsonResponse({error: `Unsupported MCP-Protocol-Version. Use ${MCP_PROTOCOL_VERSION}.`}, 400);
     }
 
     const sessionId = request.headers.get("mcp-session-id");

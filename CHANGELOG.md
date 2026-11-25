@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
+- Keep failed Sandbox deletion clients usable for retry, retry only local cleanup after an acknowledged deletion, and reject unsupported MCP HTTP protocol headers before session mutation. / 沙箱删除失败后保留可重试客户端，云端确认删除后仅重试本地清理，并在会话变更前拒绝不支持的 MCP HTTP 协议版本。
 - Preserve MCP sessions and failed sandbox handles when cleanup fails; HTTP clients can retry the same DELETE, and expired-session retries are paced by the session TTL. / MCP 清理失败时保留会话与失败句柄，HTTP 客户端可重试相同 DELETE，过期会话按 Session TTL 间隔重试清理。
 
 ## [0.6.0-alpha.1] - 2026-11-25

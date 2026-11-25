@@ -136,6 +136,7 @@ export class SandboxManager {
   private closing = false;
   private readonly cleanupLock = new AsyncLock();
   private readonly admissions = new Set<Promise<void>>();
+  private readonly extraHandles = new Set<SandboxInstance>();
 
   /** Track admitted I/O so shutdown also owns handles returned after it starts. */
   private async admitted<T>(operation: () => Promise<T>): Promise<T> {
@@ -264,14 +265,17 @@ export class SandboxManager {
       const Sandbox = await sdk.loadSandbox();
       if (epoch !== this._epoch) throw new CancelledError();
       const sb = await Sandbox.connect(this._connectKwargs({ sandbox_id: sandboxId }));
-      const registered = await this._state_lock.runExclusive(() => {
+      const selected = await this._state_lock.runExclusive(() => {
+        const existing = this._sandboxes.get(sandboxId);
+        if (existing) { this.extraHandles.add(sb); return existing; }
         this._sandboxes.set(sandboxId, sb);
         this.borrowed.add(sandboxId);
         this.preserved.add(sandboxId);
-        return epoch === this._epoch && !this.closing;
+        return sb;
       });
-      if (!registered) throw new CancelledError();
-      return sb;
+      if (epoch !== this._epoch || this.closing) throw new CancelledError();
+      if (selected !== sb) { await sb.close?.(); this.extraHandles.delete(sb); }
+      return selected;
     }
 
     // One lazy create even when two tool calls arrive together.
@@ -354,6 +358,10 @@ export class SandboxManager {
           failed = true;
           logger.warning("MCP sandbox cleanup failed; retaining its handle for retry");
         }
+      }
+      for (const handle of [...this.extraHandles]) {
+        try { await handle.close?.(); this.extraHandles.delete(handle); }
+        catch { failed = true; logger.warning("MCP borrowed handle cleanup failed; retaining it for retry"); }
       }
       if (failed) throw new McpCleanupError();
     });

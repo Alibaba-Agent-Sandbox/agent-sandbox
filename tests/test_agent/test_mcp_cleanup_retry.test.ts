@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
+import { makeSandboxFixture } from "../test_api/conftest.js";
 import { SandboxManager, sdk } from "../../src/agent/mcp.js";
 import { McpCleanupError } from "../../src/agent/lifecycle_errors.js";
 import { createMcpApp, serveMcpApp, SessionStore, time } from "../../src/agent/mcp_http.js";
@@ -124,9 +125,9 @@ it("real HTTP returns retryable cleanup failure, rejects calls while closing, th
   const app = createMcpApp({ auth_token: "fixture-token" });
   const server = app.createServer();
   await new Promise<void>(resolve => server.listen(socketPath, resolve));
-  const call = (method: string, id?: string, body?: object) => new Promise<{ status: number; headers: http.IncomingHttpHeaders; body: string }>((resolve, reject) => {
+  const call = (method: string, id?: string, body?: object, headers?: Record<string, string>) => new Promise<{ status: number; headers: http.IncomingHttpHeaders; body: string }>((resolve, reject) => {
     const request = http.request({ socketPath, path: "/mcp", method, headers: {
-      Authorization: "Bearer fixture-token", "Content-Type": "application/json", ...(id ? { "Mcp-Session-Id": id } : {}),
+      Authorization: "Bearer fixture-token", "Content-Type": "application/json", ...(id ? { "Mcp-Session-Id": id } : {}), ...headers,
     } }, response => {
       const chunks: Buffer[] = [];
       response.on("data", chunk => chunks.push(chunk));
@@ -135,10 +136,22 @@ it("real HTTP returns retryable cleanup failure, rejects calls while closing, th
     request.on("error", reject); request.end(body ? JSON.stringify(body) : undefined);
   });
   try {
-    const init = await call("POST", undefined, { jsonrpc: "2.0", id: 1, method: "initialize" });
+    const initialize = {jsonrpc: "2.0", id: 1, method: "initialize"};
+    const invalid = {"MCP-Protocol-Version": "2024-11-05"};
+    expect((await call("POST", undefined, initialize, invalid)).status).toBe(400);
+    expect(app.state.session_store._sessions.size).toBe(0);
+    expect((await call("POST", undefined, initialize, {...invalid, Authorization: "Bearer wrong"})).status).toBe(401);
+    const init = await call("POST", undefined, initialize, {"MCP-Protocol-Version": "2025-06-18"});
     const id = String(init.headers["mcp-session-id"]);
     const owned = handle("owned"); owned.kill.mockRejectedValueOnce(new Error("private backend detail"));
     app.state.session_store.getSession(id)!._manager._sandboxes.set(owned.id, owned);
+    app.state.session_store._sessions.get(id)!.last_access = 0;
+    for (const method of ["POST", "GET", "DELETE"]) {
+      const invalidResult = await call(method, id, method === "POST" ? {jsonrpc: "2.0", id: 3, method: "tools/list"} : undefined, invalid);
+      expect(invalidResult.status).toBe(400);
+    }
+    expect(owned.kill).not.toHaveBeenCalled();
+    expect(app.state.session_store.getSession(id)).not.toBeNull();
     const failed = await call("DELETE", id);
     expect(failed.status).toBe(503); expect(failed.body).toContain("same Mcp-Session-Id");
     expect(failed.body).not.toContain("private backend detail");
@@ -165,4 +178,40 @@ it("HTTP listener shutdown rejects both completion promises when cleanup fails",
   expect(app.state.session_store._sessions.has(id)).toBe(true);
   await app.shutdown();
   expect(cleanup).toHaveBeenCalledTimes(2);
+});
+
+it("MCP retry uses the original real Sandbox handle after native deletion failed", async () => {
+  const fixture = makeSandboxFixture();
+  const store = new SessionStore();
+  const [id, server] = await store.createSession();
+  let closed = false; let attempts = 0;
+  fixture.http_client.close.mockImplementation(async () => { closed = true; });
+  fixture.sandbox_protocol.kill.mockImplementation(async () => {
+    if (closed) throw new Error("client closed");
+    if (++attempts === 1) throw new Error("temporary native failure");
+  });
+  server._manager._sandboxes.set(fixture.sandbox.id, fixture.sandbox);
+  await expect(store.destroySession(id)).rejects.toThrow(McpCleanupError);
+  expect(closed).toBe(false);
+  expect(await store.destroySession(id)).toBe(true);
+  expect(attempts).toBe(2); expect(closed).toBe(true);
+});
+
+it("a late borrowed connection cannot replace an owned handle", async () => {
+  const owned = handle("same"); const borrowed = handle("same");
+  const entered = deferred<void>(); const returned = deferred<typeof borrowed>();
+  sdkWith(owned);
+  vi.spyOn(sdk, "loadSandbox").mockResolvedValue({create: vi.fn().mockResolvedValue(owned),
+    connect: async () => {entered.resolve(); return returned.promise;},
+    list: vi.fn(), getInfoById: vi.fn(), setTimeoutById: vi.fn(), killById: vi.fn()});
+  const manager = new SandboxManager();
+  const connecting = manager.getSandbox("same"); await entered.promise;
+  await manager.createSandbox();
+  borrowed.close.mockRejectedValueOnce(new Error("close failed"));
+  returned.resolve(borrowed);
+  await expect(connecting).rejects.toThrow("close failed");
+  expect(manager._sandboxes.get("same")).toBe(owned);
+  await manager.shutdown();
+  expect(owned.kill).toHaveBeenCalledOnce(); expect(borrowed.kill).not.toHaveBeenCalled();
+  expect(borrowed.close).toHaveBeenCalledTimes(2);
 });
