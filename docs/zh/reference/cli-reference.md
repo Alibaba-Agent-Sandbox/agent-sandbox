@@ -12,3 +12,5 @@
 | 接入 AI 工具 | `mcp` |
 
 参阅[配置](configuration.md)、[Provider 操作](../guide/provider-commands.md)、[模板创作](../guide/authoring-templates.md)与[托管应用](../guide/managed-applications.md)。
+
+带值选项的别名使用相同的参数格式与校验。例如，`abx provider test PROVIDER --opt key=value`、`--option key=value` 和 `-o key=value` 设置的是同一个可重复选项，混用时保留命令行顺序。正反布尔开关以最后一个显式输入为准，未输入时使用声明的环境变量或默认值。此修复位于当前源码，公开发行版 0.5.10 请使用 `--opt` 或 `-o`。

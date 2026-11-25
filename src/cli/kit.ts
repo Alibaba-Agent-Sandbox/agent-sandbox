@@ -349,38 +349,47 @@ function convert(type: ParamType | undefined, value: string): unknown {
   }
 }
 
-function optionFlags(p: Option): { flags: string; pairs: string[] } {
+function optionFlags(p: Option): { flags: string; aliases: string[]; pairs: string[] } {
   const shorts = p.decls.filter((d) => isDecl(d) && !d.startsWith("--"));
-  const longs = p.decls.filter((d) => d.startsWith("--")).flatMap((d) => d.split("/"));
-  const takesValue = !p.attrs.is_flag;
+  const declarations = p.decls.filter((d) => d.startsWith("--")).map((d) => d.split("/"));
+  const longs = p.attrs.is_flag ? declarations.map((parts) => parts[0] as string) : declarations.flat();
+  const pairs = p.attrs.is_flag ? declarations.flatMap((parts) => parts.slice(1)) : [];
   const metavar = p.attrs.metavar ?? p.attrs.type?.metavar ?? p.name.toUpperCase();
-  const value = takesValue ? ` <${metavar}>` : "";
+  const value = p.attrs.is_flag ? "" : ` <${metavar}>`;
   const [first, ...rest] = longs;
   const primary = [...shorts, ...(first === undefined ? [] : [first])].join(", ") + value;
-  return { flags: primary, pairs: rest };
+  return { flags: primary, aliases: rest.map((alias) => alias + value), pairs };
 }
 
 function addOption(cmd: CommanderCommand, p: Option): void {
-  const { flags, pairs } = optionFlags(p);
+  const { flags, aliases, pairs } = optionFlags(p);
   let help = typeof p.attrs.help === "function" ? p.attrs.help() : p.attrs.help ?? "";
   const dflt = p.attrs.default;
   if (p.attrs.show_default && dflt !== undefined && dflt !== null && dflt !== false) help = `${help} [default: ${String(dflt)}]`.trim();
-  const opt = new CommanderOption(flags, help || undefined);
-  if (p.attrs.hidden) opt.hideHelp();
-  const type = p.attrs.type;
-  if (!p.attrs.is_flag && (type !== undefined || p.attrs.multiple)) {
-    if (type instanceof Choice && type.case_sensitive && !p.attrs.multiple) opt.choices(type.choices);
-    // Keep choices for help, but use our converter for stable CLI diagnostics.
-    opt.argParser((value: string, prev: unknown) => {
-      const converted = convert(type, value);
-      return p.attrs.multiple ? [...(Array.isArray(prev) ? prev : []), converted] : converted;
-    });
-  }
-  cmd.addOption(opt);
-  for (const neg of pairs) {
-    const other = new CommanderOption(neg, `Opposite of ${flags.split(", ").pop()}.`);
-    cmd.addOption(p.attrs.hidden ? other.hideHelp() : other);
-  }
+  const key = new CommanderOption(flags).attributeName();
+  const add = (declaration: string, negative: boolean): void => {
+    const opt = new CommanderOption(declaration, negative ? `Opposite of ${flags.split(", ").pop()}.` : help || undefined);
+    // Commander stores all aliases under the same key, so mixed repeats retain argv order.
+    opt.attributeName = () => key;
+    if (p.attrs.hidden) opt.hideHelp();
+    if (p.attrs.is_flag) {
+      // The declarative framework owns flag polarity, including standalone --no-* flags.
+      opt.negate = false;
+      opt.preset(!negative);
+    } else {
+      const type = p.attrs.type;
+      if (type instanceof Choice && type.case_sensitive && !p.attrs.multiple) opt.choices(type.choices);
+      if (type !== undefined || p.attrs.multiple) {
+        opt.argParser((value: string, prev: unknown) => {
+          const converted = convert(type, value);
+          return p.attrs.multiple ? [...(Array.isArray(prev) ? prev : []), converted] : converted;
+        });
+      }
+    }
+    cmd.addOption(opt);
+  };
+  for (const declaration of [flags, ...aliases]) add(declaration, false);
+  for (const declaration of pairs) add(declaration, true);
 }
 
 function addArgument(cmd: CommanderCommand, p: Argument): void {
@@ -426,16 +435,10 @@ function collectParams(cmd: CommanderCommand, spec: Command): Params {
       v = args[argIndex++];
       if (v === undefined) v = fromEnv(p, ctx);
     } else {
-      const { flags, pairs } = optionFlags(p);
-      const primary = new CommanderOption(flags);
-      const key = primary.attributeName();
-      v = opts[key];
-      // Commander reads a lone `--no-x` as the negation of an implicit `--x` (default true); here it is a plain flag.
-      if (primary.negate && pairs.length === 0) v = cmd.getOptionValueSource(key) === "cli" ? true : undefined;
-      for (const neg of pairs) {
-        const negKey = new CommanderOption(neg).attributeName();
-        if (negKey !== key && cmd.getOptionValueSource(negKey) === "cli") v = false;
-      }
+      const { flags } = optionFlags(p);
+      const key = new CommanderOption(flags).attributeName();
+      // Ignore Commander's implicit defaults; the declaration owns defaults and env fallbacks.
+      v = cmd.getOptionValueSource(key) === "cli" ? opts[key] : undefined;
       if (v === undefined) v = fromEnv(p, ctx);
     }
     if (v === undefined) v = defaultFor(p);
