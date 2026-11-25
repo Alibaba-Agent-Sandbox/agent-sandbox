@@ -70,7 +70,7 @@ The sandbox API key is stored in `~/.abx/.env` as `ABX_SANDBOX_API_KEY`, not in 
 <a id="aksk-alibaba-cloud-extended-authentication-"></a>
 ## AK/SK managed authentication
 
-Express can prepare the required sandbox API key using your AccessKey. Configure `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` and the region. On first use, confirm credential creation in a terminal, or explicitly use `abx --ci sandbox list --format json`. Reuse is read-only; renewal requires fresh confirmation. An unrelated `--yes`, pipe or `CI=true` is not consent.
+Express can prepare the required sandbox API key using your AccessKey. Configure `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET` and the region. On first use, confirm credential creation in a terminal, or explicitly prepare it with `abx --provider alicloud-express provider run api-key.prepare --yes`. After preparation, `abx --ci list` selects a noninteractive query; `--ci` never authorizes credential creation or renewal. Reuse is read-only; renewal requires fresh confirmation. An unrelated `--yes`, pipe or `CI=true` is not consent.
 
 The official credential-resource API replaces the retired guessed RPC exchange. Expiry is an explicit tool-managed 30-day policy; it is not a temporary-token service. Details, exact RAM Actions, Team resource ARN policies and recovery steps are in [features and permissions](permissions.md).
 

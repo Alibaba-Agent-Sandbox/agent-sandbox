@@ -362,4 +362,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Artifact human/CI error-channel regression](evidence/verify/2026-11-25-artifact-output-channel.md).
 
+- [CLI alpha.2 release preparation](notes/proposed/process/2026-11-25-cli-060-alpha2-release.md) · [preflight](evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha2-release.md).
 - [MCP template input](notes/implemented/feature/2026-11-25-mcp-template-input.md) · [verification](evidence/verify/2026-11-25-mcp-template-input.md).

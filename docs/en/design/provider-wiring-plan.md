@@ -1,5 +1,8 @@
 # Provider wiring plan (follow-up edits to existing CLI modules)
 
+> Historical implementation plan: the dated findings below are not a current command reference or unresolved-issue list. Use the [current command tree](../reference/cli-commands.md) and [Provider commands guide](../guide/provider-commands.md).
+
+
 > Status (2026-10-13): **wiring is done for the sandbox path; this file is now the record of the plan plus the list of what is still open**. `provider` is a command group, `--provider` / `--opt` / `--all-providers` and qualified ids work, `Sandbox.create/connect/list/killById` select the provider, `SandboxNotFoundError` (`E2009`) exists, `network.resolve` routes through `ports.url`, and an OpenSandbox server was driven end to end from the CLI ([evidence](../../../.agents/evidence/verify/2026-10-13-opensandbox-provider-e2e.md)). Sections 1 to 8 below are kept as the original plan; ignore any item that the code already does. The open items are in the section "10. Known gaps". Earlier status: handoff note, no existing command module edited. Grammar, help text and JSON shapes are owned by [`providers-and-credentials-cli.md`](../../design/providers-and-credentials-cli.md); this file only says *where* each piece plugs in.
 >
 > 中文版: [`../zh/design/provider-wiring-plan.md`](../../zh/design/provider-wiring-plan.md)

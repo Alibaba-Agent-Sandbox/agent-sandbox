@@ -18,7 +18,7 @@ Alibaba Cloud Express (`alicloud-express`) is the default backend. Additional ba
 Select the 0.6 preview explicitly (Node.js 20+):
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.2 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```

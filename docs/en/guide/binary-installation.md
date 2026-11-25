@@ -27,12 +27,12 @@ The official website mirrors the complete stable release: all five binaries, the
 Repository guides use the 0.6 preview command layout. Select that preview explicitly; the default stable installers and npm `latest` retain 0.5.10. See [upgrading from 0.5.10](upgrading-to-0.6.md) before updating automation.
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.2 --registry=https://registry.npmjs.org
 # Or install its standalone binary directly from GitHub:
-curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.1 sh
+curl -fsSL https://raw.githubusercontent.com/Alibaba-Agent-Sandbox/agent-sandbox/main/install.sh | ABX_VERSION=0.6.0-alpha.2 sh
 ```
 
-On Windows, set `$env:ABX_VERSION = "0.6.0-alpha.1"` before running the PowerShell installer. Preview artifacts come from their matching GitHub prerelease, independently of the stable website mirror.
+On Windows, set `$env:ABX_VERSION = "0.6.0-alpha.2"` before running the PowerShell installer. Preview artifacts come from their matching GitHub prerelease, independently of the stable website mirror.
 
 ## Install
 

@@ -70,7 +70,7 @@ sandbox_domain = "cn-hangzhou.e2b.fc.aliyuncs.com"
 <a id="aksk-阿里云扩展认证-"></a>
 ## AK/SK 管理式认证
 
-极速版可以使用 AccessKey 准备沙箱 API Key。配置 `ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和地域。首次使用在终端确认创建，或显式运行 `abx --ci sandbox list --format json`。复用只读检查；续期重新确认。其他命令的 `--yes`、管道或 `CI=true` 不代表允许创建凭据。
+极速版可以使用 AccessKey 准备沙箱 API Key。配置 `ALICLOUD_ACCESS_KEY_ID`、`ALICLOUD_ACCESS_KEY_SECRET` 和地域。首次使用在终端确认创建，或显式运行 `abx --provider alicloud-express provider run api-key.prepare --yes` 完成准备。准备后可通过 `abx --ci list` 进行非交互查询；`--ci` 不授权凭据创建或续期。复用只读检查；续期重新确认。其他命令的 `--yes`、管道或 `CI=true` 不代表允许创建凭据。
 
 此实现调用真实的凭据资源 API，替代已退役的猜测式 RPC 交换。30 天有效期是工具明确请求的策略，不是临时令牌服务。具体 RAM Action、Team 资源 ARN 策略、生命周期和恢复步骤见[功能与权限](permissions.md)。
 
