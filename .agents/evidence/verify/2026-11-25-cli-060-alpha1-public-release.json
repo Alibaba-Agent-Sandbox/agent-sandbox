@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "record_status": "public delivery verified; owner documentation PR pending",
+  "date": "2026-11-25",
+  "version": "0.6.0-alpha.1",
+  "repository": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox",
+  "source": {
+    "pr": 274,
+    "reviewed_head": "972c708914381bec43c4b153662eb8016fef7246",
+    "main_merge": "e33528012dbb482d336bdeb5998b07604b4a2b2a",
+    "tag": "v0.6.0-alpha.1",
+    "tag_target": "e33528012dbb482d336bdeb5998b07604b4a2b2a",
+    "annotated_tag_object": "5f0ddb401820b4cdd0cc36e1e36d45c8d185ab99",
+    "merge_timestamp": "2026-11-25T07:05:58Z",
+    "merge_tree_matches_reviewed_head": true
+  },
+  "source_ci": {
+    "id": 45564202212,
+    "conclusion": "success",
+    "scope": [
+      "Node20/22 unit/parity",
+      "typecheck/lint",
+      "installer",
+      "installed npm artifact"
+    ]
+  },
+  "docs_ci": {
+    "id": 45564202243,
+    "conclusion": "success"
+  },
+  "express_source_ci": {
+    "id": 45564202226,
+    "workflow_conclusion": "success",
+    "cloud_step": "skipped",
+    "cloud_e2e_acceptance": false
+  },
+  "local_checks": {
+    "scope": "Linux x64 Node22.22.2",
+    "static_sdk_regressions_passed": 4,
+    "related_assertions_passed": 96,
+    "installed_npm_full_verifier_in_ci": "pass",
+    "physically_copied_sea_full_verifier_in_ci": "pass",
+    "health": {
+      "pass": 106,
+      "warn": 11,
+      "fail": 0
+    },
+    "full_isolated": {
+      "total": 4666,
+      "passed": 4657,
+      "failed": 1,
+      "skipped": 8,
+      "result": "fail",
+      "sole_failure": "offline resolver Errno-3 vs expected Errno-2",
+      "runtime_head": "1d26544f6a35df20b7825460215a2a66c0748d00"
+    },
+    "unchanged_selected_dns_ordinary_network": {
+      "passed": 1,
+      "unselected": 3
+    },
+    "reused_parity_ledger": {
+      "passed": 907,
+      "total": 907
+    }
+  },
+  "preserved_failures": [
+    {
+      "version": "0.6.0-alpha.0",
+      "result": "withdrawn before npm upload",
+      "github_release": "draft",
+      "npm_metadata_observed": 404,
+      "standalone_error": "Cannot find module @alicloud/openapi-core",
+      "old_platform_checker_isolation": "insufficient; binary below checkout dependencies"
+    },
+    {
+      "head": "1f02eb470754327179bc2f57be3d5b676697b21f",
+      "ci_run": 45562205617,
+      "failed_job": 139032733900,
+      "result": "failed installed npm verifier",
+      "reason": "stderr-only assertion rejected correct CI stdout JSON E8001",
+      "product_change_required": false
+    },
+    {
+      "stage": "initial local health",
+      "result": "failed",
+      "reason": "temporary untracked dependency symlink; replaced with independent locked npm ci before later successful checks"
+    }
+  ],
+  "public_delivery": {
+    "status": "pass for scoped GitHub/npm public delivery",
+    "binary_build_run": {
+      "id": 45566018697,
+      "conclusion": "success"
+    },
+    "platform_jobs": [
+      {
+        "id": 139040887626,
+        "name": "Build abx binary (darwin-x64)",
+        "conclusion": "success",
+        "npm_artifact_step": "success",
+        "copied_native_step": "success"
+      },
+      {
+        "id": 139040888020,
+        "name": "Build abx binary (linux-arm64)",
+        "conclusion": "success",
+        "npm_artifact_step": "success",
+        "copied_native_step": "success"
+      },
+      {
+        "id": 139040888094,
+        "name": "Build abx binary (darwin-arm64)",
+        "conclusion": "success",
+        "npm_artifact_step": "success",
+        "copied_native_step": "success"
+      },
+      {
+        "id": 139040888106,
+        "name": "Build abx binary (linux-x64)",
+        "conclusion": "success",
+        "npm_artifact_step": "success",
+        "copied_native_step": "success"
+      },
+      {
+        "id": 139040888332,
+        "name": "Build abx binary (windows-x64)",
+        "conclusion": "success",
+        "npm_artifact_step": "success",
+        "copied_native_step": "success"
+      }
+    ],
+    "github_release": {
+      "id": 457763812,
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/tag/v0.6.0-alpha.1",
+      "tag": "v0.6.0-alpha.1",
+      "draft": false,
+      "prerelease": true,
+      "published_at": "2026-11-25T07:14:10Z",
+      "assets": [
+        {
+          "id": 790489852,
+          "name": "abx-0.6.0-alpha.1-darwin-arm64",
+          "size": 123082224,
+          "sha256": "b73d6eeafb31b154f7339a0fa701fd4bdf0939a274b29d3d9749d2a7cb6dd737",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-darwin-arm64"
+        },
+        {
+          "id": 790489853,
+          "name": "abx-0.6.0-alpha.1-darwin-arm64.sha256",
+          "size": 97,
+          "sha256": "0a775969d910df8f8e118de889041dcb318d96e0cd5ade6ed8b2e71411795006",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-darwin-arm64.sha256"
+        },
+        {
+          "id": 790492923,
+          "name": "abx-0.6.0-alpha.1-darwin-x64",
+          "size": 126222176,
+          "sha256": "c247232d7b56ab8273059c195571084c2ca9a2cdded97a5aa975f2671822af27",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-darwin-x64"
+        },
+        {
+          "id": 790492920,
+          "name": "abx-0.6.0-alpha.1-darwin-x64.sha256",
+          "size": 95,
+          "sha256": "b0ccb08d8bc5e205ae0bf66e5828e54a01800f7a3befa5a35bc752c6d36a94ff",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-darwin-x64.sha256"
+        },
+        {
+          "id": 790487442,
+          "name": "abx-0.6.0-alpha.1-linux-arm64",
+          "size": 133303424,
+          "sha256": "028936fb3765f67cd9a1e5292055793833451dcd960f15e58b91d42091381caf",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-linux-arm64"
+        },
+        {
+          "id": 790487443,
+          "name": "abx-0.6.0-alpha.1-linux-arm64.sha256",
+          "size": 96,
+          "sha256": "d42cbb1afbf00898ad00e0f35552ea88f15af669290443a57d3df08f2b483301",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-linux-arm64.sha256"
+        },
+        {
+          "id": 790486427,
+          "name": "abx-0.6.0-alpha.1-linux-x64",
+          "size": 135859392,
+          "sha256": "db798f6eec60fb67a1d8cad4b80148c0fb8475bb37ff25c3bb80294f6106ce9c",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-linux-x64"
+        },
+        {
+          "id": 790486426,
+          "name": "abx-0.6.0-alpha.1-linux-x64.sha256",
+          "size": 94,
+          "sha256": "c630442249178d6615c05155ff9fa218b7b2ce92920da8eb85874cc6075c4c2a",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-linux-x64.sha256"
+        },
+        {
+          "id": 790491218,
+          "name": "abx-0.6.0-alpha.1-windows-x64.exe",
+          "size": 98144768,
+          "sha256": "56c39d697d8cf3e994cb5609bad790da64e8aff19bcb0f9790c910913ca08fc7",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-windows-x64.exe"
+        },
+        {
+          "id": 790491216,
+          "name": "abx-0.6.0-alpha.1-windows-x64.exe.sha256",
+          "size": 100,
+          "sha256": "e8b55f0239bbebf4390d82ce7cf4542f413d0c85b80e96351e4eca8e0e2e2da6",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-windows-x64.exe.sha256"
+        },
+        {
+          "id": 790532099,
+          "name": "agent-sandbox-cli-0.6.0-alpha.1.tgz",
+          "size": 1453743,
+          "sha256": "1b304054f38de2e46e8e4fa78527c708968ae51690b8257279840ba3f726dd0b",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/agent-sandbox-cli-0.6.0-alpha.1.tgz"
+        },
+        {
+          "id": 790532102,
+          "name": "agent-sandbox-cli-0.6.0-alpha.1.tgz.sha256",
+          "size": 102,
+          "sha256": "6294e80b178979c04195ab2b4cc9abf3a7bc8d1f91788a83c9f5af46251b15ce",
+          "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/agent-sandbox-cli-0.6.0-alpha.1.tgz.sha256"
+        }
+      ],
+      "latest_stable_observed": "v0.5.10",
+      "asset_count": 12
+    },
+    "linux_public_asset": {
+      "url": "https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/releases/download/v0.6.0-alpha.1/abx-0.6.0-alpha.1-linux-x64",
+      "asset_id": 790486427,
+      "sha256": "db798f6eec60fb67a1d8cad4b80148c0fb8475bb37ff25c3bb80294f6106ce9c",
+      "anonymous_download": true,
+      "matches_uploaded_asset": true,
+      "copied_executable_full_verifier": "pass",
+      "mixed_alias_local_provider": {
+        "passed": 15,
+        "failed": 0,
+        "skipped_unsupported": 3
+      }
+    },
+    "npm_publish_run": {
+      "id": 45566546338,
+      "publish_job": 139042632777,
+      "attach_job": 139048090073,
+      "conclusion": "success",
+      "public_install_step": "success",
+      "diagnostics_job": "skipped, not acceptance"
+    },
+    "npm_metadata": {
+      "observed_at": "2026-11-25T07:24:20Z",
+      "http_status": 200,
+      "integrity": "sha512-+dOgQTs7r3Mj7AftrFE+I0LI0b8HDS5oRRtIEJiygqJRBV0gv/9Wmxc1xWT7fJEgdCNwzPhCg+M3uM0TKF437w==",
+      "provenance_metadata_present": true,
+      "url": "https://registry.npmjs.org/@agent-sandbox%2fcli",
+      "tarball": "https://registry.npmjs.org/@agent-sandbox/cli/-/cli-0.6.0-alpha.1.tgz",
+      "provenance_metadata": {
+        "url": "https://registry.npmjs.org/-/npm/v1/attestations/@agent-sandbox%2fcli@0.6.0-alpha.1",
+        "provenance": {
+          "predicateType": "https://slsa.dev/provenance/v1"
+        }
+      }
+    },
+    "fresh_public_install": {
+      "result": "PASS",
+      "complete_artifact_verifier": "PASS",
+      "tarball_sha256": "1b304054f38de2e46e8e4fa78527c708968ae51690b8257279840ba3f726dd0b",
+      "sha1_and_sha512_match_download": true,
+      "mixed_alias_local_provider": {
+        "passed": 15,
+        "failed": 0,
+        "skipped_unsupported": 3
+      },
+      "existing_environment_ca_configuration_preserved": true,
+      "tls_verification_disabled": false,
+      "node_options_injected": false,
+      "credentials_injected": false
+    },
+    "dist_tags": {
+      "latest": "0.5.10",
+      "next": "0.6.0-alpha.1"
+    },
+    "draft_linux_asset_check": {
+      "asset_id": 790486427,
+      "sha256": "db798f6eec60fb67a1d8cad4b80148c0fb8475bb37ff25c3bb80294f6106ce9c",
+      "api_digest_checksum_download_agree": true,
+      "copied_executable_full_verifier": "pass",
+      "mixed_alias_local_provider": {
+        "passed": 15,
+        "failed": 0,
+        "skipped_unsupported": 3
+      }
+    },
+    "propagation_observations": [
+      {
+        "time": "2026-11-25T07:21:00Z",
+        "metadata": "404",
+        "archive": "404",
+        "dist_tags": {
+          "latest": "0.5.10"
+        },
+        "public_install": "not started"
+      },
+      {
+        "time": "2026-11-25T07:24:20Z",
+        "metadata": 200,
+        "archive_first_get": 404,
+        "public_install": "not started; verifier stopped before installation",
+        "followup": "bounded archive retry succeeded; initial fresh installation then failed on omitted existing CA configuration"
+      },
+      {
+        "stage": "initial independent fresh npm install",
+        "result": "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+        "reason": "validation driver omitted existing trusted CA environment settings",
+        "original_failure_preserved": true,
+        "product_changed": false
+      },
+      {
+        "stage": "new independent fresh environment preserving existing CA settings",
+        "result": "pass",
+        "tls_verification_disabled": false,
+        "original_failed_environment_rewritten": false
+      }
+    ],
+    "template_preview": {
+      "template": "python-hello current PR313 source",
+      "runtime": "anonymous public GitHub Linux x64 binary",
+      "exit_code": 0,
+      "status": "preview",
+      "builds_or_cloud_changes": false,
+      "provider": "alicloud-express",
+      "initial_validator": "failed expecting status=success; product exit0/status=preview",
+      "corrected_validator": "pass without product changes",
+      "scope": "local plan only"
+    },
+    "github_latest_stable": "v0.5.10",
+    "github_tested_tarball_readback": {
+      "archive_asset": 790532099,
+      "checksum_asset": 790532102,
+      "sha256": "1b304054f38de2e46e8e4fa78527c708968ae51690b8257279840ba3f726dd0b",
+      "actual_archive_checksum_and_api_digest_agree": true,
+      "public_registry_tarball_identical": true
+    }
+  },
+  "paired_runtime": {
+    "version": "0.5.0a0",
+    "status": "published",
+    "owner_release": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/releases/tag/v0.5.0a0",
+    "cli_pin_changed_again": false,
+    "new_runtime_release_for_alpha1": false,
+    "owner_evidence": "https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/evidence/verify/2026-11-25-python-050a0-public-delivery.md"
+  },
+  "template_followups": [
+    {
+      "pr": "https://github.com/Alibaba-Agent-Sandbox/awesome-templates/pull/313",
+      "scope": "usage guidance",
+      "final_state": "open at record checkpoint; docs checks passed; final public receipt checkpoint CI pending",
+      "checkpoint_at": "2026-11-25T07:30:13Z"
+    },
+    {
+      "pr": "https://github.com/Alibaba-Agent-Sandbox/awesome-templates/pull/315",
+      "scope": "two fixed-engine image package sources",
+      "final_state": "merged",
+      "merge": "93e8f831036eb50941dfe9dd027b5878772837e1",
+      "merged_at": "2026-11-25T06:08:57Z"
+    }
+  ],
+  "cleanup": {
+    "new_cloud_resources": 0,
+    "owned_temporary_verifier_directories": "removed"
+  },
+  "limits": [
+    "not every Provider",
+    "not all template methods",
+    "not complete standalone managed FC deployment",
+    "not complete FC lifecycle",
+    "not broad performance or SLA"
+  ],
+  "issue_closure": {
+    "issues": [
+      270,
+      273
+    ],
+    "status": "public delivery passed; remain open until final owner record merge"
+  },
+  "merge_ci": {
+    "id": 45565504905,
+    "conclusion": "success",
+    "jobs": 5
+  },
+  "recorded_at": "2026-11-25T07:30:13Z",
+  "owner_record_validation": {
+    "hygiene": "pass",
+    "health": {
+      "pass": 106,
+      "warn": 11,
+      "fail": 0
+    },
+    "json_parse": "pass",
+    "diff_check": "pass",
+    "exact_head_ci": "pending documentation PR"
+  }
+}

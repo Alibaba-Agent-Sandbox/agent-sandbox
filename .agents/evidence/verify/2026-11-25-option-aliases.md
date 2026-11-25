@@ -2,7 +2,7 @@
 
 - Date: 2026-11-25
 - Baseline: main 57c7632706aac739171fcdb7c2849938e58295ef.
-- Change: [Issue #264](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/264) and [decision](../../notes/proposed/feature/2026-11-25-option-aliases.md).
+- Change: [Issue #264](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/264) and [decision](../../notes/implemented/feature/2026-11-25-option-aliases.md).
 - Result: PARTIAL — focused tests pass; remote gates pending; local environment limitations recorded.
 - Candidate: source CLI 0.5.10 identifier, not a released 0.5.10 replacement. Node.js 22.22.2, Linux.
 

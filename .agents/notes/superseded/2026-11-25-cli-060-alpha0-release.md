@@ -1,5 +1,6 @@
 # Decision: give the unified CLI a distinct preview version
-Status: proposed
+Status: superseded
+Superseded-by: [2026-11-25-sea-dependency-isolation](../implemented/process/2026-11-25-sea-dependency-isolation.md)
 
 ## Problem
 
@@ -74,6 +75,15 @@ readback and five-platform binaries are separate post-merge publication gates.
 
 ## Evidence
 
-- [Preparation verification](../../../evidence/verify/2026-11-25-cli-060-alpha0-release.md).
+- [Preparation verification](../../evidence/verify/2026-11-25-cli-060-alpha0-release.md).
 - [Option-alias fix](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/267).
 - [Current API operation contract](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/269).
+
+## Consequences
+
+The alpha.0 publication plan was withdrawn after the actual copied GitHub binary
+failed outside the checkout dependency tree. Its tag/assets and failed evidence
+remain immutable; the npm workflow was cancelled before upload. This ADR is
+superseded by the corrected immutable alpha.1 delivery, not marked implemented
+as a completed alpha.0 npm release. See the
+[alpha.1 receipt](../../evidence/verify/2026-11-25-cli-060-alpha1-public-release.md).

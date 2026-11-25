@@ -1,6 +1,6 @@
 # Decision: Preserve declarative option aliases
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -38,3 +38,5 @@ Complete command callbacks cover mixed repeats, scalar precedence, integer/choic
 ## Evidence
 
 - [Verification](../../../evidence/verify/2026-11-25-option-aliases.md).
+
+- [Public alpha.1 delivery](../../../evidence/verify/2026-11-25-cli-060-alpha1-public-release.md).

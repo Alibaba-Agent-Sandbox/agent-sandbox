@@ -1,5 +1,15 @@
 # `.agents/` — engineering record of the cli repository
 
+## Public CLI 0.6.0-alpha.1 — 2026-11-25
+
+[Public delivery and independent consumption](evidence/verify/2026-11-25-cli-060-alpha1-public-release.md)
+records the immutable source/tag, five actual platform checks, fresh public npm
+and Linux binary consumption, dist-tags and retained failures. The unified CLI
+is an explicit preview on npm next; latest remains 0.5.10. Alpha.0 was withdrawn
+before npm upload and its [preparation decision](notes/superseded/2026-11-25-cli-060-alpha0-release.md)
+is superseded. This does not certify every Provider/template or a complete
+standalone managed FC lifecycle.
+
 - [Target-first Sandbox API operations](notes/implemented/feature/2026-11-25-sandbox-api-operations.md) · [verification](evidence/verify/2026-11-25-sandbox-api-operations.md).
 - [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
 
@@ -342,10 +352,10 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [Current CLI recipes and reachable MCP help](notes/proposed/process/2026-11-12-ecosystem-guidance-sync.md) · [verification](evidence/verify/2026-11-12-ecosystem-guidance-sync.md).
 
-- [CLI option aliases](notes/proposed/feature/2026-11-25-option-aliases.md) · [verification](evidence/verify/2026-11-25-option-aliases.md).
+- [CLI option aliases](notes/implemented/feature/2026-11-25-option-aliases.md) · [verification](evidence/verify/2026-11-25-option-aliases.md).
 
-- [CLI 0.6.0-alpha.0 release preparation](notes/proposed/process/2026-11-25-cli-060-alpha0-release.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha0-release.md).
+- [CLI 0.6.0-alpha.0 release preparation](notes/superseded/2026-11-25-cli-060-alpha0-release.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha0-release.md).
 
-- [Standalone dependency isolation](notes/proposed/process/2026-11-25-sea-dependency-isolation.md) · [verification](evidence/verify/2026-11-25-sea-dependency-isolation.md).
+- [Standalone dependency isolation](notes/implemented/process/2026-11-25-sea-dependency-isolation.md) · [verification](evidence/verify/2026-11-25-sea-dependency-isolation.md).
 
 - [Artifact human/CI error-channel regression](evidence/verify/2026-11-25-artifact-output-channel.md).
