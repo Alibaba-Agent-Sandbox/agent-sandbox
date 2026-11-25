@@ -56,3 +56,7 @@ The six template-guide skips were due to an unavailable adjacent SDK path. A pri
 - Final ESLint: no errors, 258 warnings. Hygiene passed. Repository health: 105 passed, 11 existing warnings, zero failures. The generated ignored parity report was moved out of the checkout after analysis so local temporary paths do not pollute the health scan. Delivery status is recorded with the PR.
 
 The complete repository test gate remains PARTIAL because of reproduced baseline failures; focused reruns are not described as a fresh all-green full suite. The raw full-run report is kept as local verification output, not committed. This change does not assert complete OpenAPI support, cloud signing, SSE, all Providers, or SDK protocol migration. No npm package, SDK, website, Registry or blog release is part of this PR.
+
+## Remote verification and delivery
+
+The implementation is in [PR 269](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/269). On source head `ef20a4584391cd8ec03bb004389d70c29083f30d`, GitHub's Node 20 and Node 22 jobs both passed their complete `Run tests` steps; typecheck/lint, installer and Markdown checks passed. Their subsequent parity and package stages were still running when this record was written. This distinguishes the successful remote full-test runs from the local failures above. The required checks attached to the final PR head determine merge eligibility; no final CI or publication success is inferred from an earlier head. The subsequent engineering-record update does not alter executable sources.

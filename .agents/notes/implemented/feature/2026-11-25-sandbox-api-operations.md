@@ -1,6 +1,6 @@
 # Decision: Target-first Sandbox API operations
 
-Status: proposed
+Status: implemented
 
 ## Problem
 
@@ -53,3 +53,7 @@ Two independent reviewers examined parser/UX and contract/auth boundaries before
 ## Evidence
 
 [Verification and review disposition](../../../evidence/verify/2026-11-25-sandbox-api-operations.md).
+
+## Implementation
+
+Implemented in [PR 269](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/269). Scoped real-component verification passed. The linked evidence retains local aggregate failures and their pristine-baseline comparison; final merge eligibility follows the required checks on the PR head. Package publication and independent catalog migration are separate.
