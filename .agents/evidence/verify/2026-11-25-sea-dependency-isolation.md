@@ -46,6 +46,13 @@ and failed assets remain immutable evidence, not a completed release.
   a335a3316ffd105760d51e55867c1ae57a634de00773c1a4d471376c2d2ba995)
   passed the entire copied-body verifier again. The Python PTY prerequisite probe
   now uses the same isolated environment/cwd as the other invocations.
+- The actual npm tarball was independently installed into a separate prefix and
+  passed the complete installed-artifact verifier. Its compiled ESM FC and
+  registry adapters also constructed successfully against their actually resolved
+  production dependencies; no API method was invoked.
+- The optional Express cloud workflow step is SKIPPED without explicit opt-in.
+  Its successful setup/build workflow is not Express cloud E2E acceptance, and
+  no new cloud resources were created for this fix.
 
 ## Supported managed boundary
 

@@ -47,7 +47,7 @@ Configuration, Sandbox API credentials, application tokens and model credentials
 
 ## Rebuild application images when updating the runtime
 
-New generated Server SDK templates and MCP applications select the matching 0.5.0a0 server or client package for their respective roles. Existing Dockerfiles keep their explicit dependency choices. To use the file-upload corrections in an existing Server SDK application, update its `agent-sandbox-server` requirement and rebuild/redeploy its image; updating the CLI alone does not replace a running application's code. Upload and download endpoints still buffer JSON/base64 content. See the [Server SDK file guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/en/guide/server-sdk.md) for policy limits.
+New generated Server SDK templates and MCP applications select the matching 0.5.0a0 server or client package for their respective roles. To use the file-upload corrections in an existing Server SDK application, update its `agent-sandbox-server` requirement and rebuild/redeploy its image; updating the CLI alone does not replace a running application's code. Upload and download endpoints still buffer JSON/base64 content. See the [Server SDK file guide](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/v0.5.0a0/docs/en/guide/server-sdk.md) for policy limits.
 
 ## Keep an existing 0.5.10 script
 
