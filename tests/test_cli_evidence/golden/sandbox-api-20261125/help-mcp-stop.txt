@@ -1,0 +1,19 @@
+Usage: abx mcp stop [options]
+
+Stop the local MCP server started by 'abx mcp start'.
+
+Sends SIGTERM to the recorded pid (STDIO foreground or HTTP background)
+and waits for it to exit. Sandboxes owned by that server are destroyed
+during its shutdown.
+
+Examples:
+  abx mcp stop
+
+Related commands:
+  abx mcp start            Start STDIO in the foreground
+  abx mcp start --http --background
+  abx mcp status           Inspect configuration and whether a server is running
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

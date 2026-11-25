@@ -42,7 +42,7 @@ abx --json --provider alicloud-express provider run snapshot.create \
 ```
 
 AI 和自动化应使用这些 JSON 接口。面向人的帮助不是稳定 JSON 响应契约。
-Provider 管理操作、沙箱应用命令（`abx sandbox command`）与模板准备
+Provider 管理操作、沙箱应用命令（`abx sandbox TARGET --help`）与模板准备
 （`abx deploy`）是不同职责。注册和查看帮助不会创建模板或云资源。
 本次变更不会自动生成 MCP 工具、Shell 补全或 SDK 类型化方法。
 

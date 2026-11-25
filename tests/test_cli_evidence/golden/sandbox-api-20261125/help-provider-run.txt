@@ -1,0 +1,78 @@
+Usage: abx provider run [options] [command]
+
+Run an operation provided by the selected Provider.
+
+Use OPERATION --help for its JSON fields and effects. Help never executes the
+Provider.
+
+Options:
+  -h, --help             Show this message and exit.
+
+Commands:
+  api-key.create         [write] Create an API key and save its secret
+                         exclusively to secret_file.
+  api-key.delete         [delete] Delete an inactive API key.
+  api-key.get            [read] Describe an API key; its secret value is
+                         redacted.
+  api-key.list           [read] List one page of API keys with secret values
+                         redacted.
+  api-key.prepare        [write] Create, reuse or renew a private 30-day Express
+                         API key
+                         (sandbox:CreateApiKey/DescribeApiKey/UpdateApiKey on
+                         the target Team); return metadata only.
+  api-key.reset          [write] Rotate an API key and save its new secret
+                         exclusively to secret_file.
+  api-key.resolve        [read] Resolve an existing managed key without creating
+                         or renewing credentials.
+  api-key.update         [write] Update an API key with secret values redacted.
+  quota.delete           [delete] Delete a Team quota configuration.
+  quota.get              [read] Get a Team resource quota.
+  quota.list             [read] List one page of Team resource quotas.
+  quota.update           [write] Replace a Team CPU and memory quota, including
+                         zero limits.
+  sandbox.pause          [write] Pause with memory retained (account allowlist
+                         required).
+  sandbox.resume         [write] Resume the same sandbox through connect
+                         (account allowlist required).
+  snapshot.create        [write] Snapshot a running generation2 sandbox
+                         (Snapshot allowlist required).
+  snapshot.delete        [delete] Delete a Snapshot UUID independently of its
+                         source sandbox.
+  snapshot.list          [read] List one Snapshot page, optionally filtered by
+                         source sandbox or name.
+  snapshot.restore       [write] Create a new sandbox from a Snapshot UUID.
+  team.create            [write] Create a Team.
+  team.delete            [delete] Delete a Team.
+  team.get               [read] Get a Team.
+  team.list              [read] List one page of Teams.
+  team.update            [write] Update a Team.
+  template-cache.create  [write] Submit an explicit Team/template image-cache
+                         request; inspect status before reporting ready.
+  template-cache.delete  [delete] Delete an explicit Team/template cache;
+                         underlying template is retained.
+  template-cache.get     [read] Get actual Template Cache status, progress and
+                         image size.
+  template-cache.list    [read] List one Team-scoped Template Cache page; return
+                         the opaque next token.
+  template.create        [write] Register a native template from an image or
+                         build steps; rejects existing names.
+  template.delete        [delete] Delete the selected Team's native cloud
+                         template; Sandbox instances are separate resources.
+  template.get           [read] Read a native cloud template and its actual
+                         build status.
+  template.list          [read] List native cloud templates in the configured
+                         Team (or the first Team returned for the same AK/SK)
+                         (all pages).
+  volume.create          [write] Create a Volume mount configuration.
+  volume.delete          [delete] Delete Volume metadata; underlying storage is
+                         retained.
+  volume.get             [read] Get a Volume configuration.
+  volume.list            [read] List one page of Volumes.
+  volume.update          [write] Update Volume status.
+
+Provider: alicloud-express (default)
+36 provider operations: api-key, quota, sandbox, snapshot, team, template-cache, template, volume.
+Example: abx provider run api-key.create --help
+Use 'abx provider --help' for the directory and 'abx provider run OPERATION --help' for parameters.
+Select for one invocation: abx --provider ID provider --help
+[exit_code:0]

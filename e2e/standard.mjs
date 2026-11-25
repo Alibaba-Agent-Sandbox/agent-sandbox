@@ -132,13 +132,13 @@ try {
   created.add(id);
   record('detached-created', {sandboxId:id});
   console.log("PASS: detached create");
-  assert.equal(await run(["sandbox", "exec", id, "printf", "standard-output"]), "standard-output");
-  assert.equal(await run(["sandbox", "exec", id, "sh", "-c", "printf standard-error-path; exit 7"], 7), "standard-error-path");
+  assert.equal(await run(["exec", id, "printf", "standard-output"]), "standard-output");
+  assert.equal(await run(["exec", id, "sh", "-c", "printf standard-error-path; exit 7"], 7), "standard-error-path");
   console.log("PASS: stdout and command failure");
   const terminal = await execute("python3", ["-c", terminalProbe, binary, "connect", id, JSON.stringify(binaryPrefix)], { timeout: terminalProbeBudget(observationDeadline) });
   assert.match(terminal.stdout, /PTY state and exit: PASS/);
   // Connect must preserve the existing sandbox after the shell exits.
-  assert.equal(await run(["sandbox", "exec", id, "printf", "still-alive"]), "still-alive");
+  assert.equal(await run(["exec", id, "printf", "still-alive"]), "still-alive");
   await cleanupOwned(id);
   const list = JSON.parse(await run(["--json", "list"], 0, {cleanup:true, timeout:5000}));
   assert.ok(Array.isArray(list.items));

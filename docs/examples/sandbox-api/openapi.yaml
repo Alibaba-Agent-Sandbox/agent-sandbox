@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Report API
+  version: 1.0.0
+security:
+  - token: []
+paths:
+  /totals:
+    post:
+      operationId: report_totals
+      summary: Sum the supplied numbers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [values]
+              additionalProperties: false
+              properties:
+                values:
+                  type: array
+                  items:
+                    type: number
+            example:
+              values: [10, 20, 30]
+      responses:
+        '200':
+          description: Sum of the numbers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+              example:
+                total: 60
+        '401':
+          description: The application token is missing or invalid
+components:
+  securitySchemes:
+    token:
+      type: http
+      scheme: bearer

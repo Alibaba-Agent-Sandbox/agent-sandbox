@@ -32,8 +32,10 @@ recover 观察已保存的资源归属，不重放创建或发布。已知不存
 
 ## 命令和文件
 
-`abx sandbox exec APP -- COMMAND` 调用进程，`abx sandbox command run APP NAME` 调用已部署的应用注册函数；两者不是同一协议。函数缺失时先 `abx sandbox command list APP`。文件错误检查实际路径、运行用户和权限；不要假设容器中所有文件都属于服务用户。连接托管应用时使用其业务 HTTP API，不能把应用名称当作一个 Sandbox ID。
+`abx exec APP -- COMMAND` 调用进程，`abx sandbox APP NAME --body @request.json` 调用已部署的应用注册函数；两者不是同一协议。函数缺失时先 `abx sandbox APP --help`。文件错误检查实际路径、运行用户和权限；不要假设容器中所有文件都属于服务用户。连接托管应用时使用其业务 HTTP API，不能把应用名称当作一个 Sandbox ID。
 
 ## 安装
 
 找不到 abx、下载或 npm 安装失败时，按[安装指南](binary-installation.md)核对 PATH、系统架构及实际发行物。不要从历史错误日志推断当前 npm 或二进制是否可用。
+
+目标优先的业务调用入口需要已绑定 OpenAPI 契约，见[绑定与认证](sandbox-api.md)。

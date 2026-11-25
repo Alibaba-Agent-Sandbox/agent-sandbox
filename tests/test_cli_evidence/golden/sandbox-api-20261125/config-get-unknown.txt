@@ -1,0 +1,4 @@
+[exit_code:2]
+[stderr]
+Unknown config key: 'unknown_key'
+  Suggestion: Available keys: access_key_id, access_key_secret, acr_namespace, github_token, http2, http_timeout, llm_api_key, llm_base_url, llm_model, region, sandbox_api_key, sandbox_base_url, sandbox_domain, server_token

@@ -1,0 +1,30 @@
+Invoke an operation declared by a Sandbox's bound OpenAPI contract.
+
+Usage: abx sandbox TARGET [OPERATION] [options]
+
+  abx sandbox TARGET --bind ./registry.yaml
+  abx sandbox TARGET --help
+  abx sandbox TARGET OPERATION --help
+  abx sandbox TARGET OPERATION --body @request.json
+
+TARGET is an existing Sandbox ID or local Sandbox deployment name.
+Help is offline. Invocation never creates a Sandbox or falls back to shell execution.
+
+Options:
+  --help, -h                 Show the target's operations or an operation's contract
+  --api NAME                 Select an API when operation IDs are ambiguous
+  --body JSON|@FILE          JSON request body (maximum 1 MiB)
+  --path NAME=VALUE          Path parameter; repeat for multiple parameters
+  --query NAME=VALUE         Query parameter; repeat for multiple parameters
+  --header NAME=VALUE        Declared non-authentication header parameter
+  --timeout SECONDS          HTTP request deadline, default 30; maximum 300
+  --bind FILE                Bind a local registry.yaml to this actual Sandbox
+  --resource sandbox.NAME    Select one resource when the registry declares several
+  --credential API.SCHEME=SOURCE
+                             Explicit source: env:VARIABLE or config:server_token
+  --alias NAME=API:OPERATION  Local operation alias; repeat as needed
+
+Binding replaces this target's saved contract, credentials references and aliases.
+Use global --provider before sandbox to select a Provider. Platform commands such
+as abx exec, files, status and delete remain separate from application operations.
+[exit_code:0]

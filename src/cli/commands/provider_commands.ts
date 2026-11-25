@@ -77,7 +77,7 @@ async function inputOf(params: Params): Promise<unknown> {
 
 /** Fixed namespace for provider-specific control-plane operations. */
 export const provider_commands = group("command", {
-  help: "Discover provider-specific management command schemas.\n\nCommands manage cloud resources; sandbox application commands use 'abx sandbox command'.",
+  help: "Discover provider-specific management command schemas.\n\nCommands manage cloud resources; sandbox application operations use 'abx sandbox TARGET OPERATION'.",
 });
 
 provider_commands.addCommand(command("list", {

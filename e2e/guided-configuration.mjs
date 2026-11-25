@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         saved=list(Path(home).rglob('.env'))
         assert len(saved)==1 and credential in saved[0].read_text(), 'guided key was not saved by default'
         assert saved[0].stat().st_mode & 0o777 == 0o600, 'saved credential is not owner-only'
-        result = subprocess.run(command + ['sandbox', 'exec', owned, 'printf', 'guided-cloud-ok'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+        result = subprocess.run(command + ['exec', owned, 'printf', 'guided-cloud-ok'], env=trusted, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
         if result.returncode != 0 or result.stdout != b'guided-cloud-ok':
             diagnostic = (result.stderr + result.stdout).decode(errors='replace').replace(credential, '[REDACTED]').replace(owned, '[OWNED_SANDBOX]')
             print('Remote exec diagnostic (exit %s): %s' % (result.returncode, diagnostic), file=sys.stderr)

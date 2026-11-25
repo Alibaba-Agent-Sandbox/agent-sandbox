@@ -79,7 +79,7 @@ Sandbox calls use an explicit API key, or the Express managed key prepared from 
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | Alibaba Cloud AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token for template downloads (store with `abx config set github_token`; CI: inject as a secret) |
 
-Since CLI 0.4.17, `ABX_HTTP_TIMEOUT` also controls each application HTTP request made by `abx sandbox command run` and command discovery (default: 30 seconds). For a longer command, set it before invoking the CLI, for example `ABX_HTTP_TIMEOUT=330 abx sandbox command run "$SANDBOX_ID" qwen --json-args '{"prompt":"Review the uploaded project","command_timeout":300}'`. An HTTP timeout stops waiting for the response; it does not cancel the remote command.
+Application operations use `abx sandbox TARGET OPERATION --timeout SECONDS` (default 30, maximum 300). The option limits HTTP waiting, not remote execution. Help reads the saved contract offline. Application authentication requires an explicit credential reference; see [Sandbox API operations](../guide/sandbox-api.md).
 
 ### CLI only: template build and generation
 

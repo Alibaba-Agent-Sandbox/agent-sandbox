@@ -29,7 +29,7 @@ abx --help
 
 Use CLI for terminal tasks, `abx mcp install` for an MCP client, and the separate `agent-sandbox-sdk` Skill for Python code. The Node.js SDK is an HTTP client for a running application service. Do not introduce another client facade for a CLI task.
 
-The root lifecycle commands are `deploy`, `list`, `status`, `logs`, `delete`, and `recover`. The groups are `template`, `sandbox`, `config`, `provider`, and `mcp`. Inspect installed `--help` rather than inferring support from a catalog listing.
+The root lifecycle commands are `deploy`, `list`, `status`, `logs`, `delete`, and `recover`. The groups are `template`, `config`, `provider`, and `mcp`; `sandbox TARGET OPERATION` invokes a bound application API. Inspect installed `--help` rather than inferring support from a catalog listing.
 
 ## Configure
 
@@ -50,11 +50,11 @@ Creating or renewing a management API key needs explicit consent. `--ci` control
 ```bash
 abx deploy --template-id base --name demo --sandbox-timeout 300 --yes
 abx status demo
-abx sandbox exec demo -- python3 --version
-abx sandbox exec --cwd /tmp --timeout 60 demo -- sh -c 'printf hello'
-abx sandbox connect demo
-abx sandbox upload demo ./input.txt /home/user/input.txt
-abx sandbox download demo /home/user/input.txt ./downloaded.txt
+abx exec demo -- python3 --version
+abx exec --cwd /tmp --timeout 60 demo -- sh -c 'printf hello'
+abx connect demo
+abx upload demo ./input.txt /home/user/input.txt
+abx download demo /home/user/input.txt ./downloaded.txt
 abx delete demo --yes
 ```
 
@@ -62,11 +62,11 @@ abx delete demo --yes
 
 ## Executing code and commands
 
-CLI options for `sandbox exec` go before the name/ID; remote command arguments follow it. Execution preserves the remote exit code. Use `--stream` for live output and `--json` for structured output. Express forwards piped stdin/EOF when the backend supports it. Background execution returns a process ID after input reaches EOF. Shell operators require an explicit shell. A timeout or interrupted local wait does not prove remote work stopped.
+CLI options for `exec` go before the name/ID; remote command arguments follow it. Execution preserves the remote exit code. Use `--stream` for live output and `--json` for structured output. Express forwards piped stdin/EOF when the backend supports it. Background execution returns a process ID after input reaches EOF. Shell operators require an explicit shell. A timeout or interrupted local wait does not prove remote work stopped.
 
-File operations use `sandbox upload/download` and `sandbox files`. Check downloaded content independently before delivering it.
+File operations use `abx upload`, `abx download`, and `abx files`. Check downloaded content independently before delivering it.
 
-`sandbox connect` opens a real PTY. Exiting it leaves the sandbox running. Use `sandbox process list/info/signal` to inspect or control a process. Inspect `sandbox files`, `sandbox system`, and `sandbox capabilities` help for supported operations. Provider-dependent pause, snapshot, network or interpreter support must be checked rather than inferred from command presence.
+`connect` opens a real PTY. Exiting it leaves the sandbox running. Use `abx process list`, `abx process info`, or `abx process signal` to inspect or control a process. Inspect `files`, `system`, and `capabilities` help for supported operations. Provider-dependent pause, snapshot, network or interpreter support must be checked rather than inferred from command presence.
 
 ## Templates and business APIs
 
@@ -76,11 +76,14 @@ abx template info python-hello
 abx template init ./my-template --from python-hello
 abx deploy ./my-template --name hello --plan
 abx deploy ./my-template --name hello --yes
-abx sandbox command list hello
-abx sandbox command run hello greet --json-args '{"name":"World"}'
+abx status hello
+# When this project includes a registry.yaml and OpenAPI contract:
+abx sandbox hello --bind ./registry.yaml --credential app.token=config:server_token
+abx sandbox hello --help
+abx sandbox hello OPERATION --body @request.json
 ```
 
-Named commands require a deployed application server and registered business function. Running a local registration decorator does not deploy the function. HTTP client examples must use the template's actual business API and authentication.
+API operations require a running application and an explicitly bound OpenAPI contract. A registry entry does not install a service or grant permission. Running a local registration decorator does not deploy the function. HTTP client examples must use the template's actual business API and authentication.
 
 Template creation uses `template init`, optionally `--prompt` or `--template mcp`. Explicit author builds use `template build`; `template publish --tag VERSION` publishes clean committed source to an existing GitHub remote and returns a pinned reference. It does not create a Registry listing. Follow [template authoring](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/blob/main/docs/en/guide/authoring-templates.md) for the supported arguments and prerequisites.
 

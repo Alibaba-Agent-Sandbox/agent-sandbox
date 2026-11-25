@@ -53,7 +53,7 @@ describe("TestProcessList", () => {
       new ProcessInfo({ pid: 99, command: "node server.js", status: "sleeping" }),
     ]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["process", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("42");
     expect(result.output).toContain("python");
@@ -63,7 +63,7 @@ describe("TestProcessList", () => {
     const sb = _makeSandbox();
     sb.commands.list = vi.fn().mockResolvedValue([]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["process", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("No processes");
   });
@@ -72,7 +72,7 @@ describe("TestProcessList", () => {
     const sb = _makeSandbox();
     sb.commands.list = vi.fn().mockResolvedValue([new ProcessInfo({ pid: 10, command: "bash", status: "running" })]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "process", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["--json", "process", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(Array.isArray(data)).toBe(true);
@@ -80,7 +80,7 @@ describe("TestProcessList", () => {
   });
 
   it("test_list_missing_sandbox_id", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "process", "list"]);
+    const result = await runner().invoke(cli, ["process", "list"]);
     expect(result.exit_code).toBe(2);
   });
 });
@@ -101,7 +101,7 @@ describe("TestProcessInfo", () => {
       }),
     );
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "1234"]);
+    const result = await runner().invoke(cli, ["process", "info", "sbx-test-001", "1234"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("1234");
   });
@@ -113,7 +113,7 @@ describe("TestProcessInfo", () => {
     ]);
     sb.commands.run = vi.fn();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "21"]);
+    const result = await runner().invoke(cli, ["process", "info", "sbx-test-001", "21"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("sleep 60");
     expect(result.output).toContain("running");
@@ -125,7 +125,7 @@ describe("TestProcessInfo", () => {
     sb.commands.list = vi.fn().mockRejectedValue(new CapabilityNotSupportedError("not supported"));
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "1234 1 user S 4096 00:01 python\n", exit_code: 0 }));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "1234"]);
+    const result = await runner().invoke(cli, ["process", "info", "sbx-test-001", "1234"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("python");
   });
@@ -135,14 +135,14 @@ describe("TestProcessInfo", () => {
     const sb = _makeSandbox();
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 1 }));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "99999"]);
+    const result = await runner().invoke(cli, ["process", "info", "sbx-test-001", "99999"]);
     expect(result.exit_code).toBe(1);
     expect(result.output.toLowerCase()).toContain("not found");
   });
 
   it("test_info_pid_non_integer", async () => {
     // PID argument type=int rejects non-integer.
-    const result = await runner().invoke(cli, ["sandbox", "process", "info", "sbx-test-001", "abc"]);
+    const result = await runner().invoke(cli, ["process", "info", "sbx-test-001", "abc"]);
     expect(result.exit_code).toBe(2);
   });
 });
@@ -156,7 +156,7 @@ describe("TestProcessSignal", () => {
     // Default signal is 15 (SIGTERM).
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "signal", "sbx-test-001", "1234"]);
+    const result = await runner().invoke(cli, ["process", "signal", "sbx-test-001", "1234"]);
     expect(result.exit_code).toBe(0);
     expect(sb.commands.sendSignal).toHaveBeenCalledTimes(1);
     expect(sb.commands.sendSignal).toHaveBeenCalledWith(1234, 15);
@@ -166,14 +166,14 @@ describe("TestProcessSignal", () => {
     // --signal 9 sends SIGKILL.
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "signal", "sbx-test-001", "1234", "--signal", "9"]);
+    const result = await runner().invoke(cli, ["process", "signal", "sbx-test-001", "1234", "--signal", "9"]);
     expect(result.exit_code).toBe(0);
     expect(sb.commands.sendSignal).toHaveBeenCalledTimes(1);
     expect(sb.commands.sendSignal).toHaveBeenCalledWith(1234, 9);
   });
 
   it("test_signal_pid_non_integer", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "process", "signal", "sbx-test-001", "abc"]);
+    const result = await runner().invoke(cli, ["process", "signal", "sbx-test-001", "abc"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -181,7 +181,7 @@ describe("TestProcessSignal", () => {
     const sb = _makeSandbox();
     sb.commands.sendSignal = vi.fn().mockRejectedValue(new ExecutionError("process not found"));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "process", "signal", "sbx-test-001", "9999"]);
+    const result = await runner().invoke(cli, ["process", "signal", "sbx-test-001", "9999"]);
     expect(result.exit_code).toBe(1);
   });
 });

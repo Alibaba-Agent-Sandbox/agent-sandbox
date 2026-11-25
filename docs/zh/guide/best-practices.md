@@ -22,7 +22,7 @@
 
 它只覆盖这一次命令的 `llm_model`、`ABX_LLM_MODEL` 和 `OPENAI_MODEL`。端点拒绝了已保存的模型，或这一句描述要用另一个 id 起草时，用它。交互终端可以给出替换项并保存选择；非交互运行沿用你传入的旗标。
 
-`--model` 不选择沙箱里运行的程序。`abx sandbox exec`、`abx sandbox command run` 和 `abx sandbox` 不看它。
+`--model` 不选择沙箱里运行的程序。`abx exec`、`abx sandbox TARGET OPERATION` 和 `abx sandbox` 不看它。
 
 ## `llm_model`：每次生成都用的模型
 

@@ -1,25 +1,5 @@
-/**
- * Task 191 -- `-h` alias for every reachable command path.
- *
- * The alias is configured exactly once, on the root group in `cli/main.ts`
- * (`context_settings: { help_option_names: ["-h", "--help"] }`). Click propagates `help_option_names` from the parent
- * Context down the entire command tree -- including lazily loaded groups (`LazyGroup`) and nested sub-groups
- * (`sandbox files` / `sandbox process` / `sandbox system`) -- so no per-command wiring is required.
- *
- * These tests lock the behaviour in:
- *
- *  - walking every reachable path (the root plus all subcommands, including lazily registered ones) and asserting
- *    `-h` / `--help` both exit 0 with identical output;
- *  - asserting the target command's callback never runs on a help path, so no command side effects (filesystem,
- *    network) are triggered;
- *  - guarding against a future command defining a `-h` parameter of its own -- Click would then silently drop the alias
- *    for that command, so the guard makes the conflict explicit and deliberate;
- *  - covering the `abx run` passthrough command: before this task, `abx run <id> <cmd> -h` failed with "Unexpected
- *    positional argument" (`-h` was never a passthrough token there); it now shows help without dialling the sandbox,
- *    and the `--key value` extra-arg contract is unchanged.
- *
- * The walk needs every command module (`cli/commands/*`); until they all exist the parametrised tests are skipped
- * (BLOCKED-ON: cli/commands/*) and switch on by themselves afterwards.
+/** Both help spellings cover every public path without executing platform operations.
+ * Registered API help intentionally runs its local contract-rendering callback.
  */
 
 import "../_support/isolatedHome.js";
@@ -74,10 +54,11 @@ it.skipIf(!ALL_COMMANDS).each(CASES)("test_dash_h_matches_double_dash_help [%s]"
   expect(short.exit_code, `\`abx ${path.join(" ")} -h\` exited ${short.exit_code}: ${JSON.stringify(short.output)}`).toBe(0);
   expect(long.exit_code, `\`abx ${path.join(" ")} --help\` exited ${long.exit_code}: ${JSON.stringify(long.output)}`).toBe(0);
   expect(short.output).toBe(long.output);
-  expect(short.output.startsWith("Usage:")).toBe(true);
+  if (target(path).automaticHelp) expect(short.output.startsWith("Usage:")).toBe(true);
+  else expect(short.output).toContain("Usage: abx sandbox TARGET [OPERATION]");
 });
 
-it.skipIf(!ALL_COMMANDS).each(CASES)("test_help_never_runs_the_target_callback [%s]", async (_id, path) => {
+it.skipIf(!ALL_COMMANDS).each(CASES.filter(([, path]) => target(path).automaticHelp))("test_help_never_runs_the_target_callback [%s]", async (_id, path) => {
   // Showing help must not execute the target command (no side effects). Ancestor group callbacks may run -- that is
   // the normal resolution flow and they are side-effect-free context initialisers. The *target* command itself
   // must never be invoked.
@@ -112,7 +93,7 @@ it.skipIf(!ALL_COMMANDS)("test_no_command_reserves_dash_h_for_itself", () => {
   const offenders: string[] = [];
   for (const [path, cmd] of [...COMMANDS.values()].sort((a, b) => a[0].join(" ").localeCompare(b[0].join(" ")))) {
     for (const param of cmd.params) {
-      if (param.decls.includes("-h")) offenders.push(`\`abx ${path.join(" ") || "<root>"}\` parameter ${JSON.stringify(param.name)}`);
+      if (cmd.automaticHelp && param.decls.includes("-h")) offenders.push(`\`abx ${path.join(" ") || "<root>"}\` parameter ${JSON.stringify(param.name)}`);
     }
   }
   expect(offenders, "Commands reserving '-h' (the help alias would be dropped there): " + offenders.join(", ")).toEqual([]);
@@ -126,41 +107,24 @@ it.skipIf(!ALL_COMMANDS)("test_every_lazy_subcommand_is_covered", () => {
   for (const name of lazy) expect(topLevel.has(name), name).toBe(true);
 });
 
-describe("TestRunPassthroughCompatibility", () => {
-  // `abx run` keeps its extra-arg contract while gaining `-h`.
-  //
-  // Before task 191, `abx run <id> <cmd> -h` was rejected with "Unexpected positional argument" -- `-h` was never
-  // forwarded to the remote command. It now shows help, and the sandbox is not dialled on the help path.
-
-  it("test_dash_h_shows_help_without_connecting", async () => {
+describe("registered API help", () => {
+  it.each(["-h", "--help"])("renders %s without connecting", async flag => {
     const connect = vi.spyOn(Sandbox, "connect").mockImplementation((async () => undefined) as never);
-    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "-h"]);
-
-    expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: abx sandbox command run")).toBe(true);
-    expect(connect).not.toHaveBeenCalled();
-    connect.mockRestore();
+    try {
+      const result = await new CliRunner().invoke(cli, ["sandbox", flag]);
+      expect(result.exit_code).toBe(0);
+      expect(result.output).toContain("Usage: abx sandbox TARGET [OPERATION]");
+      expect(connect).not.toHaveBeenCalled();
+    } finally { connect.mockRestore(); }
   });
 
-  it("test_double_dash_help_also_skips_connect", async () => {
-    const connect = vi.spyOn(Sandbox, "connect").mockImplementation((async () => undefined) as never);
-    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "build", "--help"]);
-
-    expect(result.exit_code).toBe(0);
-    expect(result.output.startsWith("Usage: abx sandbox command run")).toBe(true);
-    expect(connect).not.toHaveBeenCalled();
-    connect.mockRestore();
-  });
-
-  it("test_unknown_option_is_rejected", async () => {
-    // Named-command arguments are passed with --arg KEY=VALUE or --json-args; stray options are usage errors.
+  it("rejects undeclared CLI options before connecting", async () => {
     const connect = vi.spyOn(Sandbox, "connect");
-
-    const result = await new CliRunner().invoke(cli, ["sandbox", "command", "run", "sbx-1", "deploy", "--target", "staging"]);
-
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such option");
-    expect(connect).not.toHaveBeenCalled();
-    connect.mockRestore();
+    try {
+      const result = await new CliRunner().invoke(cli, ["sandbox", "sandbox-id", "report", "--target", "staging"]);
+      expect(result.exit_code).toBe(2);
+      expect(result.output).toContain("No such option");
+      expect(connect).not.toHaveBeenCalled();
+    } finally { connect.mockRestore(); }
   });
 });

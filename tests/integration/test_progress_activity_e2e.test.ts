@@ -179,7 +179,7 @@ it("test_upload_lists_paths_and_not_file_bytes", async () => {
   });
   vi.spyOn(Sandbox, "connect").mockResolvedValue({ files: { write } } as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["sandbox", "upload", "sb-1", src, "/app/data"]);
+  const result = await runner().invoke(cli, ["upload", "sb-1", src, "/app/data"]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(seen.some(([, payload]) => payload.equals(Buffer.from(_SECRET)))).toBe(true);
@@ -197,7 +197,7 @@ it("test_quiet_upload_does_not_list_files", async () => {
   seams.isTty = () => false;
   vi.spyOn(Sandbox, "connect").mockResolvedValue({ files: { write: vi.fn().mockResolvedValue(undefined) } } as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["--quiet", "sandbox", "upload", "sb-1", src, "/app/one.txt"]);
+  const result = await runner().invoke(cli, ["--quiet", "upload", "sb-1", src, "/app/one.txt"]);
 
   expect(result.exit_code, result.output).toBe(0);
   const combined = _combined(result);
@@ -240,7 +240,7 @@ it("test_download_shows_a_header_and_hides_bytes", async () => {
   const dest = path.join(tmp, "out.bin");
   vi.spyOn(Sandbox, "connect").mockResolvedValue(sandbox as unknown as Sandbox);
 
-  const result = await runner().invoke(cli, ["sandbox", "download", "sb-1", "/app/secret.bin", dest]);
+  const result = await runner().invoke(cli, ["download", "sb-1", "/app/secret.bin", dest]);
 
   expect(result.exit_code, result.output).toBe(0);
   expect(fs.readFileSync(dest).equals(Buffer.from(_SECRET))).toBe(true);

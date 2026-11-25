@@ -5,13 +5,13 @@
 ```bash
 abx deploy --template-id code-interpreter-v1 --name work --yes
 abx --json list
-abx sandbox exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
-abx sandbox connect work
+abx exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
+abx connect work
 abx status work
 abx delete work --yes
 ```
 
-`deploy` 创建具名实例后返回，不自动打开终端。`sandbox connect` 连接终端，退出不会自动删除借用的实例。`sandbox exec` 的本地选项放在目标前，目标后的参数属于远端程序；远端退出码与输出保留。删除需明确资源归属，自动化使用 `--yes`。
+`deploy` 创建具名实例后返回，不自动打开终端。`connect` 连接终端，退出不会自动删除借用的实例。`exec` 的本地选项放在目标前，目标后的参数属于远端程序；远端退出码与输出保留。删除需明确资源归属，自动化使用 `--yes`。
 
 Express 仍接受其文档中支持的 `E2B_API_KEY`、`E2B_API_URL`、`E2B_DOMAIN`，也支持项目的 `ABX_SANDBOX_*` 配置。使用配置中的阿里云身份，不需要 E2B 浏览器登录或 Team 管理。不要把 Express 凭据发给另一个 Provider。
 

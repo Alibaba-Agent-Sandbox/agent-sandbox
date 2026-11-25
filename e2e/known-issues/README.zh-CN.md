@@ -28,7 +28,7 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki
 | 场景 | KI | 检查内容(除特别说明外均通过 CLI) |
 |---|---|---|
 | `ki001-per-call-env` | 001 | SDK `commands.run(..., { env })`:变量到达命令(`envs`,而非 `envVars`) |
-| `ki002-prepare` | 002 | 用 `abx sandbox files mkdir` and SDK `files.write` 构造目录树 |
+| `ki002-prepare` | 002 | 用 `abx files mkdir` and SDK `files.write` 构造目录树 |
 | `ki002-list-json-reports-directories` | 002 | `files list --json`:目录为 `directory`,文件为 `file`,名称与大小真实 |
 | `ki002-stat-directory-and-file` | 002 | `files stat --json`:真实的 `Name`/`Path`/`Type`/`Size`(嵌套 `entry`) |
 | `ki007-list-missing-directory` | 007 | 缺失目录的 `files list`:退出码 4,`E4001`(envd 返回 HTTP 200 且无条目) |
@@ -38,10 +38,10 @@ ABX_BIN="node dist/bin/abx.js" node e2e/known-issues/run.mjs --filter 'KI-004|ki
 | `ki005-missing-sandbox` | 005 | 未知沙箱的 `info` / `exec`:退出码 4,`E2009` |
 | `ki006-bad-api-key` | 006 | 错误 API Key:退出码 3,`E1001`(`list` 与 `create`),Key 不出现在输出中 |
 | `ki003-sdk-timeout-kills-the-process` | 003 | SDK `run("sleep 113", { timeout: 3 })`:`CommandTimeoutError`(`E3001`),进程已被终止 |
-| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express sandbox exec --timeout 3 ID -- "sleep 114"`:退出码 5,`E3001`,进程已被终止 |
+| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express exec --timeout 3 ID -- "sleep 114"`:退出码 5,`E3001`,进程已被终止 |
 | `ki004-sdk-kill` | 004 | SDK `commands.kill(pid)` 终止运行中的进程 |
 | `ki004-sdk-send-input` | 004 | SDK `commands.sendInput` 送达运行中的 `head -n 1` 的标准输入 |
-| `ki004-cli-unsupported-signal` | 004 | `abx sandbox process signal --signal 2`:在发送任何请求前就被拒绝并给出 envd 的说明 |
+| `ki004-cli-unsupported-signal` | 004 | `abx process signal --signal 2`:在发送任何请求前就被拒绝并给出 envd 的说明 |
 
 逐次调用的环境变量、后台进程和 stdin 没有对应的 `abx` 命令,这些场景使用与 `ABX_BIN` 同一份源码构建的 Node SDK
 (`ABX_SDK_DIST`,默认 `<repo>/dist`)。

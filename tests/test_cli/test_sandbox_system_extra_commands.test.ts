@@ -66,8 +66,8 @@ describe("TestSystemEnv", () => {
   // CLI coverage for the current read-only ``sandbox system env`` command.
 
   it("test_command_is_registered_and_help_describes_current_interface", async () => {
-    const system_help = await runner().invoke(cli, ["sandbox", "system", "--help"]);
-    const env_help = await runner().invoke(cli, ["sandbox", "system", "env", "--help"]);
+    const system_help = await runner().invoke(cli, ["system", "--help"]);
+    const env_help = await runner().invoke(cli, ["system", "env", "--help"]);
 
     expect(system_help.exit_code).toBe(0);
     expect(system_help.output).toContain("env");
@@ -78,7 +78,7 @@ describe("TestSystemEnv", () => {
   });
 
   it("test_requires_sandbox_id", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "system", "env"]);
+    const result = await runner().invoke(cli, ["system", "env"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("Missing argument 'SANDBOX_ID'");
@@ -100,7 +100,7 @@ describe("TestSystemEnv", () => {
     );
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(_splitlines(result.output)).toEqual([
@@ -118,7 +118,7 @@ describe("TestSystemEnv", () => {
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "HOME=/home/sandbox\nLANG=C.UTF-8\nPATH=/usr/bin\n" }));
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001", "--filter", " PATH, LANG "]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001", "--filter", " PATH, LANG "]);
 
     expect(result.exit_code).toBe(0);
     expect(_splitlines(result.output)).toEqual(["LANG=C.UTF-8", "PATH=/usr/bin"]);
@@ -130,7 +130,7 @@ describe("TestSystemEnv", () => {
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "API_KEY=hidden\n" }));
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("No matching environment variables found.");
@@ -142,7 +142,7 @@ describe("TestSystemEnv", () => {
     sb.commands.run.mockResolvedValue(new ProcessResult({ stderr: "env failed", exit_code: 1 }));
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Failed to retrieve environment variables.");
@@ -156,7 +156,7 @@ describe("TestSystemEnv", () => {
     );
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["--json", "system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(JSON.parse(result.output)).toEqual({ variables: { HOME: "/home/sandbox", PATH: "/usr/bin" } });
@@ -167,7 +167,7 @@ describe("TestSystemEnv", () => {
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "PATH=/usr/bin\nHOME=/home/sandbox\n" }));
 
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--quiet", "sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["--quiet", "system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(0);
     expect(_splitlines(result.output)).toEqual(["HOME=/home/sandbox", "PATH=/usr/bin"]);
@@ -181,7 +181,7 @@ describe("TestSystemEnv", () => {
 
   it("test_http_404_is_friendly", async () => {
     vi.spyOn(Sandbox, "connect").mockRejectedValue(_http_error(404));
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "missing-sandbox"]);
+    const result = await runner().invoke(cli, ["system", "env", "missing-sandbox"]);
 
     expect(result.exit_code).toBe(4);
     expect(result.output).toContain("Resource not found (HTTP 404).");
@@ -191,7 +191,7 @@ describe("TestSystemEnv", () => {
 
   it("test_http_401_is_friendly", async () => {
     vi.spyOn(Sandbox, "connect").mockRejectedValue(_http_error(401));
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(3);
     expect(result.output).toContain("Authentication failed (HTTP 401).");
@@ -202,7 +202,7 @@ describe("TestSystemEnv", () => {
   it("test_http_timeout_is_friendly", async () => {
     const request = new httpx.Request("GET", "https://sandbox.example/env");
     vi.spyOn(Sandbox, "connect").mockRejectedValue(new httpx.ReadTimeout("read timed out", { request }));
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(5);
     expect(result.output).toContain("Request timed out: read timed out");
@@ -216,7 +216,7 @@ describe("TestSystemEnv", () => {
     vi.spyOn(Sandbox, "connect").mockRejectedValue(
       new httpx.RemoteProtocolError("peer closed connection without sending complete message body", { request }),
     );
-    const result = await runner().invoke(cli, ["sandbox", "system", "env", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["system", "env", "sbx-test-001"]);
 
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("Connection reset by remote");
@@ -236,7 +236,7 @@ describe("TestCapabilities", () => {
     const sb = _makeSandbox();
     sb.capabilities = new Set(["shell", "files", "code"]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "capabilities", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["capabilities", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("code");
     expect(result.output).toContain("files");
@@ -247,7 +247,7 @@ describe("TestCapabilities", () => {
     const sb = _makeSandbox();
     sb.capabilities = new Set();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "capabilities", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["capabilities", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("No capabilities");
   });
@@ -256,7 +256,7 @@ describe("TestCapabilities", () => {
     const sb = _makeSandbox();
     sb.capabilities = new Set(["shell", "files"]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "capabilities", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["--json", "capabilities", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect("capabilities" in data).toBe(true);

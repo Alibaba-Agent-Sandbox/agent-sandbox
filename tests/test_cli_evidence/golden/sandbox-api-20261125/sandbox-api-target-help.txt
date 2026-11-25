@@ -1,0 +1,20 @@
+{
+  "target": "sbx-XXXXX",
+  "sandboxId": "sbx-XXXXX",
+  "operations": [
+    {
+      "api": "report",
+      "operationId": "report_totals",
+      "method": "POST",
+      "path": "/totals",
+      "summary": "Sum the supplied numbers"
+    }
+  ],
+  "aliases": {
+    "totals": {
+      "api": "report",
+      "operation": "report_totals"
+    }
+  }
+}
+[exit_code:0]

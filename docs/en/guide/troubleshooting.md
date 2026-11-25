@@ -32,8 +32,10 @@ Recover observes saved ownership without replaying creation or publication. Dist
 
 ## Commands and files
 
-`abx sandbox exec APP -- COMMAND` runs a process; `abx sandbox command run APP NAME` invokes a deployed application function. For a missing function, inspect `abx sandbox command list APP`. Check actual file paths, runtime users and permissions; not every container file belongs to its service user. A managed application exposes a business HTTP API and is not a single Sandbox handle.
+`abx exec APP -- COMMAND` runs a process; `abx sandbox APP NAME --body @request.json` invokes a deployed application function. For a missing function, inspect `abx sandbox APP --help`. Check actual file paths, runtime users and permissions; not every container file belongs to its service user. A managed application exposes a business HTTP API and is not a single Sandbox handle.
 
 ## Installation
 
 For PATH, download or npm errors, check the [installation guide](binary-installation.md), architecture and actual published artifact. Historical error logs do not establish current npm or binary availability.
+
+The target-first API interface requires a bound OpenAPI contract; see [binding and authentication](sandbox-api.md).

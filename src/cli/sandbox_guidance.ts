@@ -6,21 +6,15 @@ import { cliProvider } from "../providers/selection.js";
 import { getProvider, parseSandboxRef, resolveProviderId } from "../providers/registry.js";
 import { ProviderMismatchError } from "../models/provider_errors.js";
 import { UsageError } from "./errors.js";
-import { getFormatter } from "./formatters.js";
 
-/** Only sandbox business commands participate; diagnostic, config and aggregate commands remain noninteractive. */
+/** Provider-backed platform operations participate; API contract help and binding remain local. */
 export async function withSandboxConfiguration<T>(ctx: Context, params: Record<string, unknown>, action: () => Promise<T>): Promise<T> {
   const path: string[] = [];
   for (let current: Context | null = ctx; current; current = current.parent) path.unshift(current.command.name);
-  const sandbox = path.findIndex((name) => name === "sandbox" || name === "sbx");
-  const verb = sandbox >= 0 ? path[sandbox + 1] : path.length === 2 && path[0] === "abx" ? path[1] : undefined;
-  const roots = new Set(["list", "info", "kill", "exec", "connect", "pause", "resume", "upload", "download", "run"]);
-  if (!verb || verb === "create" || sandbox < 0 && !roots.has(verb) || params["all_providers"] || verb === "list" && params["local"]) return action();
+  const verb = path.length >= 2 && path[0] === "abx" ? path[1] : undefined;
+  const roots = new Set(["list", "info", "kill", "exec", "connect", "pause", "resume", "upload", "download", "files", "process", "system", "capabilities", "metrics", "snapshot", "fork", "network"]);
+  if (!verb || !roots.has(verb) || params["all_providers"] || verb === "list" && params["local"]) return action();
   if (params["background"] && params["stream"]) throw new UsageError("--background and --stream cannot be combined.");
-  if (verb === "run" || verb === "command" && path.at(-1) === "run") {
-    const { _commandArguments } = await import("./commands/sandbox.js");
-    _commandArguments((params["args"] as string[] | undefined) ?? [], (params["json_args"] as string | null | undefined) ?? null, getFormatter(ctx));
-  }
   for (const [key, label] of [["env", "environment variable"], ["metadata", "metadata"]]) {
     const pairs = params[key!] as unknown;
     if (Array.isArray(pairs) && pairs.some((pair) => typeof pair === "string" && !pair.includes("="))) {

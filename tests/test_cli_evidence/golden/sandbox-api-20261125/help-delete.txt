@@ -1,0 +1,13 @@
+Usage: abx delete [options] <TARGET>
+
+Delete a named deployment's owned resources, or a raw Sandbox ID. Borrowed
+builds and external services are retained. --revision retires an unused retained
+application version.
+
+Options:
+  -y, --yes
+  --bindings <BINDINGS>  Override the private application bindings file for this
+                         operation.
+  --revision <REVISION>
+  -h, --help             Show this message and exit.
+[exit_code:0]

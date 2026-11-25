@@ -125,14 +125,14 @@ scenario('ki001-per-call-env', 'KI-001', 'commands.run(env) reaches the command 
 scenario('ki002-prepare', 'KI-002', 'create a directory tree through the CLI', async () => {
   const d = state.dir;
   for (const p of [`${d}/sub`, `${d}/empty`]) {
-    const r = await abx(['sandbox', 'files', 'mkdir', state.id, '--path', p]);
+    const r = await abx(['files', 'mkdir', state.id, '--path', p]);
     must(r.code === 0, `mkdir ${p}: ${excerpt(r.text)}`);
   }
   await state.sb.files.write(`${d}/f.txt`, 'hello\n');
 });
 
 scenario('ki002-list-json-reports-directories', 'KI-002', 'files list --json: directory vs file type, name, size', async () => {
-  const r = await abx(['--json', 'sandbox', 'files', 'list', state.id, '--path', state.dir]);
+  const r = await abx(['--json', 'files', 'list', state.id, '--path', state.dir]);
   must(r.code === 0, excerpt(r.text));
   const by = Object.fromEntries(r.json().map((e) => [e.name, e]));
   must(by.sub?.type === 'directory' && by.empty?.type === 'directory', `directories listed as ${JSON.stringify([by.sub?.type, by.empty?.type])}`);
@@ -140,40 +140,40 @@ scenario('ki002-list-json-reports-directories', 'KI-002', 'files list --json: di
 });
 
 scenario('ki002-stat-directory-and-file', 'KI-002', 'files stat --json: real Name/Path/Type/Size (nested entry)', async () => {
-  const dir = await abx(['--json', 'sandbox', 'files', 'stat', state.id, '--path', `${state.dir}/sub`]);
+  const dir = await abx(['--json', 'files', 'stat', state.id, '--path', `${state.dir}/sub`]);
   must(dir.code === 0, excerpt(dir.text));
   const d = dir.json();
   must(d.Name === 'sub' && d.Path === `${state.dir}/sub` && d.Type === 'directory', `directory stat ${JSON.stringify(d)}`);
-  const file = await abx(['--json', 'sandbox', 'files', 'stat', state.id, '--path', `${state.dir}/f.txt`]);
+  const file = await abx(['--json', 'files', 'stat', state.id, '--path', `${state.dir}/f.txt`]);
   must(file.code === 0, excerpt(file.text));
   const f = file.json();
   must(f.Name === 'f.txt' && f.Path === `${state.dir}/f.txt` && f.Type === 'file' && Number(f.Size) === 6, `file stat ${JSON.stringify(f)}`);
 });
 
 scenario('ki007-list-missing-directory', 'KI-007', 'files list of a missing directory: exit 4, E4001', async () => {
-  const r = await abx(['sandbox', 'files', 'list', state.id, '--path', `${state.dir}/no-such-dir`]);
+  const r = await abx(['files', 'list', state.id, '--path', `${state.dir}/no-such-dir`]);
   must(r.code === 4, `exit ${r.code}: ${excerpt(r.text)}`);
   must(r.text.includes('E4001') && r.text.includes('File or directory not found in the sandbox'), excerpt(r.text));
 });
 
 scenario('ki007-list-empty-directory-still-ok', 'KI-007', 'files list of an existing empty directory: exit 0, no error', async () => {
-  const r = await abx(['sandbox', 'files', 'list', state.id, '--path', `${state.dir}/empty`]);
+  const r = await abx(['files', 'list', state.id, '--path', `${state.dir}/empty`]);
   must(r.code === 0 && r.text.includes('is empty'), `exit ${r.code}: ${excerpt(r.text)}`);
 });
 
 // KI-005 not found
 scenario('ki005-stat-missing-file', 'KI-005', 'files stat of a missing path: exit 4, E4001', async () => {
-  const r = await abx(['sandbox', 'files', 'stat', state.id, '--path', `${state.dir}/zzz-missing`]);
+  const r = await abx(['files', 'stat', state.id, '--path', `${state.dir}/zzz-missing`]);
   must(r.code === 4 && r.text.includes('E4001'), `exit ${r.code}: ${excerpt(r.text)}`);
 });
 
 scenario('ki005-download-missing-file', 'KI-005', 'download of a missing remote file: exit 4, E4001, nothing written', async () => {
-  const r = await abx(["sandbox", 'download', state.id, `${state.dir}/zzz-missing`, join(root, 'out.bin')]);
+  const r = await abx(['download', state.id, `${state.dir}/zzz-missing`, join(root, 'out.bin')]);
   must(r.code === 4 && r.text.includes('E4001'), `exit ${r.code}: ${excerpt(r.text)}`);
 });
 
 scenario('ki005-missing-sandbox', 'KI-005', 'info/exec of a missing sandbox: exit 4, E2009', async () => {
-  for (const argv of [["status", 'sbx-doesnotexist00000'], ["sandbox", 'exec', 'sbx-doesnotexist00000', 'true']]) {
+  for (const argv of [["status", 'sbx-doesnotexist00000'], ['exec', 'sbx-doesnotexist00000', 'true']]) {
     const r = await abx(argv);
     must(r.code === 4 && r.text.includes('E2009'), `${argv[0]}: exit ${r.code}: ${excerpt(r.text)}`);
   }
@@ -202,7 +202,7 @@ scenario('ki003-sdk-timeout-kills-the-process', 'KI-003', 'run("sleep 113", time
 });
 
 scenario('ki003-cli-exec-timeout', 'KI-003', 'native Express exec --timeout 3: exit 5, E3001, total deadline, process gone', async () => {
-  const r = await abx(["--json", "sandbox", "exec", "--timeout", "3", state.id, "sleep 114"]);
+  const r = await abx(["--json", "exec", "--timeout", "3", state.id, "sleep 114"]);
   must(r.code === 5 && r.json().code === 'E3001' && r.ms < 30_000, `exit ${r.code}: ${excerpt(r.text)}`);
   const alive = await state.sb.commands.run(`sh -c 'ps -eo args | grep -c "^sleep 114" || true'`);
   must(alive.stdout.trim() === '0', `sleep 114 still running (${alive.stdout.trim()})`);
@@ -227,10 +227,10 @@ async function forceKill(pid, done) {
 }
 
 for (const sig of [15, 9]) {
-  scenario(`ki004-cli-signal-${sig}`, 'KI-004', `abx sandbox process signal --signal ${sig} terminates a running process`, async () => {
+  scenario(`ki004-cli-signal-${sig}`, 'KI-004', `abx process signal --signal ${sig} terminates a running process`, async () => {
     const { pid, done } = await startBackground('sleep 115');
     try {
-      const r = await abx(['sandbox', 'process', 'signal', state.id, String(pid), '--signal', String(sig)]);
+      const r = await abx(['process', 'signal', state.id, String(pid), '--signal', String(sig)]);
       must(r.code === 0 && r.text.includes(`Signal ${sig} sent to process ${pid}.`), `exit ${r.code}: ${excerpt(r.text)}`);
       const chunks = await endedWithin(done, 20_000);
       must(chunks && chunks[chunks.length - 1].type === 'exit', 'process did not end after the signal');
@@ -257,10 +257,10 @@ scenario('ki004-sdk-send-input', 'KI-004', 'commands.sendInput reaches stdin (he
   } finally { await forceKill(pid, done); }
 });
 
-scenario('ki004-cli-unsupported-signal', 'KI-004', 'abx sandbox process signal --signal 2: rejected with the envd message, nothing sent', async () => {
+scenario('ki004-cli-unsupported-signal', 'KI-004', 'abx process signal --signal 2: rejected with the envd message, nothing sent', async () => {
   const { pid, done } = await startBackground('sleep 117');
   try {
-    const r = await abx(['sandbox', 'process', 'signal', state.id, String(pid), '--signal', '2']);
+    const r = await abx(['process', 'signal', state.id, String(pid), '--signal', '2']);
     must(r.code !== 0 && r.text.includes('envd can only deliver SIGTERM (15) and SIGKILL (9) to a process; got 2'), `exit ${r.code}: ${excerpt(r.text)}`);
     must((await endedWithin(done, 2000)) === null, 'the process was signalled although the signal is unsupported');
   } finally { await forceKill(pid, done); }

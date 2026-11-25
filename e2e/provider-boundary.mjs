@@ -69,7 +69,7 @@ export default () => ({ async buildInfra() { return {
   assert.match(run(['--provider', 'alicloud-express', "status", 'boundary-probe:owned-id'], 2), /E8030/);
   assert.match(run(["status", 'unknown-probe:owned-id'], 4), /E8001/);
   assert.match(run(["status", 'boundary-probe:'], 2), /E8002/);
-  assert.match(run(['--provider', 'boundary-probe', "sandbox", 'exec', '--unknown-local-option', 'owned-id', 'agent'], 2), /No such option/);
+  assert.match(run(['--provider', 'boundary-probe', 'exec', '--unknown-local-option', 'owned-id', 'agent'], 2), /No such option/);
   assert.deepEqual(calls(), ['owned-id']);
   console.log('PASS: conflicting, unknown and empty namespaces fail before provider calls');
   assert.match(run(['--provider', 'boundary-probe', 'provider', 'run', 'template.list'], 1), /E8004/);

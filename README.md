@@ -43,13 +43,13 @@ For Express, use a Sandbox API key for your account and region. The setup guide 
 Use the saved deployment name in subsequent commands:
 
 ```bash
-abx sandbox exec demo -- echo hello
+abx exec demo -- echo hello
 abx status demo
-abx sandbox connect demo
+abx connect demo
 abx delete demo --yes
 ```
 
-`sandbox connect` opens a terminal. Exiting it leaves the sandbox running; `delete` deletes it. See the [CLI tutorial](docs/en/guide/cli-tutorial.md) for files, background processes and other operations.
+`connect` opens a terminal. Exiting it leaves the sandbox running; `delete` deletes it. See the [CLI tutorial](docs/en/guide/cli-tutorial.md) for files, background processes and other operations.
 
 ## Launch an application template
 

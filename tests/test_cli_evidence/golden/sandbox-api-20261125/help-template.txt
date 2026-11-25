@@ -1,0 +1,28 @@
+Usage: abx template [options] [command]
+
+Find, edit, build and publish reusable templates.
+
+Examples:
+  abx template list python
+  abx template init --template python --name my-template
+  abx template list
+
+Related commands:
+  abx deploy TEMPLATE --name APP  Deploy an application from a template
+  abx config --help               Configure credentials and region
+
+More templates: https://registry.agent-sandbox.cn/templates/
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  build       Build a reusable template artifact without starting an
+              application.
+  info        Show a catalog template's source, version reference and declared
+              services.
+  init        Scaffold a new sandbox template project.
+  list        Search the template catalog by name, tag, or description.
+  publish     Publish a clean committed template to an existing GitHub remote
+              using a new version tag.
+[exit_code:0]

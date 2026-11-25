@@ -132,14 +132,14 @@ Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include 
 
 ```bash
 abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
-abx sandbox exec local-process:sbx-1 "echo hello"
+abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # every configured provider, with a Provider column
 abx delete local-process:sbx-1 --yes
 ```
 
 `list --all-providers` is an explicit native project extension even when Express is the default; ordinary list filters follow the standard contract. It skips a provider that fails (for example, missing credentials) with `warning: provider 'ID' skipped: ...` on stderr and exits 0 when at least one provider answered. `--region` and the other built-in provider flags are refused for a provider that does not declare the matching key: `Option '--region' is not supported by provider 'ID'.`
 
-A command that needs a feature the provider does not declare (for example `abx sandbox process` on a provider without `process.manage`) fails with `E8004` before any request is sent.
+A command that needs a feature the provider does not declare (for example `abx process` on a provider without `process.manage`) fails with `E8004` before any request is sent.
 
 ---
 
@@ -152,7 +152,7 @@ Installing a plugin does not implement every interface. Inspect `abx provider in
 | Create, connect and clean up | `create`, `connect`, `kill` | `ProviderSandbox.create/connect`, instance `kill/close`; `close` releases only the local client |
 | Execute a process | `exec` | `commands.run` |
 | Read and write files | `upload`, `download` | `files.read/write` |
-| Call a template application | `run`, `sandbox command run`; see [command reference](../reference/cli-commands.md) | `await application_client(port, token=...)`, then `client.commands.run` |
+| Call a template application | `sandbox TARGET OPERATION`; see [command reference](../reference/cli-commands.md) | `await application_client(port, token=...)`, then `client.commands.run` |
 | Resolve an application endpoint | No standalone URL command | `await network.resolve(port)` returns the URL and gateway headers |
 | Prepare source and launch | `template launch`; see [launch guide](template-launch.md) | Prepare with the CLI, then connect to its sandbox or use the prepared reference |
 
@@ -305,3 +305,5 @@ mark the framework case skipped when a capability is absent. Without this adapte
 a skipped case now fails explicitly instead of being counted as passed.
 `runContractSuite` continues to return structured `passed`, `failed` and `skipped`
 outcomes. Report skipped capabilities separately from successful acceptance.
+
+The target-first API interface requires a bound OpenAPI contract; see [binding and authentication](sandbox-api.md).

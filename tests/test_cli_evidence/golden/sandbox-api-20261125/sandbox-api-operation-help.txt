@@ -1,0 +1,52 @@
+{
+  "api": "report",
+  "operationId": "report_totals",
+  "method": "POST",
+  "path": "/totals",
+  "summary": "Sum the supplied numbers",
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "values"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "example": {
+          "values": [
+            10,
+            20,
+            30
+          ]
+        }
+      }
+    }
+  },
+  "responses": {
+    "200": {
+      "description": "Sum of the numbers",
+      "content": {
+        "application/json": {
+          "example": {
+            "total": 60
+          }
+        }
+      }
+    }
+  },
+  "parameters": [],
+  "security": [],
+  "openapi": "3.1.0"
+}
+[exit_code:0]

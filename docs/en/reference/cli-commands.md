@@ -4,7 +4,7 @@
 
 <!-- fixed-set -->
 
-`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`.
+`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx capabilities`, `abx files`, `abx process`, `abx system`, `abx pause`, `abx resume`, `abx metrics`, `abx snapshot`, `abx fork`, `abx network`.
 
 ## Deploy and manage
 
@@ -18,7 +18,7 @@ abx delete demo
 
 `deploy SOURCE` accepts a catalog name, a Registry source reference, or a local template directory. `--name` names the instance independently of its template. Omit the name to use the template's name. `--plan` validates the source and previews required resources without building or deploying. `--yes` approves changes in automation; JSON output does not grant approval.
 
-Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `sandbox exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
+Use `deploy --template-id ID` to create directly from an existing Provider-native template. This skips source preparation. `--sandbox-timeout` controls the Sandbox lifetime; `--build-timeout` controls template preparation; `exec --timeout` controls one command. Express also supports `--on-timeout pause --auto-resume`. `--env`, `--metadata`, `--volume-mount` and `--upload` configure a Sandbox instance.
 
 Managed application templates use the same `deploy` command, with `--bindings FILE` for external-service and credential references. Deploying a ready application under the same name updates it while retaining revisions needed by its sessions. Delete an ordinary Sandbox deployment before recreating it under the same name. A name whose resources were deleted can be reused.
 
@@ -55,14 +55,24 @@ abx template build --clean BUILD_FILE --yes
 
 ## Sandbox operations
 
-Use `sandbox exec`, `sandbox connect`, `sandbox files`, `sandbox process`, `sandbox command`, `sandbox system`, `sandbox capabilities`, `sandbox pause`, `sandbox resume`, `sandbox metrics`, `sandbox snapshot`, `sandbox fork` and `sandbox network`. Commands accept a named Sandbox deployment or a native Sandbox ID. Available advanced operations depend on the Provider.
+`abx sandbox TARGET --help` lists the operations in a locally bound OpenAPI contract. `abx sandbox TARGET OPERATION --help` shows its parameters, request body, responses and authentication requirements. Invoke it with `abx sandbox TARGET OPERATION --body @request.json`. TARGET must be an existing Sandbox ID or a local Sandbox deployment name. An operation ID shared by several APIs requires `--api NAME`.
+
+A template with a single Sandbox resource in `registry.yaml.apis` is bound automatically when its Sandbox deployment succeeds. For an existing Sandbox or a template without an API declaration, bind a local registry first. Binding describes an existing service; it does not install or start one. See [Sandbox API operations](../guide/sandbox-api.md) for the full example, aliases, credential sources and supported OpenAPI subset.
+
+Platform and runtime tools use root commands: `exec`, `connect`, `upload`, `download`, `files`, `process`, `system`, `capabilities`, `pause`, `resume`, `metrics`, `snapshot`, `fork` and `network`. Their availability depends on the Provider and installed services.
 
 ```bash
-abx sandbox exec demo -- python -c 'print("hello")'
-abx sandbox files list demo /home/user
-abx sandbox command list demo
-abx sandbox connect demo
+abx exec demo -- python -c 'print("hello")'
+abx files list demo /home/user
+abx connect demo
+
+# A service and its registry already exist:
+abx sandbox demo --bind ./registry.yaml
+abx sandbox demo --help
+abx sandbox demo report_totals --body @request.json
 ```
+
+The former `sandbox command list/run` wrapper is removed. The SDK's registered-function routes and decorators retain their own contracts. Neither discovery nor a contract entry grants permission to invoke a service.
 
 ## Configuration and Providers
 

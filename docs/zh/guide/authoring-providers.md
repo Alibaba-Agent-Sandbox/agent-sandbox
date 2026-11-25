@@ -45,7 +45,7 @@ Sandbox.create({ template: "base", ... })
       和本次命令都是 alicloud-express，CLI 会把 id 打印成 my-cloud:<sandbox_id>。
 ```
 
-之后的 `exec`、`upload`、`kill my-cloud:<id>` 都用这个 id。宿主先检查能力。没有声明 `exec.run` 时，`abx sandbox exec` 返回 E8004，不会发送 `exec.run`。
+之后的 `exec`、`upload`、`kill my-cloud:<id>` 都用这个 id。宿主先检查能力。没有声明 `exec.run` 时，`abx exec` 返回 E8004，不会发送 `exec.run`。
 
 以下路径需要区分宿主路由与 Provider 的职责：
 

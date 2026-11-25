@@ -32,7 +32,7 @@ it("test_cli_create_exec_kill",async()=>{
   const kill=vi.spyOn(Sandbox,"killById").mockImplementation(async()=>{deleted=true;});
   vi.spyOn(Sandbox,"getInfoById").mockImplementation(async()=>{if(deleted)throw new SandboxNotFoundError(id);return info();});
   let r=await invoke(["deploy","--template-id","base","--name","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);
-  r=await invoke(["sandbox","exec","demo","echo","hello"]);expect(r.exit_code,r.output).toBe(0);expect(r.stdout).toContain("hello");
+  r=await invoke(["exec","demo","echo","hello"]);expect(r.exit_code,r.output).toBe(0);expect(r.stdout).toContain("hello");
   r=await invoke(["delete","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);expect(kill).toHaveBeenCalledWith(id,expect.objectContaining({provider:"alicloud-express"}));expect(deleted).toBe(true);
 });
 it("test_cli_json_output",async()=>{
@@ -40,11 +40,11 @@ it("test_cli_json_output",async()=>{
   expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({name:"demo",sandbox_id:id,status:"ready",kind:"sandbox"});
 });
 it("test_cli_exec_json_output",async()=>{
-  execution();const r=await invoke(["--json","sandbox","exec",id,"echo","hello"]);
+  execution();const r=await invoke(["--json","exec",id,"echo","hello"]);
   expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toEqual({stdout:"hello\n",stderr:"",exit_code:0});
 });
 it("test_cli_exec_nonzero_exit",async()=>{
-  execution(17);const r=await invoke(["--json","sandbox","exec",id,"false"]);
+  execution(17);const r=await invoke(["--json","exec",id,"false"]);
   expect(r.exit_code).toBe(17);expect(JSON.parse(r.stdout).exit_code).toBe(17);
 });
 for(const [title,error] of [

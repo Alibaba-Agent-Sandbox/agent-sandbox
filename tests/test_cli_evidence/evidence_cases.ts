@@ -28,6 +28,12 @@ import * as mcpMod from "../../src/cli/commands/mcp.js";
 import * as fcTemplate from "../../src/providers/alicloud_express/fc_template.js";
 import * as template from "../../src/providers/alicloud_express/cli/template.js";
 import { cli } from "../../src/cli/main.js";
+import { TOP_LEVEL_COMMANDS } from "../../src/cli/command_surface.js";
+import { sandboxApiSeams } from "../../src/cli/commands/sandbox_api.js";
+import { loadRegistryApis } from "../../src/cli/api_contract.js";
+import { bindingOptions, saveApiBinding } from "../../src/cli/api_binding.js";
+import { openApiHttpSeams } from "../../src/transport/openapi_http.js";
+import { paths as configurationPaths } from "../../src/transport/config_layers.js";
 import { replSeams } from "../../src/cli/repl.js";
 import {
   AuthenticationError,
@@ -38,11 +44,8 @@ import {
 } from "../../src/models/errors.js";
 import { ProcessResult } from "../../src/models/process.js";
 import { SandboxInfo } from "../../src/models/sandbox.js";
-import * as protocolSandbox from "../../src/providers/shared/e2b/sandbox.js";
-import * as transportAuth from "../../src/providers/alicloud_express/auth.js";
 import * as transportConfig from "../../src/transport/config.js";
 import { _setProjectEnvFile, resetConfig } from "../../src/transport/config.js";
-import * as transportHttp from "../../src/transport/http.js";
 import { Request, Response } from "../../src/transport/_httpx.js";
 import { DEFAULT_INDEX_URL, _setIndexCacheDir } from "../../src/utils/template_index.js";
 import { _setTemplateCacheDir } from "../../src/utils/registry.js";
@@ -76,6 +79,8 @@ export interface EvidenceCase {
   mock_setup: MockSetup | null;
   /** Golden file base name (no extension). */
   output_file: string;
+  /** Required outcome for current command-contract cases; prevents blessing broken captures. */
+  expected_exit?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -510,40 +515,32 @@ function _connectRepl(): MockSetup {
   };
 }
 
-/**
- * Mock for `abx run` / `abx sandbox command list`: exercises the REAL `Sandbox.runCommand` / `listCommands` dispatch. Only
- * the two HTTP helpers are stubbed; they emulate an in-sandbox SandboxServer registering `add(x:int, y:int=1)` and
- * `ping()`, or an unreachable server when `reachable` is false.
- */
-function _runCmd(reachable = true, fails = false): MockSetup {
+/** Fixed local contract and mocked endpoint; no network or Server SDK discovery. */
+function _sandboxApi(fails = false): MockSetup {
   return () => {
     const patches = new Patches();
-    const sb = _makeSb();
-    sb["id"] = "sbx-ev-001";
-    sb["_envd_token"] = { getHeaders: () => ({}) };
-    const catalogue = [
-      { name: "add", description: "Add two integers", args: [{ name: "x", type: "int", required: true, default: null, description: "" }, { name: "y", type: "int", required: false, default: 1, description: "" }] },
-      { name: "ping", description: "Health check", args: [] },
-    ];
-    const proto = Sandbox.prototype as unknown as Record<string, (this: unknown, ...a: unknown[]) => unknown>;
-    const unreachable = (): never => {
-      throw new transportHttp.RequestError("connection refused");
+    const tmp = tmpDir(patches);
+    seamPatch(patches, configurationPaths, { abxDir: tmp });
+    const document = {
+      openapi: "3.1.0", info: { title: "Report API", version: "1.0.0" },
+      paths: { "/totals": { post: {
+        operationId: "report_totals", summary: "Sum the supplied numbers",
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["values"], additionalProperties: false,
+          properties: { values: { type: "array", items: { type: "number" } } } }, example: { values: [10, 20, 30] } } } },
+        responses: { "200": { description: "Sum of the numbers", content: { "application/json": { example: { total: 60 } } } } },
+      } } },
     };
-    sb["_fetchServerCommands"] = async () => (reachable ? catalogue : unreachable());
-    sb["_callServerCommand"] = async (name: unknown, _port: unknown, kwargs: unknown) => {
-      if (!reachable) return unreachable();
-      if (fails) return [{ is_success: false, status_code: 500 }, { error: "fixture failure", type: "RuntimeError" }];
-      const k = kwargs as Record<string, unknown>;
-      if (name === "add") {
-        return [{ is_success: true, status_code: 200 }, { result: Number(k["x"]) + Number(k["y"] ?? 1) }];
-      }
-      if (name === "ping") return [{ is_success: true, status_code: 200 }, { result: "pong" }];
-      return [{ is_success: false, status_code: 404 }, { error: `Command '${String(name)}' not found`, type: "NotFound" }];
-    };
-    sb["_serverUnreachable"] = (port: unknown, cause: unknown) => proto["_serverUnreachable"]!.call(sb, port, cause);
-    sb["runCommand"] = (name: unknown, kwargs: unknown, opts: unknown) => proto["runCommand"]!.call(sb, name, kwargs, opts);
-    sb["listCommands"] = (opts: unknown) => proto["listCommands"]!.call(sb, opts);
-    vi.spyOn(Sandbox, "connect").mockResolvedValue(asSandbox(sb));
+    fs.writeFileSync(path.join(tmp, "openapi.json"), JSON.stringify(document));
+    const file = path.join(tmp, "registry.yaml");
+    fs.writeFileSync(file, "apis:\n  report:\n    resource: sandbox.report\n    port: 9000\n    openapi: ./openapi.json\n");
+    const apis = loadRegistryApis(file);
+    saveApiBinding({ version: 1, target: { id: "sbx-ev-001", provider: "alicloud-express" }, apis, ...bindingOptions(apis, [], ["totals=report:report_totals"]) });
+    const endpoint = { provider_id: "alicloud-express", sandbox_id: "sbx-ev-001", port: 9000,
+      url: "https://application.example/9000", headers: {}, authentication_audience: "gateway", path_mode: "prefix" };
+    vi.spyOn(sandboxApiSeams, "connect").mockResolvedValue(asSandbox({ id: "sbx-ev-001", provider: "alicloud-express",
+      network: { resolveEndpoint: vi.fn().mockResolvedValue(endpoint) }, close: vi.fn().mockResolvedValue(undefined) }));
+    vi.spyOn(openApiHttpSeams, "fetch").mockResolvedValue(new globalThis.Response(JSON.stringify(fails ? { error: "report failed" } : { total: 60 }),
+      { status: fails ? 422 : 200, headers: { "content-type": "application/json" } }));
     return patches.handle();
   };
 }
@@ -842,19 +839,6 @@ function _buildRegistry(): EvidenceCase[] {
   // ── Connect (1) ────────────────────────────────────────────────────
   cases.push(E(["connect", "sbx-ev-001"], "connect 交互会话（命令不存在 → 单次友好提示 + 拼写建议）", "B", _connectRepl(), "connect-repl"));
 
-  // ── Run / command list (named commands registered on the sandbox server, 8) ──
-  cases.push(
-    E(["run", "sbx-ev-001", "add", "--arg", "x=2", "--arg", "y=3"], "run add --arg x=2 --arg y=3（服务端命令）", "B", _runCmd(), "run-dispatch"),
-    E(["run", "sbx-ev-001", "ping"], "run ping（无参数）", "B", _runCmd(), "run-no-args"),
-    E(["--json", "run", "sbx-ev-001", "add", "--json-args", '{"x": 4}'], "--json run add --json-args", "B", _runCmd(), "run-dispatch-json"),
-    E(["--json", "run", "sbx-ev-001", "ping"], "JSON command failure retains its diagnostic", "B", _runCmd(true, true), "run-failure-json-20261025"),
-    E(["run", "sbx-ev-001", "deploy"], "run deploy（命令名不存在）", "B", _runCmd(), "run-unknown-command"),
-    E(["run", "sbx-ev-001", "add", "--arg", "badformat"], "run add --arg badformat（参数格式错误）", "A", null, "run-invalid-arg"),
-    E(["run", "sbx-ev-001", "ping"], "run ping（沙箱内没有 server）", "B", _runCmd(false), "run-no-server"),
-    E(["sandbox", "command", "list", "sbx-ev-001"], "sandbox command list", "B", _runCmd(), "command-list"),
-    E(["sandbox", "command", "list", "sbx-ev-001"], "sandbox command list（沙箱内没有 server）", "B", _runCmd(false), "command-list-no-server"),
-  );
-
   // ── Upload / Download (3) ──────────────────────────────────────────
   cases.push(
     E(["upload", "sbx-ev-001", "PLACEHOLDER", "/app/script.py"], "upload 文件", "B", _uploadFile(), "upload-file"),
@@ -900,25 +884,28 @@ function _buildRegistry(): EvidenceCase[] {
   return cases;
 }
 
-/** The registry (same order as the Python `REGISTRY`). */
-const retained = _buildRegistry().filter(c => /^(config-|mcp-|run-|command-list|upload-|download-)/.test(c.output_file) || ["version", "error-unknown-suggestion", "error-unknown-custom-hint", "error-removed-init"].includes(c.output_file));
-function currentCommand(command: string[]): string[] {
-  const offset = command[0] === "--json" ? 1 : 0;
-  const operation = command[offset];
-  if (operation === "run") return [...command.slice(0, offset), "sandbox", "command", "run", ...command.slice(offset + 1)];
-  if (operation === "upload" || operation === "download") return [...command.slice(0, offset), "sandbox", ...command.slice(offset)];
-  return command;
-}
-const publicHelp = [[], ["deploy"], ["list"], ["status"], ["logs"], ["delete"], ["recover"],
-  ["sandbox"], ...["exec", "connect", "upload", "download", "files", "process", "command", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"].map(name => ["sandbox", name]),
-  ["provider"], ...["list", "info", "install", "update", "run", "command"].map(name => ["provider", name]),
+/** Current capture set; previous golden batches preserve the older command surfaces. */
+const retained = _buildRegistry().filter(c => /^(config-|mcp-|upload-|download-)/.test(c.output_file) || ["version", "error-unknown-suggestion", "error-unknown-custom-hint", "error-removed-init"].includes(c.output_file));
+const publicHelp = [[], ...TOP_LEVEL_COMMANDS.map(name => [name]),
+  ...["list", "info", "install", "update", "run", "command"].map(name => ["provider", name]),
   ...["list", "info"].map(name => ["provider", "command", name]),
-  ["template"], ...["list", "info", "init", "build", "publish"].map(name => ["template", name]),
-  ["config"], ...["init", "get", "set", "list"].map(name => ["config", name]),
-  ["mcp"], ...["start", "stop", "install", "status"].map(name => ["mcp", name])];
+  ...["list", "info", "init", "build", "publish"].map(name => ["template", name]),
+  ...["init", "get", "set", "list"].map(name => ["config", name]),
+  ...["start", "stop", "install", "status"].map(name => ["mcp", name])];
+const removed = [
+  { command: ["run", "sbx-ev-001", "report_totals"], output_file: "removed-root-run" },
+  { command: ["registry-command", "sbx-ev-001", "list"], output_file: "removed-registry-command" },
+  { command: ["sandbox", "command", "list", "sbx-ev-001"], output_file: "removed-sandbox-command-list" },
+  { command: ["sandbox", "command", "run", "sbx-ev-001", "report_totals"], output_file: "removed-sandbox-command-run" },
+];
 export const REGISTRY: EvidenceCase[] = [
-  ...publicHelp.map(command => ({ command: [...command, "--help"], description: `${command.join(" ") || "abx"} --help`, category: "A" as const, mock_setup: null, output_file: `help-${command.join("-") || "abx"}` })),
-  ...retained.map(c => ({ ...c, command: currentCommand(c.command) })),
+  ...publicHelp.map(command => ({ command: [...command, "--help"], description: `${command.join(" ") || "abx"} --help`, category: "A" as const, mock_setup: null, output_file: `help-${command.join("-") || "abx"}`, expected_exit: 0 })),
+  ...removed.map(testCase => ({ ...testCase, description: `Removed entry rejected: ${testCase.command.join(" ")}`, category: "A" as const, mock_setup: null, expected_exit: 2 })),
+  { command: ["sandbox", "sbx-ev-001", "--help"], description: "Offline target API help from a local contract fixture", category: "B", mock_setup: _sandboxApi(), output_file: "sandbox-api-target-help", expected_exit: 0 },
+  { command: ["sandbox", "sbx-ev-001", "totals", "--help"], description: "Offline operation help through a local alias", category: "B", mock_setup: _sandboxApi(), output_file: "sandbox-api-operation-help", expected_exit: 0 },
+  { command: ["--json", "sandbox", "sbx-ev-001", "report_totals", "--body", '{"values":[10,20,30]}'], description: "Registered JSON API invocation with mocked HTTP response", category: "B", mock_setup: _sandboxApi(), output_file: "sandbox-api-invoke-json", expected_exit: 0 },
+  { command: ["--json", "sandbox", "sbx-ev-001", "totals", "--body", '{"values":[10,20,30]}'], description: "Mocked non-2xx API response retains status and body", category: "B", mock_setup: _sandboxApi(true), output_file: "sandbox-api-error-json", expected_exit: 1 },
+  ...retained,
 ];
 
 /** Cases suitable for golden-file testing (deterministic only): mocked ones plus every category-A case. */
@@ -927,7 +914,7 @@ export function eligibleCases(): EvidenceCase[] {
 }
 
 /** Execute a single evidence case; returns `(stdout, stderr, exit_code)` (pure `stdout`, like `result.stdout`). */
-export async function runCase(testCase: EvidenceCase): Promise<{ stdout: string; stderr: string; exit_code: number }> {
+export async function runCase(testCase: EvidenceCase): Promise<{ command: string[]; stdout: string; stderr: string; exit_code: number }> {
   resetConfig();
   const runner = new CliRunner();
   let cmd = [...testCase.command];
@@ -937,8 +924,8 @@ export async function runCase(testCase: EvidenceCase): Promise<{ stdout: string;
       handle = await testCase.mock_setup();
       if (handle.env.command) cmd = handle.env.command;
     }
-    const result = await runner.invoke(cli, currentCommand(cmd), { prog_name: "abx" });
-    return { stdout: result.stdout || "", stderr: result.stderr || "", exit_code: result.exit_code };
+    const result = await runner.invoke(cli, cmd, { prog_name: "abx" });
+    return { command: cmd, stdout: result.stdout || "", stderr: result.stderr || "", exit_code: result.exit_code };
   } finally {
     if (handle) await handle.restore();
     resetConfig();

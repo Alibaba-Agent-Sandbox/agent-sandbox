@@ -1,0 +1,7 @@
+{
+  "status": 200,
+  "body": {
+    "total": 60
+  }
+}
+[exit_code:0]

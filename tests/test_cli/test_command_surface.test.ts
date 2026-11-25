@@ -5,8 +5,9 @@ import { describe, expect, it } from "vitest";
 import { cli } from "../../src/cli/main.js";
 import { CliRunner } from "../helpers/cliRunner.js";
 const run = (args: string[]) => new CliRunner().invoke(cli, args);
-const groups = ["template", "sandbox", "config", "provider", "mcp"];
-const commands = ["deploy", "list", "status", "logs", "delete", "recover"];
+const groups = ["template", "config", "provider", "mcp"];
+const platformCommands = ["exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"];
+const commands = ["sandbox", "deploy", "list", "status", "logs", "delete", "recover", ...platformCommands];
 describe("one command contract", () => {
   it("exposes the same root operations in help and both reference pages", async () => {
     expect(cli.listCommands().sort()).toEqual([...groups, ...commands].sort());
@@ -17,19 +18,19 @@ describe("one command contract", () => {
       for (const name of [...groups, ...commands]) expect(text).toContain(`\`abx ${name}\``);
     }
   });
-  it.each(["create", "info", "kill", "exec", "connect", "upload", "download", "run", "app", "auth"])("rejects removed root %s", async name => {
+  it.each(["create", "info", "kill", "run", "app", "auth", "registry-command"])("rejects removed root %s", async name => {
     expect((await run([name, "--help"])).exit_code).toBe(2);
   });
   it.each(["launch", "deploy", "install", "scaffold", "search", "from-image", "delete", "push"])("rejects retired template %s", async name => {
     expect((await run(["template", name, "--help"])).exit_code).toBe(2);
   });
-  it.each([["--native", "list"], ["mcp", "deploy", "--help"], ["sandbox", "create", "--help"], ["sandbox", "list", "--help"], ["provider", "show", "--help"]].map(args => ({args})))("rejects implementation selectors and duplicate paths %j", async ({args}) => {
+  it.each([["--native", "list"], ["mcp", "deploy", "--help"], ["sandbox", "command", "run", "id", "operation"], ["sandbox", "command", "list", "id"], ["provider", "show", "--help"]].map(args => ({args})))("rejects implementation selectors and duplicate paths %j", async ({args}) => {
     expect((await run(args)).exit_code).toBe(2);
   });
   it("retains advanced operations and separates command deadline from Sandbox lifetime", async () => {
-    for (const name of ["exec", "connect", "files", "process", "command", "system", "pause", "resume", "snapshot", "fork", "network", "metrics"]) expect((await run(["sandbox", name, "--help"])).exit_code, name).toBe(0);
+    for (const name of platformCommands) expect((await run([name, "--help"])).exit_code, name).toBe(0);
     const deploy = await run(["deploy", "--help"]); expect(deploy.stdout).toContain("--sandbox-timeout"); expect(deploy.stdout).toContain("--build-timeout");
-    expect((await run(["sandbox", "exec", "--help"])).stdout).toContain("--timeout");
+    expect((await run(["exec", "--help"])).stdout).toContain("--timeout");
   });
   it("keeps authoring and image-build options out of the instance deployment command", async () => {
     for (const option of ["--prompt", "--dockerfile", "--cpu", "--acr-namespace"]) {

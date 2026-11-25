@@ -1,5 +1,6 @@
 # `.agents/` — engineering record of the cli repository
 
+- [Target-first Sandbox API operations](notes/implemented/feature/2026-11-25-sandbox-api-operations.md) · [verification](evidence/verify/2026-11-25-sandbox-api-operations.md).
 - [MCP user journey](notes/proposed/process/2026-11-13-mcp-user-journey.md) · [verification](evidence/verify/2026-11-13-mcp-user-journey.md).
 
 ## Recent changes — 2026-11-10

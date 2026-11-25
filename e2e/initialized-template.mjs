@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { loadCredentials, makeMasker } from "./lib/env.mjs";
 import { parseBin } from "./lib/exec.mjs";
+import { HELLO_OPENAPI, HELLO_REGISTRY } from "./lib/hello-api-fixture.mjs";
 
 const credentials = loadCredentials();
 const key = credentials.E2B_API_KEY ?? process.env.ABX_SANDBOX_API_KEY;
@@ -43,6 +44,9 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         manifest.update(start_cmd='python3 /app/commands.py', ready_cmd='python3 -m agent_sandbox.server healthcheck --port 9000',
             provides={'app': {'protocol':'agent-sandbox-server','version':2,'port':9000,'operations':['commands.list']}})
     (project / 'template.yaml').write_text(json.dumps(manifest))
+    if application:
+        (project / 'openapi.json').write_text(sys.argv[3])
+        (project / 'registry.yaml').write_text(sys.argv[4])
     args = ['--provider', 'alicloud-express', 'deploy', str(project), '--name', 'guided-init']
     pid, master = pty.fork()
     if pid == 0:
@@ -106,20 +110,25 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
         assert token, 'application token was not generated and saved'
         assert token[1].encode() not in output, 'generated token was printed'
         client_env=dict(trusted)
+        client_env.pop('ABX_SERVER_TOKEN', None)
         if guided:
             for key in ('E2B_API_KEY','ABX_SANDBOX_API_KEY','ABX_ALICLOUD_EXPRESS_SANDBOX_API_KEY','ALICLOUD_ACCESS_KEY_ID','ALICLOUD_ACCESS_KEY_SECRET','ABX_SERVER_TOKEN'):
                 client_env.pop(key,None)
-        result = subprocess.run(command + ['sandbox', 'exec', owned, 'printf', 'guided-cloud-ok'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+        result = subprocess.run(command + ['exec', owned, 'printf', 'guided-cloud-ok'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
         if result.returncode != 0 or result.stdout != b'guided-cloud-ok':
             diagnostic = (result.stderr + result.stdout).decode(errors='replace').replace(credential, '[REDACTED]').replace(owned, '[OWNED_SANDBOX]')
             print('Remote exec diagnostic (exit %s): %s' % (result.returncode, diagnostic), file=sys.stderr)
         assert result.returncode == 0 and result.stdout == b'guided-cloud-ok', 'created sandbox did not execute'
         if application:
-            result = subprocess.run(command + ['sandbox', 'command', 'list', owned], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
-            assert result.returncode == 0, 'subsequent command discovery did not reuse the saved application token'
-            result = subprocess.run(command + ['sandbox', 'command', 'run', owned, 'hello', '--arg', 'name=AutoAuth'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
-            assert result.returncode == 0 and b'Hello, AutoAuth!' in result.stdout, 'authenticated business command did not reuse generated authentication'
-            rejected = subprocess.run(command + ['sandbox', 'command', 'list', owned], env={**client_env, 'ABX_SERVER_TOKEN':'placeholder-wrong-application-token'}, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            result = subprocess.run(command + ['sandbox', owned, '--bind', str(project / 'registry.yaml'), '--credential', 'app.token=config:server_token'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert result.returncode == 0, 'existing sandbox API binding failed'
+            result = subprocess.run(command + ['--json', 'sandbox', owned, '--help'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert result.returncode == 0 and any(operation['operationId'] == 'hello' for operation in json.loads(result.stdout)['operations']), 'bound operation help omitted hello'
+            result = subprocess.run(command + ['--json', 'sandbox', owned, 'catalog'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert result.returncode == 0 and json.loads(result.stdout)['status'] == 200, 'application catalog did not reuse the saved application token'
+            result = subprocess.run(command + ['--json', 'sandbox', owned, 'hello', '--body', '{"name":"AutoAuth"}'], env=client_env, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
+            assert result.returncode == 0 and json.loads(result.stdout)['status'] == 200 and json.loads(result.stdout)['body']['result'] == 'Hello, AutoAuth!', 'authenticated business operation did not reuse generated authentication'
+            rejected = subprocess.run(command + ['sandbox', owned, 'catalog'], env={**client_env, 'ABX_SERVER_TOKEN':'placeholder-wrong-application-token'}, cwd=home, stdin=subprocess.DEVNULL, capture_output=True, timeout=45)
             assert rejected.returncode != 0 and b'401' in rejected.stdout + rejected.stderr, 'incorrect application token was not rejected with HTTP401'
             print('PASS: application authentication automatically generated, injected and reused for discovery and real hello command; wrong-token HTTP401 retained')
         else:
@@ -148,7 +157,7 @@ with tempfile.TemporaryDirectory(prefix='abx-guided-cloud-') as home:
                 assert error.code == 404, 'cleanup readback did not confirm absence'
             print('PASS: owned sandbox cleanup independently confirmed by HTTP 404; isolated configuration removed')
 `;
-const result = spawnSync("python3", ["-c", probe, JSON.stringify(parseBin(process.env.ABX_BIN ?? "abx")), process.argv.includes("--guided-application") ? "guided-application" : process.argv.includes("--application") ? "application" : "initialization"], {
+const result = spawnSync("python3", ["-c", probe, JSON.stringify(parseBin(process.env.ABX_BIN ?? "abx")), process.argv.includes("--guided-application") ? "guided-application" : process.argv.includes("--application") ? "application" : "initialization", JSON.stringify(HELLO_OPENAPI), JSON.stringify(HELLO_REGISTRY)], {
   env: { ...process.env, ...credentials, ABX_GUIDED_VERIFICATION_KEY: key },
   encoding: "utf8", timeout: 250_000, maxBuffer: 1024 * 1024,
 });

@@ -59,7 +59,7 @@ describe("TestUnknownCommandHints", () => {
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("No such command 'frobnicate'");
     expect(result.output).toContain("abx --help");
-    expect(result.output).toContain("abx sandbox command run SANDBOX NAME");
+    expect(result.output).toContain("abx sandbox TARGET --help");
     expect(result.output).not.toContain("custom_commands");
   });
 

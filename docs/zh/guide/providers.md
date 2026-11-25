@@ -132,14 +132,14 @@ abx config set provider --unset           # 恢复为 alicloud-express
 
 ```bash
 abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
-abx sandbox exec local-process:sbx-1 "echo hello"
+abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # 所有已配置的提供商，带 Provider 列
 abx delete local-process:sbx-1 --yes
 ```
 
 `list --all-providers` 是显式原生项目扩展，即使默认选择极速版也使用原生路由；普通 list 筛选仍遵循标准迁移契约。它会跳过失败的提供商（例如缺少凭证），并在 stderr 打印 `warning: provider 'ID' skipped: ...`；只要有一个提供商响应成功就以 0 退出。`--region` 等内置提供商标志，若提供商没有声明对应的键，会被拒绝：`Option '--region' is not supported by provider 'ID'.`
 
-如果命令需要提供商未声明的特性（例如在没有 `process.manage` 的提供商上使用 `abx sandbox process`），会在发出任何请求之前以 `E8004` 失败。
+如果命令需要提供商未声明的特性（例如在没有 `process.manage` 的提供商上使用 `abx process`），会在发出任何请求之前以 `E8004` 失败。
 
 ---
 
@@ -152,7 +152,7 @@ abx delete local-process:sbx-1 --yes
 | 创建、连接与清理 | `create`、`connect`、`kill` | `ProviderSandbox.create/connect`、实例 `kill/close`；`close` 仅释放本地客户端 |
 | 执行进程 | `exec` | `commands.run` |
 | 读写文件 | `upload`、`download` | `files.read/write` |
-| 调用模板应用 | `run`、`sandbox command run`，见[命令参考](../reference/cli-commands.md) | `await application_client(port, token=...)` 后调用 `client.commands.run` |
+| 调用模板应用 | `sandbox TARGET OPERATION`，见[命令参考](../reference/cli-commands.md) | `await application_client(port, token=...)` 后调用 `client.commands.run` |
 | 获取应用端点 | 无独立 URL 命令 | `await network.resolve(port)` 返回 URL 和网关头 |
 | 准备源码并启动 | `template launch`，见[启动指南](template-launch.md) | 使用 CLI 准备，再连接返回的沙箱或使用已准备好的引用 |
 
@@ -301,3 +301,5 @@ Provider 扩展命令的两端共同发现，以及极速版暂停/快照用法�
 在缺少能力时将用例标记为跳过。缺少此适配器时会明确失败，不再将未执行用例统计为通过。
 `runContractSuite` 继续返回结构化的 `passed`、`failed` 和 `skipped` 结果。
 验收报告须将跳过的能力与已通过能力分开。
+
+目标优先的业务调用入口需要已绑定 OpenAPI 契约，见[绑定与认证](sandbox-api.md)。

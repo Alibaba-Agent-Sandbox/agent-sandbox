@@ -281,11 +281,11 @@ describe.skipIf(!haveCatalog)("cubesandbox through the host and CLI", () => {
     expect(JSON.parse(createRequest?.body.toString() ?? "{}")).toMatchObject({ templateID: "base", timeout: 90 });
     expect(seen.find((s) => s.method === "POST" && s.url === "/sandboxes")?.headers["x-api-key"]).toBeUndefined();
 
-    const ran = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "sandbox", "exec", "sbx-1", "echo hi");
+    const ran = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "exec", "sbx-1", "echo hi");
     expect(ran.code, ran.out + ran.err).toBe(0);
     expect(ran.out).toContain("hi");
 
-    const files = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "sandbox", "files", "list", "sbx-1", "--path", "/tmp");
+    const files = await abx("--json", "--provider", "cubesandbox", "--opt", `base_url=${origin}`, "--opt", `proxy=127.0.0.1:${port}`, "files", "list", "sbx-1", "--path", "/tmp");
     expect(files.code, files.out + files.err).toBe(0);
     expect(files.out).toContain("a.txt");
 

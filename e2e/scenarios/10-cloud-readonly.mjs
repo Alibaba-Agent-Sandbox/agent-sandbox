@@ -96,9 +96,9 @@ export default {
       id: 'info-missing-sandbox-json', title: 'info unknown sandbox explicit native JSON envelope', argv: ['--json', "status", 'sbx-00000000-0000-0000-0000-000000000000'], exit: 4,
       jsonShape: { status: 'string', message: 'string', code: 'string', suggestion: 'string' }, json: (j) => { if (j.status !== 'error') throw new Error('status must be "error"'); },
     },
-    { id: 'exec-missing-sandbox', title: 'standard exec in an unknown sandbox preserves not-found failure', argv: ["sandbox", 'exec', 'sbx-00000000-0000-0000-0000-000000000000', 'echo hi'], exit: 1, output: /404|not found/i },
+    { id: 'exec-missing-sandbox', title: 'standard exec in an unknown sandbox preserves not-found failure', argv: ['exec', 'sbx-00000000-0000-0000-0000-000000000000', 'echo hi'], exit: 1, output: /404|not found/i },
     { id: 'kill-missing-sandbox', title: 'kill of an unknown sandbox is idempotent', argv: ['--json', 'delete', 'sbx-00000000-0000-0000-0000-000000000000', '--yes'], exit: 0, output: /deleted/ },
-    { id: 'files-missing-sandbox', title: 'sandbox files list in unknown sandbox: non-zero', argv: ['sandbox', 'files', 'list', 'sbx-00000000-0000-0000-0000-000000000000', '--path', '/tmp'], exit: 'nonzero' },
+    { id: 'files-missing-sandbox', title: 'files list in unknown sandbox: non-zero', argv: ['files', 'list', 'sbx-00000000-0000-0000-0000-000000000000', '--path', '/tmp'], exit: 'nonzero' },
     // Standard --all acts immediately. Never run it against unrelated account resources.
 
   ],

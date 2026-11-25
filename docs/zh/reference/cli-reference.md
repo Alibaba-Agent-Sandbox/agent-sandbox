@@ -6,7 +6,7 @@
 | --- | --- |
 | 部署、检查和清理 | `deploy`、`list`、`status`、`logs`、`delete`、`recover` |
 | 查找和编写模板 | `template list/info/init/build/publish` |
-| 执行命令、传输文件和终端连接 | `sandbox exec/connect/upload/download` |
+| 执行命令、传输文件和终端连接 | `exec/connect/upload/download` |
 | 配置凭据和默认值 | `config` |
 | 安装后端、执行原生管理操作 | `provider` |
 | 接入 AI 工具 | `mcp` |

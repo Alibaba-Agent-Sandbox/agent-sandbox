@@ -28,10 +28,13 @@ assert.match(rootHelp, /Usage:/i);
 assert.doesNotMatch(rootHelp, /^Providers:$/m, "Provider belongs in Command groups");
 assert.match(rootHelp.split("Command groups:\n")[1]?.split("\n\n")[0] ?? "", /^ {2}provider\s/m);
 assert.match(rootHelp, /https:\/\/registry\.agent-sandbox\.cn\/templates\//);
-for (const name of ["deploy", "list", "status", "logs", "delete", "recover"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
-assert.doesNotMatch(rootHelp, /^ {2}(create|exec|run|kill|info)\s/m);
+for (const name of ["deploy", "list", "status", "logs", "delete", "recover", "sandbox", "exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
+assert.doesNotMatch(rootHelp, /^ {2}(create|run|kill|info|registry-command)\s/m);
 assert.match(run(["deploy", "--help"]), /--template-id/);
-assert.match(run(["sandbox", "exec", "--help"]), /Everything after the sandbox ID/);
+assert.match(run(["exec", "--help"]), /Everything after the sandbox ID/);
+const sandboxHelp = run(["sandbox", "--help"]);
+assert.match(sandboxHelp, /abx sandbox TARGET \[OPERATION\]/);
+for (const option of ["--bind", "--api", "--body", "--path", "--query", "--credential", "--alias"]) assert.ok(sandboxHelp.includes(option));
 assert.match(run(["template", "init", "--help"]), /--from/);
 const providerHelp = run(["--provider", "alicloud-express", "provider", "run", "template.list", "--help"]);
 assert.match(providerHelp, /team_id/); assert.match(providerHelp, /--region/);
@@ -59,6 +62,21 @@ try {
   assert.equal(standardHelp.status, 0, "A corrupt ~/.e2b/config.json must not affect ABX help");
   assert.match(standardHelp.stdout, /Usage:/i);
   assert.equal(readFileSync(join(projectRoot, ".e2b", "config.json"), "utf8"), "{invalid unrelated configuration", "ABX must not rewrite unrelated E2B state");
+  for (const args of [
+    ["run", "artifact-probe-unregistered", "hello"],
+    ["registry-command", "artifact-probe-unregistered", "list"],
+    ["sandbox", "command", "list", "artifact-probe-unregistered"],
+    ["sandbox", "command", "run", "artifact-probe-unregistered", "hello"],
+  ]) {
+    const retired = invokeProject(args);
+    assert.equal(retired.status, 2, `Retired command must fail syntax validation: ${args.join(" ")}`);
+    assert.doesNotMatch(retired.stdout + retired.stderr, /Missing configuration|Choose an authentication method|input hidden/i);
+  }
+  const unboundHelp = invokeProject(["sandbox", "artifact-probe-unregistered", "--help"]);
+  assert.equal(unboundHelp.status, 1);
+  assert.match(unboundHelp.stdout + unboundHelp.stderr, /No API contract is bound/);
+  assert.doesNotMatch(unboundHelp.stdout + unboundHelp.stderr, /Missing configuration|Choose an authentication method|input hidden/i,
+    "Target help must resolve local contracts before any credential setup or Provider request");
   const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);
@@ -93,7 +111,12 @@ try {
   assert.match(JSON.parse(ciCreate.stdout).message, /sandbox_api_key/);
   assert.doesNotMatch(ciCreate.stdout + ciCreate.stderr, /Configuration scope|input hidden/i);
   assert.equal(invokeProject(["template", "init", project, "--template", "python", "--yes"]).status, 0);
-  for (const name of ["template.yaml", "Dockerfile", "commands.py"]) assert.ok(existsSync(join(project, name)));
+  for (const name of ["template.yaml", "Dockerfile", "commands.py", "registry.yaml", "openapi.yaml"]) assert.ok(existsSync(join(project, name)));
+  assert.match(readFileSync(join(project, "registry.yaml"), "utf8"), /openapi: \.\/openapi\.yaml/);
+  const applicationContract = readFileSync(join(project, "openapi.yaml"), "utf8");
+  assert.match(applicationContract, /openapi: 3\.1\.0/);
+  assert.match(applicationContract, /operationId: hello/);
+  assert.match(applicationContract, /scheme: bearer/);
   const missing = invokeProject(["template", "build", project, "--yes"]);
   assert.equal(missing.status, 1, "Source build must reach Provider credential preflight");
   assert.match(missing.stdout + missing.stderr, /Missing configuration/i);
@@ -115,7 +138,7 @@ try {
     delete terminalEnv.CI;
     delete terminalEnv.GITHUB_ACTIONS;
     const spec = {
-      argv: [artifact, "sandbox", "exec", "artifact-probe-unregistered", "true"], stdout_terminal: true,
+      argv: [artifact, "exec", "artifact-probe-unregistered", "true"], stdout_terminal: true,
       steps: [{ wait_for: "access_key_id + access_key_secret", keys: "\x1b[B\x1b[B\r" }],
     };
     const driven = spawnSync("python3", ["-c", TERMINAL_DRIVER, JSON.stringify(spec)], {
@@ -143,4 +166,4 @@ assert.ok(declaration, "Missing complete reviewed notice declaration");
 const runtimeDeclaration = /^export const RUNTIME_DEPENDENCY_NOTICES = (.+);$/m.exec(readFileSync(join(root, "src/licenses/runtime_dependencies.ts"), "utf8"));
 assert.ok(runtimeDeclaration, "Missing complete reviewed runtime dependency notice declaration");
 assert.equal(run(["--licenses"]), JSON.parse(declaration[1]) + JSON.parse(runtimeDeclaration[1]), "Installed artifact notices differ from the complete source");
-console.log(`PASS: installed abx ${version}: version, isolated guidance, one JSON result, one frontend help and complete notices`);
+console.log(`PASS: installed abx ${version}: version, isolated guidance, target-first API help, retired-wrapper rejection, scaffold OpenAPI assets, one JSON result and complete notices`);

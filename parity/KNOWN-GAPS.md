@@ -1,26 +1,21 @@
-# Known gaps
+# Known parity differences
 
-## Command surface redesign (CLI-only; deliberately diverges from the Python CLI)
+## CLI command surface
 
-The CLI has a fixed command surface that the Python CLI does not have. Python tests for the removed behavior were
-deleted (not skipped) and their entries removed from `python-tests-to-port.txt`; the replacements are named after the new
-behavior (`tests/test_cli/test_command_surface.test.ts`, `test_run_command.test.ts`, `test_exec_command.test.ts`).
-Differential cases under `parity/diff/` that exercised removed spellings were updated or dropped; the oracle is still
-used for everything that did not change.
+The approved command surface deliberately differs from the historical Python CLI. Keep
+`python-tests-to-port.txt` immutable. When a public contract is intentionally retired,
+record its decision, replacement regression and reason in `changed-contracts.json`.
+A replacement proves the new behavior; it does not claim compatibility with the old API.
 
-* Removed: user-configurable `[shortcuts]` (config keys, `config init --reset-shortcuts`, `LazyGroup` merge), top-level
-  `init` and `install`, `sandbox process start`, `sandbox shell-stream`, `sandbox run`, global `--profile` and `-t/--timeout`,
-  `deploy --traditional`, `template.yaml` `custom_commands` (and its placeholder substitution), the `server_port` reserved
-  kwarg. Fixed top-level shortcuts: `create list info kill exec connect upload download run deploy`.
-* Added: `abx exec` (`--cwd --env --timeout --background --stream`), `abx sandbox command {list,run}` and the top-level
-  `abx run`, `abx config init --build/--llm`.
-* Differences from the Python client for named commands: `run` prints JSON for non-string results; `--server-port` is an
-  explicit option; there is no extra `--key value` passthrough (use `--arg KEY=VALUE` or `--json-args`).
-* `abx exec` with several words uses exact argv quoting; use `sh -c '...'` for shell syntax.
-* Ledger rows for Python tests whose TypeScript counterpart was renamed or whose behavior was removed (`TestRichStatus` is now
-  `TestLiveStatus`; `TestLazyGroup` list-sorting; the legacy `QWEN_API_KEY` fallback; the `commands.py` registry-frozen and
-  group-enabling checks) were renamed or removed in `python-tests-to-port.txt` so `parity:coverage` reports no missing rows.
+Sandbox business operations use `abx sandbox TARGET OPERATION`, with local OpenAPI
+bindings, offline help, explicit credentials and JSON `--body` input. The former
+`sandbox command list/run` and root `run` wrappers are removed. Platform tools such as
+`abx exec`, `files`, `process`, `upload` and `download` are root commands. SDK registered
+functions retain their own contracts. See [current CLI guidance](../docs/en/guide/sandbox-api.md).
 
+Historical differential tools under `parity/diff/` compare identical argv with the original
+Python oracle. They do not establish parity for redesigned commands. Current parser,
+binding, transport and actual-component tests cover the new behavior separately.
 
 ## agent/mcp, agent/mcp_http, agent/tools (builder agent-B)
 

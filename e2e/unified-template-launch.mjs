@@ -40,7 +40,7 @@ try {
     assert.ok(result.sandbox_id, "launch must return its sandbox ID");
     assert.deepEqual(Object.keys(result.services), Object.keys(manifest.provides));
     const command = mode === "source" ? "test $(cat /tmp/abx-whole-template-marker) = whole-template-ready" : "printf whole-template-ready";
-    const execution = await run(["--provider", "alicloud-express", "--json", "sandbox", "exec", result.sandbox_id, command]);
+    const execution = await run(["--provider", "alicloud-express", "--json", "exec", result.sandbox_id, command]);
     if (execution.code !== 0) throw new Error(`${mode} remote command failed: ${mask(execution.stderr || execution.stdout).replace(/https?:\/\/[^\s"<>]+/g, "[URL]").slice(0, 1200)}`);
     console.log(`${mode}: launch, complete service map and remote execution PASS`);
   }

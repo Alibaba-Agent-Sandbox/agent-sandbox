@@ -160,7 +160,7 @@ try {
   sourceSandbox = sourceCreatedResult.sandbox_id;
   assert.ok(validSandboxId(sourceSandbox), "Source create did not return a single sandbox ID");
   persistOwnedState();
-  const sourceExecution = await request(["sandbox", "exec", sourceSandbox, "printf", "verified-public-source-ok"], sandboxEnvironment, 60_000);
+  const sourceExecution = await request(["exec", sourceSandbox, "printf", "verified-public-source-ok"], sandboxEnvironment, 60_000);
   assert.equal(sourceExecution.code, 0, "The existing public generation-2 source could not execute");
   assert.equal(sourceExecution.stdout, "verified-public-source-ok", "The existing public source returned unexpected output");
   await cleanupSandboxes(publicSource.templateID, `${alias}-source`, sourceSandbox);
@@ -202,7 +202,7 @@ try {
   assert.ok(validSandboxId(id), "Create did not return a single sandbox ID");
   sandbox = id;
   persistOwnedState();
-  const execution = await request(["sandbox", "exec", sandbox, "cat", "/tmp/abx-guided-steps-marker"], sandboxEnvironment, 60_000);
+  const execution = await request(["exec", sandbox, "cat", "/tmp/abx-guided-steps-marker"], sandboxEnvironment, 60_000);
   assert.equal(execution.code, 0, "Reading the owned sandbox marker failed; response withheld");
   assert.equal(execution.stdout, marker, "The actual platform RUN step did not produce its marker");
   console.log("PASS: a sandbox created from the returned template contains the actual platform build marker");

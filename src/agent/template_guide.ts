@@ -57,8 +57,11 @@ const _FILES_CREATE = `### 2. 模板必须包含的文件
 - \`commands.py\`：服务入口，见下文
 - \`template.yaml\`
 - \`README.md\`：模板是什么、需要哪些环境变量、调用示例（CLI 与 curl）
-  CLI JSON 示例使用 \`abx --json sandbox command run <sandbox_id> <名字> --json-args '{"参数":"值"}'\`，
-  该 JSON 模式返回 \`{"result": <返回值>}\`；省略 \`--json\` 时仅输出返回值。不存在 \`--input\`。先用 \`abx sandbox command list <sandbox_id>\` 查看实际命令。
+  CLI 调用先提供 registry.yaml 的 apis（resource: sandbox.app、port: 9000、openapi: ./openapi.yaml）与 OpenAPI 3.1 文件。
+  每个 operationId 对应实际 POST /commands/名字，参数放 JSON 请求体，响应保留 result 封装，认证声明 bearer。
+  用户先用 abx sandbox TARGET --bind ./registry.yaml --credential app.token=config:server_token 绑定，
+  再用 abx sandbox TARGET OPERATION --body @request.json 调用，--help 离线查看声明。
+  HTTP 输出保留 status 和 body，不要承诺自动解包 result；不要在规范中填写凭据。
   curl 使用用户从实际应用绑定取得的 \`APPLICATION_URL\`；不要手拼 sandbox 域名或猜测网关 URL。
   说明该绑定要求的网关认证（如 \`X-Access-Token\`）与可选应用 \`Authorization: Bearer\` 独立，
   必须按实际绑定传递相应凭据，不能把未认证的 URL 示例说成通用可用路径。
@@ -236,7 +239,7 @@ ${selected.resource_notes ? `- ${selected.resource_notes}` : ""}
 ${mode === "create" ? "- 新生成应用必须声明 env.ABX_SERVER_TOKEN 为空字符串；令牌由运行环境提供，CLI 在构建/创建前验证并注入，不写入镜像或生成文件。README 的 CLI/SDK/HTTP 示例都使用此应用令牌；不要声称它可选，也不要把控制面 API key 当作应用令牌。" : ""}
 - 部署不会应用 \`server:\`。打开可选组用 \`enable_group\` 或 \`ABX_SERVER_ENABLED_GROUPS\`。
 - 具名命令只在 commands.py 里用 \`@command\` 注册，不要写进 template.yaml；用户用
-  \`abx sandbox command run <app-name> <名字>\` 调用。
+  \`abx sandbox <app-name> <operationId> --body @request.json\` 调用；OpenAPI 必须准确描述实际已部署路由。
 - \`tags\`、\`author\` 可省略。
 ${
   selected.server_start === "platform_start_cmd"

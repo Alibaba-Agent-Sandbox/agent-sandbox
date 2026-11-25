@@ -1,0 +1,2 @@
+Cleared region (now not set); environment variable ALIBABA_CLOUD_REGION_ID still overrides it at runtime (value not shown).
+[exit_code:0]

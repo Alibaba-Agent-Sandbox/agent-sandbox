@@ -1,0 +1,13 @@
+Usage: abx recover [options] <TARGET>
+
+Inspect interrupted deployment effects using saved ownership records. Never
+repeats a create or publication request. Use delete after resolving any
+uncertain ownership.
+
+Options:
+  --bindings <BINDINGS>  Override the private application bindings file for this
+                         operation.
+  --receipt <RECEIPT>    Import an existing application receipt under this local
+                         name for inspection and cleanup.
+  -h, --help             Show this message and exit.
+[exit_code:0]

@@ -1,0 +1,14 @@
+Usage: abx template info [options] <NAME>
+
+Show a catalog template's source, version reference and declared services.
+
+Options:
+  --index-url <INDEX_URL>
+  --token <TOKEN>          GitHub token for private repos / higher rate limits.
+                           Prefer 'abx config set github_token' (masked input,
+                           stored once in ~/.abx/.env); --token is a temporary
+                           override that may leak into shell history and the
+                           process list (env: GITHUB_TOKEN).
+  --refresh
+  -h, --help               Show this message and exit.
+[exit_code:0]

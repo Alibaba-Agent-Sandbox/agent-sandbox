@@ -52,15 +52,15 @@ export const process_list = command("list", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox process list abc123\n" +
+    "    abx process list abc123\n" +
     "\n" +
-    "    abx --json sandbox process list abc123\n" +
+    "    abx --json process list abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox process info SANDBOX_ID PID\n" +
-    "  abx sandbox exec --background SANDBOX_ID -- CMD\n" +
-    "  abx sandbox system metrics SANDBOX_ID",
+    "  abx process info SANDBOX_ID PID\n" +
+    "  abx exec --background SANDBOX_ID -- CMD\n" +
+    "  abx system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -106,15 +106,15 @@ export const process_info = command("info", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox process info abc123 1234\n" +
+    "    abx process info abc123 1234\n" +
     "\n" +
-    "    abx --json sandbox process info abc123 1234\n" +
+    "    abx --json process info abc123 1234\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx sandbox process signal SANDBOX_ID PID\n" +
-    "  abx sandbox system metrics SANDBOX_ID",
+    "  abx process list SANDBOX_ID\n" +
+    "  abx process signal SANDBOX_ID PID\n" +
+    "  abx system metrics SANDBOX_ID",
   params: [argument(["sandbox_id"]), argument(["pid"], { type: INT })],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -204,15 +204,15 @@ export const process_signal = command("signal", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox process signal abc123 1234\n" +
+    "    abx process signal abc123 1234\n" +
     "\n" +
-    "    abx sandbox process signal abc123 1234 --signal 9\n" +
+    "    abx process signal abc123 1234 --signal 9\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox process info SANDBOX_ID PID\n" +
-    "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx sandbox exec --background SANDBOX_ID -- CMD",
+    "  abx process info SANDBOX_ID PID\n" +
+    "  abx process list SANDBOX_ID\n" +
+    "  abx exec --background SANDBOX_ID -- CMD",
   params: [
     argument(["sandbox_id"]),
     argument(["pid"], { type: INT }),
@@ -241,17 +241,17 @@ export const process_signal = command("signal", {
 
 export const process = group("process", {
   help:
-    "Inspect and signal processes inside a sandbox (to start one: abx sandbox exec --background).\n" +
+    "Inspect and signal processes inside a sandbox (to start one: abx exec --background).\n" +
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  abx sandbox process list abc123\n" +
-    "  abx sandbox process info abc123 1234\n" +
+    "  abx process list abc123\n" +
+    "  abx process info abc123 1234\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox exec --background SANDBOX_ID -- CMD\n" +
-    "  abx sandbox system metrics SANDBOX_ID",
+    "  abx exec --background SANDBOX_ID -- CMD\n" +
+    "  abx system metrics SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);
   },

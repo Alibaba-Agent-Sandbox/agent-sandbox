@@ -50,18 +50,30 @@ describe("extractProviderFlags", () => {
       .toEqual({ provider: "opensandbox", options: [], args: ["exec", "id", "agent", "--provider", "alicloud-express"] });
     expect(extractProviderFlags(["--log-level", "DEBUG", "--provider", "opensandbox", "exec", "id", "agent", "--provider=alicloud-express"]))
       .toEqual({ provider: "opensandbox", options: [], args: ["--log-level", "DEBUG", "exec", "id", "agent", "--provider=alicloud-express"] });
-    expect(extractProviderFlags(["sandbox", "exec", "--cwd", "/tmp", "--provider", "opensandbox", "id", "agent", "--provider=alicloud-express"]))
-      .toEqual({ provider: "opensandbox", options: [], args: ["sandbox", "exec", "--cwd", "/tmp", "id", "agent", "--provider=alicloud-express"] });
+    expect(extractProviderFlags(["exec", "--cwd", "/tmp", "--provider", "opensandbox", "id", "agent", "--provider=alicloud-express"]))
+      .toEqual({ provider: "opensandbox", options: [], args: ["exec", "--cwd", "/tmp", "id", "agent", "--provider=alicloud-express"] });
   });
 
-  it.each([["exec"], ["sandbox", "exec"], ["sbx", "exec"], ["sandbox", "ex"], ["sbx", "ex"]])(
-    "preserves the remote boundary for the existing exec spelling %j", (...command) => {
-      const args = [...command, "--cwd", "/tmp", "id", "agent", "--provider", "alicloud-express", "--opt=remote=value"];
+  it("preserves the remote boundary for root exec", () => {
+      const args = ["exec", "--cwd", "/tmp", "id", "agent", "--provider", "alicloud-express", "--opt=remote=value"];
       expect(extractProviderFlags(args)).toEqual({ args, provider: null, options: [] });
       expect(extractProviderFlags(["--provider", "opensandbox", ...args]))
         .toEqual({ args, provider: "opensandbox", options: [] });
-    },
-  );
+  });
+
+  it.each(["demo", "exec", "files", "command"])("ends provider selection at Sandbox target %s", target => {
+    const args = ["sandbox", target, "report", "--body", "--provider", "--opt=remote=value"];
+    expect(extractProviderFlags(args)).toEqual({ args, provider: null, options: [] });
+    expect(extractProviderFlags(["--provider", "opensandbox", ...args]))
+      .toEqual({ args, provider: "opensandbox", options: [] });
+    expect(extractProviderFlags(["sandbox", "--provider", "opensandbox", "--opt", "region=example", ...args.slice(1)]))
+      .toEqual({ args, provider: "opensandbox", options: ["region=example"] });
+  });
+
+  it.each(["--api", "--body", "--path", "--query", "--header", "--timeout", "--bind", "--resource", "--credential", "--alias"])("preserves the value of %s before the target", option => {
+    const args = ["sandbox", option, "--provider", "demo", "report"];
+    expect(extractProviderFlags(args)).toEqual({ args, provider: null, options: [] });
+  });
 
   it("test_tokens_after_double_dash_are_left_alone", () => {
     expect(extractProviderFlags(["exec", "sbx", "--", "echo", "--provider", "x"]).args).toEqual(["exec", "sbx", "--", "echo", "--provider", "x"]);
@@ -118,7 +130,7 @@ describe("validation fails before any side effect", () => {
 
   it("test_a_plugin_provider_cannot_use_a_missing_feature_silently", async () => {
     await installLocal();
-    const r = await abx("--provider", "local-process", "sandbox", "capabilities", "sbx-unknown");
+    const r = await abx("--provider", "local-process", "capabilities", "sbx-unknown");
     expect(r.code).not.toBe(0);
   });
 });
@@ -144,11 +156,11 @@ describe.skipIf(!hasPython)("a plugin end to end through the CLI", () => {
     expect(info.code, info.err).toBe(0);
     expect(JSON.parse(info.out)).toMatchObject({ sandbox_id: sid });
 
-    const exec = await abx("--json", "sandbox", "exec", `local-process:${sid}`, "echo hi-from-plugin");
+    const exec = await abx("--json", "exec", `local-process:${sid}`, "echo hi-from-plugin");
     expect(exec.code, exec.err).toBe(0);
     expect(JSON.parse(exec.out).stdout).toContain("hi-from-plugin");
 
-    const named = await abx("--json", "sandbox", "exec", doc.name, "echo named-provider");
+    const named = await abx("--json", "exec", doc.name, "echo named-provider");
     expect(named.code, named.err + named.out).toBe(0);
     expect(JSON.parse(named.out).stdout).toContain("named-provider");
 

@@ -56,7 +56,7 @@ describe("TestFilesList", () => {
       new FileInfo({ name: "data", path: "/home/user/data", type: FileType.DIRECTORY, size: 0 }),
     ]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("app.py");
     expect(result.output).toContain("data");
@@ -73,7 +73,7 @@ describe("TestFilesList", () => {
       }),
     );
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "list", "sbx-test-001", "--recursive"]);
+    const result = await runner().invoke(cli, ["files", "list", "sbx-test-001", "--recursive"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("/home/user/app.py");
   });
@@ -83,7 +83,7 @@ describe("TestFilesList", () => {
     const sb = _makeSandbox();
     sb.files.list = vi.fn().mockResolvedValue([]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     expect(result.output.toLowerCase()).toContain("empty");
   });
@@ -95,7 +95,7 @@ describe("TestFilesList", () => {
       .fn()
       .mockResolvedValue([new FileInfo({ name: "test.py", path: "/home/user/test.py", type: FileType.FILE, size: 512 })]);
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "files", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["--json", "files", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(Array.isArray(data)).toBe(true);
@@ -113,7 +113,7 @@ describe("TestFilesList", () => {
       }),
     );
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "files", "list", "sbx-test-001", "-r"]);
+    const result = await runner().invoke(cli, ["--json", "files", "list", "sbx-test-001", "-r"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect("entries" in data).toBe(true);
@@ -122,7 +122,7 @@ describe("TestFilesList", () => {
 
   it("test_list_missing_sandbox_id", async () => {
     // Missing SANDBOX_ID argument -> exit 2.
-    const result = await runner().invoke(cli, ["sandbox", "files", "list"]);
+    const result = await runner().invoke(cli, ["files", "list"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -131,7 +131,7 @@ describe("TestFilesList", () => {
     const sb = _makeSandbox();
     sb.files.list = vi.fn().mockRejectedValue(new FileOperationError("disk error"));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "list", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "list", "sbx-test-001"]);
     expect(result.exit_code).toBe(1);
   });
 });
@@ -147,7 +147,7 @@ describe("TestFilesStat", () => {
       .fn()
       .mockResolvedValue(new FileInfo({ name: "app.py", path: "/home/user/app.py", type: FileType.FILE, size: 2048 }));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "stat", "sbx-test-001", "--path", "/home/user/app.py"]);
+    const result = await runner().invoke(cli, ["files", "stat", "sbx-test-001", "--path", "/home/user/app.py"]);
     expect(result.exit_code).toBe(0);
     expect(result.output).toContain("app.py");
     expect(result.output).toContain("file");
@@ -159,7 +159,7 @@ describe("TestFilesStat", () => {
       .fn()
       .mockResolvedValue(new FileInfo({ name: "data", path: "/app/data", type: FileType.DIRECTORY, size: 0 }));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["--json", "sandbox", "files", "stat", "sbx-test-001", "-p", "/app/data"]);
+    const result = await runner().invoke(cli, ["--json", "files", "stat", "sbx-test-001", "-p", "/app/data"]);
     expect(result.exit_code).toBe(0);
     const data = JSON.parse(result.output);
     expect(data.Name).toBe("data");
@@ -168,7 +168,7 @@ describe("TestFilesStat", () => {
 
   it("test_stat_missing_path", async () => {
     // --path is required -> exit 2.
-    const result = await runner().invoke(cli, ["sandbox", "files", "stat", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "stat", "sbx-test-001"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -176,7 +176,7 @@ describe("TestFilesStat", () => {
     const sb = _makeSandbox();
     sb.files.getInfo = vi.fn().mockRejectedValue(new FileNotFoundError_("not found"));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "stat", "sbx-test-001", "-p", "/no/such"]);
+    const result = await runner().invoke(cli, ["files", "stat", "sbx-test-001", "-p", "/no/such"]);
     expect(result.exit_code).toBe(4);
   });
 });
@@ -189,14 +189,14 @@ describe("TestFilesMkdir", () => {
   it("test_mkdir_happy", async () => {
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "mkdir", "sbx-test-001", "-p", "/home/user/new_dir"]);
+    const result = await runner().invoke(cli, ["files", "mkdir", "sbx-test-001", "-p", "/home/user/new_dir"]);
     expect(result.exit_code).toBe(0);
     expect(sb.files.makeDir).toHaveBeenCalledTimes(1);
     expect(sb.files.makeDir).toHaveBeenCalledWith("/home/user/new_dir");
   });
 
   it("test_mkdir_missing_path", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "mkdir", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "mkdir", "sbx-test-001"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -204,7 +204,7 @@ describe("TestFilesMkdir", () => {
     const sb = _makeSandbox();
     sb.files.makeDir = vi.fn().mockRejectedValue(new FileOperationError("already exists"));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "mkdir", "sbx-test-001", "-p", "/existing"]);
+    const result = await runner().invoke(cli, ["files", "mkdir", "sbx-test-001", "-p", "/existing"]);
     expect(result.exit_code).toBe(1);
   });
 });
@@ -218,7 +218,7 @@ describe("TestFilesRm", () => {
     // --yes skips confirmation; remove is called.
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "rm", "sbx-test-001", "-p", "/tmp/old.txt", "-y"]);
+    const result = await runner().invoke(cli, ["files", "rm", "sbx-test-001", "-p", "/tmp/old.txt", "-y"]);
     expect(result.exit_code).toBe(0);
     expect(sb.files.remove).toHaveBeenCalledTimes(1);
     expect(sb.files.remove).toHaveBeenCalledWith("/tmp/old.txt");
@@ -228,7 +228,7 @@ describe("TestFilesRm", () => {
     // User answers 'n' to confirmation prompt -> abort.
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "rm", "sbx-test-001", "-p", "/tmp/old.txt"], {
+    const result = await runner().invoke(cli, ["files", "rm", "sbx-test-001", "-p", "/tmp/old.txt"], {
       input: "n\n",
     });
     expect(result.exit_code).not.toBe(0);
@@ -239,7 +239,7 @@ describe("TestFilesRm", () => {
     // User answers 'y' to confirmation prompt -> proceed.
     const sb = _makeSandbox();
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "rm", "sbx-test-001", "-p", "/tmp/old.txt"], {
+    const result = await runner().invoke(cli, ["files", "rm", "sbx-test-001", "-p", "/tmp/old.txt"], {
       input: "y\n",
     });
     expect(result.exit_code).toBe(0);
@@ -248,7 +248,7 @@ describe("TestFilesRm", () => {
   });
 
   it("test_rm_missing_path", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "rm", "sbx-test-001"]);
+    const result = await runner().invoke(cli, ["files", "rm", "sbx-test-001"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -256,7 +256,7 @@ describe("TestFilesRm", () => {
     const sb = _makeSandbox();
     sb.files.remove = vi.fn().mockRejectedValue(new FileNotFoundError_("not found"));
     _patchConnect(sb);
-    const result = await runner().invoke(cli, ["sandbox", "files", "rm", "sbx-test-001", "-p", "/gone", "-y"]);
+    const result = await runner().invoke(cli, ["files", "rm", "sbx-test-001", "-p", "/gone", "-y"]);
     expect(result.exit_code).toBe(4);
   });
 });
@@ -270,7 +270,6 @@ describe("TestFilesMv", () => {
     const sb = _makeSandbox();
     _patchConnect(sb);
     const result = await runner().invoke(cli, [
-      "sandbox",
       "files",
       "mv",
       "sbx-test-001",
@@ -285,12 +284,12 @@ describe("TestFilesMv", () => {
   });
 
   it("test_mv_missing_source", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "mv", "sbx-test-001", "--dest", "/home/user/new.py"]);
+    const result = await runner().invoke(cli, ["files", "mv", "sbx-test-001", "--dest", "/home/user/new.py"]);
     expect(result.exit_code).toBe(2);
   });
 
   it("test_mv_missing_dest", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "mv", "sbx-test-001", "--source", "/home/user/old.py"]);
+    const result = await runner().invoke(cli, ["files", "mv", "sbx-test-001", "--source", "/home/user/old.py"]);
     expect(result.exit_code).toBe(2);
   });
 
@@ -299,7 +298,6 @@ describe("TestFilesMv", () => {
     sb.files.move = vi.fn().mockRejectedValue(new FileNotFoundError_("source not found"));
     _patchConnect(sb);
     const result = await runner().invoke(cli, [
-      "sandbox",
       "files",
       "mv",
       "sbx-test-001",
@@ -329,7 +327,6 @@ describe("TestFilesSearch", () => {
     );
     _patchConnect(sb);
     const result = await runner().invoke(cli, [
-      "sandbox",
       "files",
       "search",
       "sbx-test-001",
@@ -347,7 +344,6 @@ describe("TestFilesSearch", () => {
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 0 }));
     _patchConnect(sb);
     const result = await runner().invoke(cli, [
-      "sandbox",
       "files",
       "search",
       "sbx-test-001",
@@ -366,7 +362,6 @@ describe("TestFilesSearch", () => {
     _patchConnect(sb);
     const result = await runner().invoke(cli, [
       "--json",
-      "sandbox",
       "files",
       "search",
       "sbx-test-001",
@@ -387,7 +382,6 @@ describe("TestFilesSearch", () => {
     sb.commands.run = vi.fn().mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 0 }));
     _patchConnect(sb);
     await runner().invoke(cli, [
-      "sandbox",
       "files",
       "search",
       "sbx-test-001",
@@ -403,12 +397,12 @@ describe("TestFilesSearch", () => {
   });
 
   it("test_search_missing_pattern", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "search", "sbx-test-001", "--path", "/app"]);
+    const result = await runner().invoke(cli, ["files", "search", "sbx-test-001", "--path", "/app"]);
     expect(result.exit_code).toBe(2);
   });
 
   it("test_search_missing_path", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "files", "search", "sbx-test-001", "--pattern", "*.py"]);
+    const result = await runner().invoke(cli, ["files", "search", "sbx-test-001", "--pattern", "*.py"]);
     expect(result.exit_code).toBe(2);
   });
 });

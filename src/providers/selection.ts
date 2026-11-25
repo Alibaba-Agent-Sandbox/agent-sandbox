@@ -45,18 +45,18 @@ export function resetCliSelection(): void {
 }
 
 /**
- * Pull `--provider ID` / `--provider=ID` / `--opt K=V` / `--opt=K=V` out of `args` (any position before a `--`
- * terminator, or the sandbox ID of exec) and return the remaining arguments. Within the `provider` group,
- * only --provider is global; its subcommands (`provider test`, `provider run`) own --opt.
+ * Pull global Provider selection out of `args`. Selection ends at the target of `exec` or `sandbox`:
+ * subsequent words belong to the remote program or registered API invocation. Within the `provider`
+ * group, only --provider is global; its subcommands (`provider test`, `provider run`) own --opt.
  */
 export function extractProviderFlags(args: readonly string[]): { args: string[]; provider: string | null; options: string[] } {
   const out: string[] = [];
   const options: string[] = [];
   let provider: string | null = null;
   let firstWord: string | null = null;
-  let execResourceExpected = false;
-  let execOptionValueExpected = false;
+  let optionValueExpected = false;
   const execValuedOptions = new Set(["--cwd", "-c", "--env", "-e", "--timeout", "-t", "--user", "-u"]);
+  const sandboxValuedOptions = new Set(["--api", "--body", "--path", "--query", "--header", "--timeout", "--bind", "--resource", "--credential", "--alias"]);
   for (let i = 0; i < args.length; i++) {
     const a = args[i] as string;
     if (a === "--") {
@@ -67,23 +67,27 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
       out.push(a, args[++i]!);
       continue;
     }
-    if (firstWord === null && !a.startsWith("-")) firstWord = a;
+    if (firstWord === null && !a.startsWith("-")) {
+      firstWord = a;
+      out.push(a);
+      continue;
+    }
     if (firstWord === "provider" && a !== "--provider" && !a.startsWith("--provider=")) {
       out.push(a);
       continue;
     }
-    if (execOptionValueExpected) {
+    if (optionValueExpected) {
       out.push(a);
-      execOptionValueExpected = false;
+      optionValueExpected = false;
       continue;
     }
-    if (execResourceExpected && execValuedOptions.has(a)) {
+    if ((firstWord === "exec" && execValuedOptions.has(a)) || (firstWord === "sandbox" && sandboxValuedOptions.has(a))) {
       out.push(a);
-      execOptionValueExpected = true;
+      optionValueExpected = true;
       continue;
     }
-    if (execResourceExpected && !a.startsWith("-")) {
-      // Provider selection ends at the sandbox ID. Remote agent flags cannot select a backend.
+    if ((firstWord === "exec" || firstWord === "sandbox") && !a.startsWith("-")) {
+      // Provider selection ends at the target. Business/remote flags cannot select a backend.
       out.push(...args.slice(i));
       break;
     }
@@ -107,11 +111,6 @@ export function extractProviderFlags(args: readonly string[]): { args: string[];
       continue;
     }
     out.push(a);
-    const sandboxGroup = firstWord === "sandbox" || firstWord === "sbx";
-    if ((a === "exec" && firstWord === "exec") ||
-      (sandboxGroup && (a === "exec" || a === "ex") && out.at(-2) === firstWord)) {
-      execResourceExpected = true;
-    }
   }
   return { args: out, provider, options };
 }

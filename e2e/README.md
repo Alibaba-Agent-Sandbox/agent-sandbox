@@ -21,7 +21,7 @@ Run `ABX_BIN=<standalone-executable> npm run e2e:standard` with E2B_API_KEY and
 E2B_API_URL/E2B_DOMAIN in the environment or ignored .env. This focused suite uses
 the real Express backend and a real local PTY (Linux/macOS, Python 3 required).
 It verifies named deploy, stdout and nonzero remote exits, a persistent shell through
-`sandbox connect`, borrowed Sandbox survival after disconnect, and explicit delete
+`connect`, borrowed Sandbox survival after disconnect, and explicit delete
 with an independent HTTP 404 check. It does not test removed create/auto-attach or
 terminal-exit lease rewrites. Errors are masked before reporting.
 
@@ -97,7 +97,7 @@ Requires Node >= 20. No dependencies are installed by the suite itself.
 ## Cloud command contracts
 
 `cloud-readonly` and `cloud-lifecycle` use `deploy --template-id`, root
-`list/status/delete`, and `sandbox exec`/files/process/application commands. JSON
+`list/status/delete`, and `exec`/files/process/application commands. JSON
 inventory is `{items, partial, errors}`; deployment results include `name` and
 `sandbox_id`. Native template CRUD uses `provider run template.list/get/create/delete`
 with JSON input. Those operations require existing cloud AccessKeys; a Sandbox API
@@ -114,7 +114,11 @@ build artifacts until native template absence and artifact cleanup are confirmed
 Without Docker that suite is skipped with its reason, never counted as passed.
 
 Select an already deployed `python-hello` template implementing application protocol v2
-and the documented `hello` command for the named-command check. Without `ABX_E2E_APP_START_COMMAND`, the suite requires that service to be running already.
+and the documented `hello` command. The application check binds the local OpenAPI fixture
+in `lib/hello-api-fixture.mjs`, reads offline operation help, then invokes the authenticated
+catalog and `hello` routes through `abx sandbox TARGET OPERATION`. Its credential reference
+`app.token=config:server_token` must resolve to the token accepted by that application.
+Without `ABX_E2E_APP_START_COMMAND`, the suite requires that service to be running already.
 For a selected `startup: exec` workflow on a bare managed sandbox, supply the exact reviewed
 manifest start command. For the current python-hello manifest this is:
 
@@ -158,9 +162,9 @@ create/connect remain covered by `e2e/standard.mjs` with a real local PTY.
 | `offline` | nothing | `--version`, `--help` of every command group, usage errors (exit 2), missing credentials (exit 3, `E1001`), `config get/set/list/delete/init`, the fixed top-level surface (removed spellings exit 2), MCP `install/status/stop` into a temp HOME, `template init`, local `template search --index-url` |
 | `standard-contract` | cloud + Python 3/local PTY | Named deployment, remote exit status, real PTY/connect ownership and explicit deletion |
 | `cloud-readonly` | cloud | unified authentication/listing and typed error envelopes, official template ID readback and precise missing-resource diagnostics, secret masking of `config list` |
-| `cloud-lifecycle` | cloud | named `deploy` -> `list` -> `status` -> `sandbox exec` (exit-code propagation, `--cwd`, JSON/quiet/CI output and supported command deadlines) -> `sandbox upload`/`sandbox download` (binary round-trip) -> background/streaming/command env -> `sandbox files/process/system/capabilities` -> `sandbox command list` / `sandbox run` named commands -> env/upload at create -> `delete` |
+| `cloud-lifecycle` | cloud | named `deploy` -> `list` -> `status` -> `exec` (exit-code propagation, `--cwd`, JSON/quiet/CI output and supported command deadlines) -> `upload`/`download` (binary round-trip) -> background/streaming/command env -> `files/process/system/capabilities` -> explicit API binding, offline help, `sandbox TARGET OPERATION` (authentication, alias and JSON file) -> env/upload at create -> `delete` |
 | `catalog` | outbound GitHub | `template search` and `template init --from` against the remote index |
-| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template build` (docker build, ACR push, CreateTemplate) -> `deploy` -> `sandbox exec` -> `template build --clean` |
+| `docker-deploy` | cloud + Docker, opt-in | `template init` -> `template build` (docker build, ACR push, CreateTemplate) -> `deploy` -> `exec` -> `template build --clean` |
 
 ## Scenario format
 
@@ -188,13 +192,13 @@ Every provider, including OpenSandbox, is tested in the same six tiers (T0 plugi
 
 A bash script that installs the reference plugins into a throwaway `HOME` and drives
 real sandboxes through the CLI: `npm run e2e:providers` or `e2e/providers/run.sh [offline|catalog|local-process|opensandbox|e2b-compatible]`.
-`local-process` (an `sandbox exec` plugin, Python) and `e2b-compatible` (a `rest` manifest) come from `python-sdk/examples/providers`. `opensandbox` is a catalog `node` plugin (`provider.mjs`, `create(kit)`), cloned from
+`local-process` (an `exec` plugin, Python) and `e2b-compatible` (a `rest` manifest) come from `python-sdk/examples/providers`. `opensandbox` is a catalog `node` plugin (`provider.mjs`, `create(kit)`), cloned from
 [awesome-providers](https://github.com/alibaba-agent-sandbox/awesome-providers) (`opensandbox/`). The other catalog ids (`e2b`, `cubesandbox`, `alicloud-container`) are `node` plugins in that same tree. The `catalog` target installs `awesome-providers//opensandbox`.
 
 | Target | Needs | What it checks |
 |---|---|---|
 | `offline` | nothing (git, python3) | hidden-until-used `provider` group, consent and `--yes` rules (`E8012`), install from a path and from a local git repo pinned to a commit, `E8003` conflict and `--force`, `doctor`/`status`, `E8001`, `E8002` (secret on the command line), `provider default`, `E8030`, tamper detection (`E8011`), uninstall |
-| `local-process` | python3 | `deploy`, `list`, `sandbox exec` (exit-code propagation), `sandbox upload`/`sandbox download` round trip, `sandbox files list`, `delete`, E4 after kill, all with qualified ids |
+| `local-process` | python3 | `deploy`, `list`, `exec` (exit-code propagation), `upload`/`download` round trip, `files list`, `delete`, E4 after kill, all with qualified ids |
 | `opensandbox` | a live OpenSandbox: `python-sdk/e2e/opensandbox/local-up.sh` (Docker; key `local-dev-key`, `127.0.0.1:8080`) | install by path and by git, `doctor`, `provider default opensandbox`, the full sandbox round trip with and without `--provider`, secret masking, and `abx provider test` (the contract suite) |
 | `e2b-compatible` | `E2B_API_KEY` (+ `E2B_API_URL`, `E2B_DOMAIN`) in the environment | the REST plugin inheriting the generic `sandbox_*` keys runs the same round trip on the live cloud; without the key it is reported as `SKIP` |
 

@@ -1,7 +1,7 @@
 /**
- * Interactive REPL helpers for `abx sandbox connect` (port of `cli/repl.py`).
+ * Interactive REPL helpers for `abx connect` (port of `cli/repl.py`).
  *
- * `abx sandbox connect` is deliberately a *line-based* command REPL -- not a PTY and not an SSH session: every entered line is
+ * `abx connect` is deliberately a *line-based* command REPL -- not a PTY and not an SSH session: every entered line is
  * executed as its own process and no shell state survives between lines. This module owns the behaviours that are
  * specific to that loop:
  *
@@ -32,11 +32,11 @@ import { AsyncioTimeoutError } from "../transport/ws.js";
 import { pyStr, pyStripChars } from "../utils/_pyformat.js";
 import * as httpx from "../transport/_httpx.js";
 
-/** Wall-clock limit applied to every REPL line; `abx sandbox exec --timeout` accepts larger values for long-running commands. */
+/** Wall-clock limit applied to every REPL line; `abx exec --timeout` accepts larger values for long-running commands. */
 export const REPL_TIMEOUT = 30;
 
 /** Short form used inside suggestions (the real sandbox id would be noise). */
-const _EXEC_HINT = "abx sandbox exec <SANDBOX_ID>";
+const _EXEC_HINT = "abx exec <SANDBOX_ID>";
 
 const _STATUS_HINT = "Check the sandbox status with 'abx status <SANDBOX_ID>' and retry.";
 

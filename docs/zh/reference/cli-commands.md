@@ -4,7 +4,7 @@
 
 <!-- fixed-set -->
 
-`abx deploy`、`abx list`、`abx status`、`abx logs`、`abx delete`、`abx recover`、`abx template`、`abx sandbox`、`abx config`、`abx provider`、`abx mcp`。
+`abx deploy`, `abx list`, `abx status`, `abx logs`, `abx delete`, `abx recover`, `abx template`, `abx sandbox`, `abx config`, `abx provider`, `abx mcp`, `abx exec`, `abx connect`, `abx upload`, `abx download`, `abx capabilities`, `abx files`, `abx process`, `abx system`, `abx pause`, `abx resume`, `abx metrics`, `abx snapshot`, `abx fork`, `abx network`.
 
 ## 部署与管理
 
@@ -18,7 +18,7 @@ abx delete demo
 
 `deploy SOURCE` 接受目录名称、Registry 源码引用或本地模板目录。`--name` 设置独立于模板的实例名称，省略时使用模板名。`--plan` 校验源码并预览所需资源，不构建或部署。自动化使用 `--yes` 授权变更；JSON 输出不代表授权。
 
-已有 Provider 原生模板可使用 `deploy --template-id ID`，无需准备源码。`--sandbox-timeout` 控制 Sandbox 租期，`--build-timeout` 控制模板准备期限，`sandbox exec --timeout` 控制单条命令。Express 还支持 `--on-timeout pause --auto-resume`。`--env`、`--metadata`、`--volume-mount`、`--upload` 配置 Sandbox 实例。
+已有 Provider 原生模板可使用 `deploy --template-id ID`，无需准备源码。`--sandbox-timeout` 控制 Sandbox 租期，`--build-timeout` 控制模板准备期限，`exec --timeout` 控制单条命令。Express 还支持 `--on-timeout pause --auto-resume`。`--env`、`--metadata`、`--volume-mount`、`--upload` 配置 Sandbox 实例。
 
 托管应用同样使用 `deploy`，通过 `--bindings FILE` 提供外部服务及凭据引用。对已就绪应用使用相同名称部署会更新应用，并保留仍有会话使用的版本。普通 Sandbox 部署需先删除，再使用相同名称创建。资源已删除的名称可以复用。
 
@@ -55,14 +55,24 @@ abx template build --clean BUILD_FILE --yes
 
 ## Sandbox 操作
 
-专属能力包括 `sandbox exec`、`sandbox connect`、`sandbox files`、`sandbox process`、`sandbox command`、`sandbox system`、`sandbox capabilities`、`sandbox pause`、`sandbox resume`、`sandbox metrics`、`sandbox snapshot`、`sandbox fork`、`sandbox network`。可传具名 Sandbox 部署或原生 ID；高级操作取决于 Provider 的实际支持。
+`abx sandbox TARGET --help` 列出本地已绑定 OpenAPI 契约中的操作；`abx sandbox TARGET OPERATION --help` 展示参数、请求体、响应和认证要求。通过 `abx sandbox TARGET OPERATION --body @request.json` 调用。TARGET 必须是已有 Sandbox ID 或本地沙箱部署名称；多个 API 有同名操作时使用 `--api NAME` 消歧。
+
+模板的 `registry.yaml.apis` 只描述一个 Sandbox 资源时，部署成功会自动绑定。已有实例或没有 API 声明的模板，可先绑定本地 registry。绑定只描述已有服务，不安装或启动服务。完整示例、别名、凭据来源与 OpenAPI 支持范围见 [Sandbox API 操作](../guide/sandbox-api.md)。
+
+平台和运行环境工具使用根命令：`exec`、`connect`、`upload`、`download`、`files`、`process`、`system`、`capabilities`、`pause`、`resume`、`metrics`、`snapshot`、`fork`、`network`。能否使用取决于 Provider 和已安装的服务。
 
 ```bash
-abx sandbox exec demo -- python -c 'print("hello")'
-abx sandbox files list demo /home/user
-abx sandbox command list demo
-abx sandbox connect demo
+abx exec demo -- python -c 'print("hello")'
+abx files list demo /home/user
+abx connect demo
+
+# 已有服务及其 registry：
+abx sandbox demo --bind ./registry.yaml
+abx sandbox demo --help
+abx sandbox demo report_totals --body @request.json
 ```
+
+旧的 `sandbox command list/run` 包装入口已移除。SDK 注册函数的路由及装饰器继续遵循各自契约。发现操作或拥有规范文件不代表获得服务调用权限。
 
 ## 配置、Provider 与 MCP
 

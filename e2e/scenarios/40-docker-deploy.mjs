@@ -30,13 +30,13 @@ export default {
       },
     },
     {
-      id: 'create-from-deployed-template', title: 'deploy reuses the build and sandbox exec runs in the owned instance', requires: ['deploy-minimal-template'], timeoutMs: 300_000,
+      id: 'create-from-deployed-template', title: 'deploy reuses the build and exec runs in the owned instance', requires: ['deploy-minimal-template'], timeoutMs: 300_000,
       async run(ctx) {
         ctx.state.deployAttempt = ctx.beginCreateAttempt(ctx.state.name);
         const result = await ctx.abx(['--json', 'deploy', '--build', ctx.state.build, '--name', ctx.state.name, '--sandbox-timeout', '600', '--yes']);
         ctx.state.sandbox = trackDetachedCreate(ctx, result, ctx.state.deployAttempt);
         ctx.state.deployAttempt = undefined;
-        const executed = await ctx.abx(['sandbox', 'exec', ctx.state.name, '--', 'echo', 'deployed-ok']);
+        const executed = await ctx.abx(['exec', ctx.state.name, '--', 'echo', 'deployed-ok']);
         if (executed.code !== 0) ctx.fail(`exec exit ${executed.code}`);
         ctx.check('exec', executed.stdout, 'deployed-ok');
       },

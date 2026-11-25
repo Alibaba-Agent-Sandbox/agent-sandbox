@@ -108,3 +108,5 @@ Python SDK、沙箱内 Server SDK 与共享的平台契约的文档位于 [`pyth
 当前单一命令面以[CLI 命令参考](reference/cli-commands.md)为准；[E2B 迁移指南](guide/migrate-from-e2b.md)说明如何迁移已有用法。
 
 - [本地暂停与快照验收](guide/conditional-acceptance.md)
+
+- [调用 Sandbox API](guide/sandbox-api.md)

@@ -18,6 +18,6 @@ abx deploy ./hello --name hello-custom --yes
 
 Git 引用支持 `owner/repository//subdirectory@COMMIT`。固定提交可复现输入。私有 GitHub 源码通过 `abx config set github_token` 隐藏输入凭据，自动化使用 `GITHUB_TOKEN`。获取源码不会构建镜像或创建云资源。没有源码的托管目录条目可以直接部署，但不能复制为可编辑工程。
 
-Sandbox 应用通过清单声明服务。用 `abx sandbox command list hello` 发现 Server 命令，通过 `abx sandbox command run hello COMMAND` 调用，用 `abx delete hello --yes` 删除拥有的资源。托管应用使用自身业务 HTTP API，见[托管应用](managed-applications.md)。
+Sandbox 应用提供模板声明的服务。先绑定 OpenAPI 契约，再用 `abx sandbox TARGET --help` 发现操作、`abx sandbox TARGET OPERATION --body @request.json` 调用，见 [Sandbox API 操作](sandbox-api.md)。通过 `abx delete TARGET --yes` 删除拥有的资源。托管应用使用自身业务 HTTP API，见[托管应用](managed-applications.md)。
 
 [编写、复用构建与 Git 发布](authoring-templates.md) · [启动与清理](template-launch.md)
