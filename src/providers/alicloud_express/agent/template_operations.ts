@@ -22,6 +22,6 @@ export async function handleTemplateOperation(name: keyof typeof templateInputs,
   const templates = await listOfficialTemplates(auth);
   if (templates.some(t => t.name === p.name || t.templateName === p.name)) throw new Error("Template name already exists; select a unique version name to preserve rollback");
   const result = await createOfficialTemplate({ ...auth, update_existing: false, name: p.name as string, image: p.image as string, generation: p.generation as number, cpu: p.cpu as number, memory_size: p.memory as number,
-    start_command: p.start_command as string | undefined, ready_command: p.ready_command as string | undefined, envd_inject: p.envd_inject as boolean });
+    start_command: p.start_command as string | undefined, ready_command: p.ready_command as string | undefined, envd_inject: true });
   return { template_id: result.templateID, request_id: result.requestId ?? null, state: "submitted", runtime_verified: false };
 }

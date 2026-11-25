@@ -130,11 +130,11 @@ The MCP Server provides 21 tools: the core and extended tools below for the curr
 | `get_task` | Query original task state and logs | `sandbox_id, task_id, max_bytes?` |
 | `cancel_task` | Request cancellation; poll terminal state afterward | `sandbox_id, task_id` |
 | `verify_sandbox` | Actual command/binary round-trip probe | `sandbox_id` |
-| `submit_template_build` | Express template submission: management AK/SK and explicit Team required | `team_id, name, image, generation?, cpu?, memory?, envd_inject?` |
+| `submit_template_build` | Express template submission: management AK/SK and explicit Team required | `team_id, name, image, generation?, cpu?, memory?` |
 | `get_template_build` | Inspect build state; readiness is not runtime validation | `team_id, template_id` |
 | `validate_template` | Create temporary runtime; verify effects and independent cleanup | `template_id, region?` |
 
-Template submitted, ready and runtime validation are separate states. Inspect build reason, image permissions and envd-injection prerequisites on failure; envd_inject=false only applies to a compatible image already containing envd. Management uses AK/SK; sandbox execution uses its own key. Do not automatically create management keys or overwrite existing templates.
+Template submitted, ready and runtime validation are separate states. Inspect the build reason and image permissions on failure. The Express adapter handles runtime preparation; the MCP tool has no injection toggle. Management uses AK/SK; sandbox execution uses its own key. Do not automatically create management keys or overwrite existing templates.
 
 
 ---
