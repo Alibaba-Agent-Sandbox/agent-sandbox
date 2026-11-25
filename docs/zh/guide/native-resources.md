@@ -4,7 +4,7 @@
 
 ## 完整本地示例
 
-复制[示例目录](../../examples/native-resources/template.yaml)，包含 `guest/Dockerfile`、`guest/hello.py`。将 `sandbox.agent.template.region`、`image` 改为实际地域及可写镜像仓库地址；镜像仓库需要已存在。本地构建需要运行中的 Docker；部署还需要云管理凭据及镜像推送权限。
+复制[示例目录](../../examples/native-resources/template.yaml)，包含 `guest/Dockerfile`、`guest/hello.mjs`。将 `sandbox.agent.template.region`、`image` 改为实际地域及可写镜像仓库地址；镜像仓库需要已存在。本地构建需要运行中的 Docker；部署还需要云管理凭据及镜像推送权限。
 
 ```yaml
 specVersion: 1

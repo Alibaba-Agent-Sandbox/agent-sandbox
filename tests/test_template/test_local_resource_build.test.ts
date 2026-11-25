@@ -39,6 +39,16 @@ it("reuses an immutable image only with matching source and verified actual Dock
   f.run.mockResolvedValue(`sha256:${"b".repeat(64)}`);
   expect(await cachedLocalImage(localBuildRecipe(iso.root, "agent", "guest/Dockerfile"), f.services)).toBeUndefined();
 });
+it("propagates a failed Docker build without caching success and permits a fresh local retry", async () => {
+  const f = fixture(), cloud = vi.spyOn(resourceServices, "express");
+  f.build.mockRejectedValueOnce(new Error("Docker build failed"));
+  await expect(buildLocalProject(f.file, {services: f.services})).rejects.toThrow("Docker build failed");
+  expect(await cachedLocalImage(localBuildRecipe(iso.root, "agent", "guest/Dockerfile"), f.services)).toBeUndefined();
+  expect(f.run).not.toHaveBeenCalled();
+  const [context] = f.build.mock.calls[0] as unknown as [string]; expect(fs.existsSync(context)).toBe(false);
+  expect(await buildLocalProject(f.file, {services: f.services})).toMatchObject({status: "built", images: [{cached: false}]});
+  expect(f.build).toHaveBeenCalledTimes(2); expect(cloud).not.toHaveBeenCalled();
+});
 it("rejects escaped build context before executing Docker", async () => {
   const f = fixture(); const value = JSON.parse(fs.readFileSync(f.file, "utf8")); value.sandbox.agent.template.buildConfig.context = "..";fs.writeFileSync(f.file, JSON.stringify(value));
   await expect(buildLocalProject(f.file, {services: f.services})).rejects.toThrow("contained in the template directory");expect(f.build).not.toHaveBeenCalled();

@@ -1,9 +1,14 @@
-# Native resource workflow candidate
+# Decision: Native resource workflow candidate
 
 Status: Proposed; bounded local implementation, not a complete catalog or runtime migration.
 Issue: https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/issues/260
 
-## Decision and public behavior
+## Problem
+
+The old build command registered cloud resources and exposed private build files.
+The resource and instance lifecycles need separate public meanings.
+
+## Decision
 
 The user rejected build artifacts that users must name, pass or parse, duplicate
 raw-instance deployment, and build commands that create cloud resources. The
@@ -25,7 +30,7 @@ source independently of v5 validation. Resource v1 follows the same strict reade
 after download. Catalog-wide replacement, full application bootstrap and automatic
 API authentication binding have not been delivered by this candidate.
 
-## Implementation boundaries
+## API Design
 
 Only relevant v1 contract/parser, Express resource API/executor and official Devs
 component worker code were selected from the earlier draft; unrelated draft
@@ -56,7 +61,33 @@ candidate cannot claim automatic recovery from an uncertain push. Known resource
 IDs remain available for status/delete. A future recovery policy must prove
 publication identity rather than promote a pending tag to ready or repeat hooks.
 
-## Adversarial review
+## Alternatives considered
+
+A wholesale merge of the old draft would reintroduce rejected interfaces. A new
+business bootstrap schema or automatic envd assumption would exceed the agreed
+empty-instance resource contract. Both were rejected; existing supported v5
+startup remains explicit during migration.
+
+## Dependencies
+
+Official Serverless Devs parse-spec/load-component, the pinned resource v1
+contract, Express native API models and the existing provider SDK creation route.
+
+## Test Strategy
+
+Use independent source/parser/ownership tests, actual built CLI and Docker smoke,
+then exact owned-cloud resource checks. Source fetch proof does not imply cloud
+execution or application readiness.
+
+## Acceptance criteria
+
+Build must have no cloud writes or hooks, deploy must not create dynamic instances,
+create must preserve explicit target and ownership, and all public outputs must
+exclude private artifact handoffs. The additional gates below remain required.
+
+## Evidence
+
+### Adversarial review
 
 Root challenged pure-build cloud writes, false ready state, account/Team drift,
 and duplication of create. API reviewer challenged mutable image caches, unrelated
@@ -67,11 +98,12 @@ failed-push replay was retracted after the reviewer confirmed the global pending
 guard prevents replay; a regression and additional status invariant preserve it.
 The final candidate is reviewed separately from the completed bounded UX fixes.
 
-## Required remaining gates
+### Required remaining gates
 
-- Real Docker smoke in CI; this host has not executed a Docker build.
-- Real owned Express resource deploy/create/delete and independent cleanup, plus
-  native FC component deployment and failure recovery, before normal release.
+- Actual Docker build/cache inspection and static Express template deploy/status/
+  delete are now verified in the linked evidence. This host did not build Docker.
+- Named dynamic create from the native project, native FC component deployment
+  and failure recovery remain separate integration gates before normal release.
 - A supported API bootstrap/authentication contract and cross-repository catalog
   migration before claiming the full empty-Sandbox/OpenAPI product finished.
 - Reconcile source and public distribution, full repository CI, and platform

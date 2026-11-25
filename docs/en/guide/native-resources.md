@@ -4,7 +4,7 @@ A local `template.yaml` with `specVersion: 1` declares reusable cloud resources.
 
 ## Complete local example
 
-Copy the [example directory](../../examples/native-resources/template.yaml), including `guest/Dockerfile` and `guest/hello.py`. Set `sandbox.agent.template.region` and `image` to your actual region and writable image repository. The repository must already exist. Docker builds need a running local Docker daemon; deployment also needs configured cloud management credentials and permission to push the image.
+Copy the [example directory](../../examples/native-resources/template.yaml), including `guest/Dockerfile` and `guest/hello.mjs`. Set `sandbox.agent.template.region` and `image` to your actual region and writable image repository. The repository must already exist. Docker builds need a running local Docker daemon; deployment also needs configured cloud management credentials and permission to push the image.
 
 ```yaml
 specVersion: 1

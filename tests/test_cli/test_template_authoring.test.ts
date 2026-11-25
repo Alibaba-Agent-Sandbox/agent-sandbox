@@ -70,6 +70,13 @@ describe("template authoring", () => {
     expect(result.exit_code, result.output).toBe(0);expect(build).toHaveBeenCalledWith(path.join(source, "template.yaml"), {timeoutSeconds: 600, buildProfile: null});
     expect(prepare).not.toHaveBeenCalled();expect(JSON.parse(result.stdout)).toMatchObject({status: "built", images: [{resource: "example"}]});expect(result.output).not.toMatch(/build_file|journal|receipt/);
   });
+  it("explains local-only construction and separate deployment in public build help", async () => {
+    const result = await run(["template", "build", "--help"]);
+    expect(result.exit_code, result.output).toBe(0);
+    expect(result.output).toContain("local Docker");
+    expect(result.output).toContain("abx deploy");
+    expect(result.output).not.toMatch(/--out\b|--clean\b|build\.json/);
+  });
   it.each(["--out", "--clean"])("rejects retired build-file option %s before preparation", async flag => {
     const source = project(), build = vi.spyOn(resourceDeploymentSeams, "build");
     const result = await run(["template", "build", source, flag, "private-build-file"]);

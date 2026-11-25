@@ -18,7 +18,7 @@ export async function providerTemplateCommand(name: string): Promise<Command | n
 }
 
 export const build = command("build", {
-  help: "Build local Docker images from template source. Does not publish images, register templates, create instances or run deployment actions.",
+  help: "Build local Docker images from template source. Does not publish images, register templates, create instances or run deployment actions. Use abx deploy SOURCE to publish resources.",
   params: [argument(["source"], {default: ".", required: false}), option(["--build-profile"]), option(["--timeout"], {type: FLOAT, default: 600}), option(["--yes", "-y"], {is_flag: true})],
   callback: handleErrors(buildLocalTemplate),
 });

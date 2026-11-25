@@ -1,7 +1,8 @@
 Usage: abx template build [options] [SOURCE]
 
 Build local Docker images from template source. Does not publish images,
-register templates, create instances or run deployment actions.
+register templates, create instances or run deployment actions. Use abx deploy
+SOURCE to publish resources.
 
 Options:
   --build-profile <BUILD_PROFILE>

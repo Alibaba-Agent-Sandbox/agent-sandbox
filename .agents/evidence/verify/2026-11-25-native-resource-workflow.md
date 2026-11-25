@@ -1,7 +1,8 @@
 # Native resource workflow verification — 2026-11-25
 
-Result: PARTIAL. Local tests are separate from real Docker, cloud resources and
-the full catalog/runtime migration. No cloud resource was created for these tests.
+Result: IN PROGRESS. Local tests are separate from real Docker, cloud resources and
+the full catalog/runtime migration. The later static Express check below created
+and removed exactly one owned Template; earlier local checks created none.
 
 ## Executed local checks
 
@@ -44,11 +45,14 @@ The existing CI test job runs it on Node 22. Initial candidate 8dda810 ran it in
 Step 12 succeeded and emitted actual_docker_build=true, cache_verified=true,
 cloud_deployment=false. The overall job subsequently failed its old consumer
 tests, and the package job was skipped; those failures remain distinct. The later
-configuration-path isolation/progress changes still require a new CI result.
+configuration-path isolation/progress changes also passed the actual Docker step
+in CI 45596327189, Node 22 job 139143244669. Both Node 20 and Node 22 unit steps
+succeeded; the subsequent parity check failed on seven stale contract-replacement
+targets and one old integration result expectation. These are not an aggregate pass.
 
 ## Boundaries
 
-No real native FC/Express deployment, OpenSandbox native resource adapter, model
+No real native FC deployment, OpenSandbox native resource adapter, model
 task, Agents API bootstrap, generated token injection, OpenAPI auto-binding, full
 registry migration or published package is certified by this candidate. Source v5
 startup remains supported explicitly while v1 create is application-empty. Current
@@ -86,3 +90,48 @@ The five catalog tests passed. The ten progress tests and five catalog tests als
 passed together after giving the progress fixture its own private cache directory;
 without that isolation a previous fixture's valid cached image correctly omitted
 fresh build lines. The CLI behavior did not require disabling cache reuse.
+
+## Real static Express lifecycle
+
+Built CLI from 0291ce6 used existing configured management credentials and Team.
+Read-only discovery selected an existing Ready generation-2 template's source
+image with no returned registry-auth/network override. That image was borrowed;
+its current pullability was established by this deployment, not inferred merely
+from the source template's Ready status. Private account/source identities remain
+outside the repository.
+
+A unique local resource project contained one Express template using that image,
+generation 2, CPU 2, memorySize 4096 and diskSize 15360. It contained no actions,
+Dockerfile, Steps, volumes, instances or Serving. Before execution, engine review
+confirmed image ownership is recorded only for Docker publication, so this source
+image could not enter the owned deletion set. Total execution was bounded to six
+minutes, with template readiness limited to 180 seconds; no creation was retried.
+
+Actual CLI invocations and sanitized results:
+
+- `deploy PROJECT --name NAME --plan`: exit 0, status preview.
+- `deploy PROJECT --name NAME --build-timeout 180 --yes`: exit 0, status ready.
+- `status NAME`: exit 0, status ready; returned native ID matched the saved identity.
+- `delete NAME --yes` in finally: exit 0, status deleted.
+- An independent native GetTemplate for that exact ID and Team returned supported
+  typed NotFound after deletion. No owned identity remained unresolved.
+
+The complete sequence took 138 seconds. Exactly one owned Template was created;
+zero Sandbox instances, images, volumes, FC functions, roles or databases were
+created. No shared source image was modified or deleted. This proves this static
+image-backed Express lifecycle only, not native Steps, FC, instance creation,
+Agents API startup, model execution or the catalog migration.
+
+## Final local test and repository checks
+
+The non-overlapping final full local run had 4703 passed, 61 skipped and 11 failed
+(221 files passed, four failed and five skipped). The failures were HTTP/WS/loopback
+transport fixtures on this host, including MCP 202/307 behavior, refused local TCP,
+TLS paths, malformed transport and proxy cases. They remain failures in that run;
+the later remote Node 20 unit step independently reported 4779 passed and seven
+skipped, with all unit files passing. Parity is a separate subsequent check.
+
+Repository health after required ADR headings and the Node example correction:
+PASS 105, WARN 11, FAIL 0. Hygiene passed. The native example now uses Node and a
+hello.mjs source so it remains valid in this TypeScript-owned repository. No test
+result is promoted to a published-package claim.

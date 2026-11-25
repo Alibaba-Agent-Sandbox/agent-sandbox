@@ -19,7 +19,7 @@ const info=()=>SandboxInfo.modelValidate({sandboxID:id,templateID:"base",state:"
 const invoke=(args:string[])=>new CliRunner().invoke(cli,args);
 beforeEach(()=>_setPaths({abxDir:path.join(tmp(),"home")}));
 afterEach(()=>{vi.restoreAllMocks();_setPaths(originalPaths);});
-function create() { return vi.spyOn(Sandbox,"create").mockResolvedValue({id,info:info(),close:async()=>{}} as unknown as Sandbox); }
+function create() { const details=info(); return vi.spyOn(Sandbox,"create").mockResolvedValue({id,info:details,status:details.status,provider:"alicloud-express",close:async()=>{}} as unknown as Sandbox); }
 function execution(exitCode=0) {
   vi.spyOn(process.stdin,Symbol.asyncIterator).mockImplementation(async function*(){});
   return vi.spyOn(NativeSandbox,"connect").mockResolvedValue({commands:{supportsStdinClose:true,
@@ -37,7 +37,7 @@ it("test_cli_create_exec_kill",async()=>{
 });
 it("test_cli_json_output",async()=>{
   create();const r=await invoke(["--json","create","--template","base","--name","demo","--yes"]);
-  expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({name:"demo",sandbox_id:id,status:"ready",kind:"sandbox"});
+  expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({name:"demo",sandbox_id:id,status:"running",provider:"alicloud-express"});
 });
 it("test_cli_exec_json_output",async()=>{
   execution();const r=await invoke(["--json","exec",id,"echo","hello"]);

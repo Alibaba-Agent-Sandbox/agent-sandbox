@@ -1,2 +1,2 @@
-FROM python:3.12-slim-bookworm
-COPY hello.py /opt/hello.py
+FROM node:22-bookworm-slim
+COPY hello.mjs /opt/hello.mjs
