@@ -110,7 +110,7 @@ Highest priority first:
 | Where | Example |
 |---|---|
 | Qualified reference | `abx delete my-cloud:sbx-1` |
-| Flag (before the sandbox ID for exec) | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| Flag (before the sandbox ID for exec) | `abx --provider my-cloud create --template base --name my-sandbox` |
 | Process environment | `export ABX_PROVIDER=my-cloud` |
 | `./.env`, then `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"` (`abx config set provider my-cloud`, `abx config set provider my-cloud`) |
@@ -131,7 +131,7 @@ Every command that takes a sandbox id accepts `[provider:]sandbox_id`; the prefi
 Printed IDs use `provider:sandbox_id` for every provider, and JSON rows include `provider` while retaining the bare ID field.
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process create --name my-sandbox --template base      # ID: local-process:sbx-1
 abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # every configured provider, with a Provider column
 abx delete local-process:sbx-1 --yes
@@ -173,7 +173,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create --template base --name cube-demo
 ```
 
 A non-interactive install needs `--yes`. An unpinned git ref also needs `--allow-unpinned`, or a 40-hex `--ref`. The Python SDK installer is `python -m agent_sandbox.providers install registry:<id> --yes`.

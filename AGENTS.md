@@ -52,6 +52,14 @@ agent-sandbox/
 
 The Python client, declarative API, in-sandbox server, examples and SDK/API docs live in the `python-sdk` repository. This repository keeps its own `.agents/` (ADRs in `notes/`, golden-file `evidence/`, design notes).
 
+The resource `specVersion: 1` candidate separates local image builds, static resource
+deployment, and dynamic `create`. Preserve the existing source `spec_version: 5`
+startup path until its catalog migration has a verified application bootstrap.
+Do not reintroduce public build/plan/receipt file handoffs or infer application
+authentication from successful template registration. See the
+[candidate decision](.agents/notes/proposed/architecture/2026-11-25-native-resource-workflow.md)
+and its explicit remaining gates before extending either path.
+
 ---
 
 ## Architecture Layers

@@ -95,6 +95,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify local resource build against Docker
+        if: matrix.node-version == '22'
+        run: node e2e/local-resource-build.mjs
+
       - name: Run tests
         env:
           ABX_SERVER_SDK_SRC: ${{ github.workspace }}/vendor/python-sdk/server-sdk/src

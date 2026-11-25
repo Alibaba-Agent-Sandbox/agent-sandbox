@@ -16,7 +16,7 @@ Replace any downloaded alpha.0 executable with alpha.1. Managed FC application b
 
 | Task | 0.6 preview command |
 |---|---|
-| Create from a Provider template (previously `create`) | `abx deploy --template-id TEMPLATE --name demo --yes` |
+| Create from a Provider template (previously `create`) | `abx create --template TEMPLATE --name demo --yes` |
 | Launch a catalog or local source template (previously `template launch`) | `abx deploy TEMPLATE_OR_DIRECTORY --name demo --yes` |
 | Inspect an instance (previously `info`) | `abx status TARGET` |
 | Remove an instance (previously `kill`) | `abx delete TARGET --yes` |
@@ -38,7 +38,7 @@ Existing Server SDK decorators and HTTP routes keep their own interfaces. A form
 In 0.5.10, `--ci` could authorize Express managed-key creation or renewal. In the 0.6 preview, it selects noninteractive machine-readable output. It does **not** grant permission for mutations. An operation requiring confirmation needs its explicit `--yes` option; cloud managed-key creation and renewal still require that consent. Supply credentials and required configuration before running noninteractively.
 
 ```bash
-abx --ci deploy --template-id base --name demo --yes
+abx --ci create --template base --name demo --yes
 abx --ci status demo
 abx --ci delete demo --yes
 ```

@@ -1,0 +1,36 @@
+Usage: abx create [options] [TEMPLATE_NAME]
+
+Create one Sandbox from an already registered Provider template.
+Select a deployed resource project or native template ID with --template.
+Use --resource when the project has several templates. Source authoring
+belongs to abx template init; cloud resource publication belongs to abx deploy.
+
+Options:
+  -T, --template <TEMPLATE>   Deployed resource project name or Provider-native
+                              template ID; defaults to base.
+  --resource <RESOURCE>       Select a Sandbox template when the deployment
+                              contains several.
+  --name <NAME>               Save a local name for this new instance.
+  -u, --upload <PATH>         Local file or directory to upload after creation
+  -t, --timeout <INTEGER>     Sandbox lifetime in seconds (positive integer;
+                              default: 300)
+  --on-timeout <ON_TIMEOUT>   Action when the Sandbox lifetime expires, when
+                              supported by the Provider. (choices: "pause",
+                              "kill")
+  --auto-resume               Resume a paused Sandbox on access; requires
+                              --on-timeout pause and Provider support.
+  --request-timeout <FLOAT>   HTTP request timeout in seconds for the create
+                              call (floor: 120s for cold starts, or your
+                              configured http_timeout if larger). Increase for
+                              very slow sandbox creation.
+  -e, --env <ENV>             Environment variable for the sandbox, format
+                              KEY=VALUE (repeatable)
+  -m, --metadata <METADATA>   Metadata key-value pair, format KEY=VALUE
+                              (repeatable)
+  --volume-mount <PATH=NAME>  Mount an existing same-Team Volume by name at an
+                              absolute Unix path (Express only; repeatable)
+  -y, --yes                   Use configured credentials without interactive
+                              prompts
+  -v, --verbose               Verbose output (DEBUG level)
+  -h, --help                  Show this message and exit.
+[exit_code:0]

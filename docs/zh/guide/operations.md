@@ -5,7 +5,7 @@
 | 任务 | 命令 |
 | --- | --- |
 | 部署源码/目录模板 | `abx deploy SOURCE --name APP` |
-| 从原生模板创建 | `abx deploy --template-id TEMPLATE --name APP` |
+| 从原生模板创建 | `abx create --template TEMPLATE --name APP` |
 | 查看/状态/日志 | `abx list`、`abx status APP`、`abx logs APP` |
 | 删除/恢复 | `abx delete APP --yes`、`abx recover APP` |
 | 执行进程 | `abx exec APP -- COMMAND` |

@@ -10,7 +10,7 @@ for (const name of ["runtime.mjs", "THIRD_PARTY_NOTICES.txt", "runtime.mjs.LEGAL
 // The pure planner is shared with static catalog consumers and must also ship in npm/SEA inputs.
 const workflowDestination = new URL("../dist/template/", import.meta.url);
 mkdirSync(workflowDestination, { recursive: true });
-for (const name of ["launch_plan.mjs", "launch-v1.json", "workflow_plan.mjs", "workflow-v1.json", "verification-profiles.json"]) {
+for (const name of ["launch_plan.mjs", "launch-v1.json", "workflow_plan.mjs", "workflow-v1.json", "verification-profiles.json", "definition.mjs"]) {
   cpSync(new URL(`../src/template/${name}`, import.meta.url), fileURLToPath(new URL(name, workflowDestination)));
 }
 
@@ -20,3 +20,5 @@ mkdirSync(profileDestination, { recursive: true });
 for (const name of ["normalize.mjs", "profiles.json"]) {
   cpSync(new URL(`../src/application/profile/${name}`, import.meta.url), fileURLToPath(new URL(name, profileDestination)));
 }
+
+cpSync(new URL("../src/template/contract-v1/", import.meta.url), fileURLToPath(new URL("contract-v1/", workflowDestination)), { recursive: true });

@@ -7,7 +7,7 @@ import { CliRunner } from "../helpers/cliRunner.js";
 const run = (args: string[]) => new CliRunner().invoke(cli, args);
 const groups = ["template", "config", "provider", "mcp"];
 const platformCommands = ["exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"];
-const commands = ["sandbox", "deploy", "list", "status", "logs", "delete", "recover", ...platformCommands];
+const commands = ["sandbox", "create", "deploy", "list", "status", "logs", "delete", "recover", ...platformCommands];
 describe("one command contract", () => {
   it("exposes the same root operations in help and both reference pages", async () => {
     expect(cli.listCommands().sort()).toEqual([...groups, ...commands].sort());
@@ -18,7 +18,7 @@ describe("one command contract", () => {
       for (const name of [...groups, ...commands]) expect(text).toContain(`\`abx ${name}\``);
     }
   });
-  it.each(["create", "info", "kill", "run", "app", "auth", "registry-command"])("rejects removed root %s", async name => {
+  it.each(["info", "kill", "run", "app", "auth", "registry-command"])("rejects removed root %s", async name => {
     expect((await run([name, "--help"])).exit_code).toBe(2);
   });
   it.each(["launch", "deploy", "install", "scaffold", "search", "from-image", "delete", "push"])("rejects retired template %s", async name => {

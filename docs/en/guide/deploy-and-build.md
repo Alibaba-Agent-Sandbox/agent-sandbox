@@ -1,22 +1,28 @@
-# Deploy and build
+# Build and deploy
 
-Author source, prepare builds, deploy running instances and publish source versions as distinct tasks:
+`abx template build SOURCE` builds local Docker images. It does not push images, register templates, create instances or execute deployment actions. Use `abx deploy SOURCE --name NAME` to publish resources. There are no build files to copy or pass between commands.
 
 ```bash
-abx template init ./project --template python
-abx template build ./project --out ./.abx/build.json --yes
-abx deploy --build ./.abx/build.json --name my-app --yes
-abx status my-app
-abx delete my-app --yes
-abx template build --clean ./.abx/build.json --yes
+abx template build ./project --timeout 600
+abx deploy ./project --name my-project --yes
+abx status my-project
+abx delete my-project --yes
 ```
 
-Use `abx deploy ./project --name my-app` when no separately reusable build is needed. `template build` starts no instance; `deploy --build` takes an artifact file, not a build mode. The manifest and Provider determine Dockerfile or supported platform-step preparation. `--build-profile` selects an explicitly declared profile and never silently switches recipes.
+For resource `specVersion: 1`, deploy prepares the declared Sandbox templates, volumes and Serving resources. Create a dynamic instance separately:
 
-Docker builds need a working local Docker and writable image repository; the runtime must be able to pull the image. Platform-step runtime, file inputs and permissions depend on the Provider. Deploy does not call a model; model use belongs to `template init --prompt` or `--adopt`.
+```bash
+abx create --template my-project --resource agent --name my-instance --yes
+abx status my-instance
+abx delete my-instance --yes
+```
 
-Deletion cleans resources recorded as owned by that deployment. Separately prepared builds remain reusable; remove their consumers before cleaning, and inspect retained images requiring manual cleanup. On failure, use `abx status APP` and `abx recover APP` before retrying a potentially submitted create.
+The resource selector is needed only when several Sandbox templates exist. Creating an instance does not start or authenticate a business API automatically. See [resource projects](native-resources.md) for configuration and supported boundaries.
 
-`template publish SOURCE --tag VERSION` publishes committed source to an immutable version on an existing GitHub remote and returns a commit-pinned reference. It neither deploys an application nor automatically creates a catalog entry.
+Existing `spec_version: 5` source recipes retain their current deployment behavior: deploy prepares the template and starts its named instance and declared services. Their plain Dockerfiles can be built locally; their Provider-specific preparation still runs during deploy. Managed application recipes prepare their builds during deploy.
 
-[Full authoring guide](authoring-templates.md) · [Deployment and failure boundaries](template-launch.md)
+Build results distinguish built local images, partial local builds and configurations with no local build. Native Steps and Serving actions run during deployment. Unrelated runtime secrets are not needed for local builds; Dockerfile and context paths must be concrete. Docker defaults to `linux/amd64`; context defaults to the Dockerfile's directory for resource v1.
+
+Delete removes confirmed owned cloud resources. Existing references, explicitly retained volumes, component-managed shared resources and image repositories remain with their owner. Local build images are ordinary Docker images; remove an unused image by the image ID shown in the build result using Docker. Use `abx recover NAME` when a deployment is incomplete; it observes saved operations without replaying publication.
+
+`template publish SOURCE --tag VERSION` publishes committed source to a new version on an existing GitHub remote. It does not deploy resources or create a catalog entry.

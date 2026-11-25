@@ -25,10 +25,11 @@ describe("TestDeployRequiresExplicitRoute", () => {
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
   });
-  it("does not retain the retired create entry", async () => {
-    const result = await runner().invoke(cli, ["create", "--template", "base"]);
-    expect(result.exit_code).toBe(2);
-    expect(result.output).toContain("No such command 'create'");
+  it("exposes explicit instance creation separately from resource deployment", async () => {
+    const result = await runner().invoke(cli, ["create", "--help"]);
+    expect(result.exit_code).toBe(0);
+    expect(result.output).toContain("--resource");
+    expect(result.output).toContain("--template");
   });
 });
 

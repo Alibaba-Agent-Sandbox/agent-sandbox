@@ -304,11 +304,11 @@ describe("TestCreateChannelSeparation", () => {
   // `abx create` never mixes diagnostics into the result stream.
 
   it("test_plain_mode_splits_result_and_warning", async () => {
-    const result = await invokeCreate(new CliRunner(), ["deploy", "--template-id", "base", "--yes"]);
+    const result = await invokeCreate(new CliRunner(), ["create", "--template", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout).toContain("sbx-chan-001");
-    expect(result.stdout).toContain("ready");
+    expect(result.stdout).toContain("running");
     expect(result.stdout).not.toContain("default capabilities shell, files, code");
     // Exactly one rendered warning line -- the duplicate-handler regression.
     expect(
@@ -324,17 +324,17 @@ describe("TestCreateChannelSeparation", () => {
   });
 
   it("test_json_mode_stdout_is_a_single_document", async () => {
-    const result = await invokeCreate(new CliRunner(), ["--json", "deploy", "--template-id", "base", "--yes"]);
+    const result = await invokeCreate(new CliRunner(), ["--json", "create", "--template", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     const payload = JSON.parse(result.stdout);
     expect(payload["sandbox_id"]).toBe("sbx-chan-001");
-    expect(payload["status"]).toBe("ready");
+    expect(payload["status"]).toBe("running");
     expect(result.stderr).toContain("~/.abx/templates");
   });
 
   it("test_quiet_mode_prints_values_only", async () => {
-    const result = await invokeCreate(new CliRunner(), ["--quiet", "deploy", "--template-id", "base", "--yes"]);
+    const result = await invokeCreate(new CliRunner(), ["--quiet", "create", "--template", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout).toContain("sbx-chan-001");
@@ -346,7 +346,7 @@ describe("TestCreateChannelSeparation", () => {
   it("test_ci_mode_is_json_and_silent", async () => {
     iso.monkeypatch.setenv("CI", "1");
 
-    const result = await invokeCreate(new CliRunner(), ["deploy", "--template-id", "base", "--yes"]);
+    const result = await invokeCreate(new CliRunner(), ["create", "--template", "base", "--yes"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(JSON.parse(result.stdout)["sandbox_id"]).toBe("sbx-chan-001");
@@ -359,7 +359,7 @@ describe("TestCreateChannelSeparation", () => {
     const genMock = vi.spyOn(codegen, "generateTemplateFiles" as never).mockImplementation((() => undefined) as never);
     const createMock = vi.spyOn(Sandbox, "create").mockImplementation((() => undefined) as never);
 
-    const result = await new CliRunner().invoke(cli, ["deploy", "--prompt", "python", "--template-id", "base", "--yes"]);
+    const result = await new CliRunner().invoke(cli, ["create", "--prompt", "python", "--template", "base", "--yes"]);
 
     expect(result.exit_code).toBe(2);
     expect(result.stdout).toBe("");

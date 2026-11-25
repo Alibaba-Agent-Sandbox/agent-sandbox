@@ -1,6 +1,3 @@
 [exit_code:2]
 [stderr]
-Usage: abx sandbox [options] [TARGET] [OPERATION]
-Try 'abx sandbox -h' for help.
-
-Error: Got unexpected extra arguments.
+Unexpected positional argument; provide application inputs as options.

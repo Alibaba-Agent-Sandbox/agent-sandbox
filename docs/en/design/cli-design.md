@@ -11,7 +11,7 @@ The CLI follows the user's task rather than implementation stages. The [command 
 | Install a backend or run its native operations | `provider` |
 | Connect an AI tool | `mcp` |
 
-`deploy SOURCE --name NAME` chooses the existing workflow from the explicit template profile. `deploy --template-id ID` creates from a native Provider reference. `--plan` performs a local preview; users do not manage intermediate plan/apply files. Managed updates reuse the same name. Ordinary Sandbox deployments must be deleted before recreating the name.
+`deploy SOURCE --name NAME` chooses the existing workflow from the explicit template profile. `create --template ID` creates from a native Provider reference. `--plan` performs a local preview; users do not manage intermediate plan/apply files. Managed updates reuse the same name. Ordinary Sandbox deployments must be deleted before recreating the name.
 
 `template init --from` only copies source. `template build` prepares a reusable artifact without creating an instance. `template publish` publishes committed source through an existing GitHub remote. Provider cloud template CRUD belongs to `provider run`.
 

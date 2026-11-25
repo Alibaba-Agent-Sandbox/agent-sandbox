@@ -110,7 +110,7 @@ abx provider test my-cloud -o region=eu # 通过 CLI 使用的同一批适配器
 | 位置 | 示例 |
 |---|---|
 | 限定引用 | `abx delete my-cloud:sbx-1` |
-| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud deploy --template-id base --name my-sandbox` |
+| 标志（exec 放在沙箱 ID 前） | `abx --provider my-cloud create --template base --name my-sandbox` |
 | 进程环境变量 | `export ABX_PROVIDER=my-cloud` |
 | `./.env`，然后 `~/.abx/.env` | `ABX_PROVIDER=my-cloud` |
 | `~/.abx/config.toml` | `[core]` `provider = "my-cloud"`（`abx config set provider my-cloud`、`abx config set provider my-cloud`） |
@@ -131,7 +131,7 @@ abx config set provider --unset           # 恢复为 alicloud-express
 所有 Provider 的文本 ID 输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。
 
 ```bash
-abx --provider local-process deploy --name my-sandbox --template-id base      # ID: local-process:sbx-1
+abx --provider local-process create --name my-sandbox --template base      # ID: local-process:sbx-1
 abx exec local-process:sbx-1 "echo hello"
 abx list --all-providers                                 # 所有已配置的提供商，带 Provider 列
 abx delete local-process:sbx-1 --yes
@@ -173,7 +173,7 @@ abx provider install alibaba-agent-sandbox/awesome-providers//e2b
 abx provider install alibaba-agent-sandbox/awesome-providers//cubesandbox
 abx provider install alibaba-agent-sandbox/awesome-providers//alicloud-container
 abx provider install alibaba-agent-sandbox/awesome-providers//opensandbox
-abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 deploy --template-id base --name cube-demo
+abx --provider cubesandbox --opt base_url=http://127.0.0.1:3000 create --template base --name cube-demo
 ```
 
 非交互安装需要 `--yes`。未钉扎的 git ref 还要 `--allow-unpinned`，或者写成 40 位十六进制的 `--ref`。Python SDK 安装器是 `python -m agent_sandbox.providers install registry:<id> --yes`。

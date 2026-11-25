@@ -4,7 +4,7 @@ import { handleErrors } from "../error_handler.js";
 import { FLOAT } from "../types.js";
 import { providerCliExtension } from "../provider_extensions.js";
 import { template } from "../template_catalog.js";
-import { buildTemplate } from "../template_build.js";
+import { buildLocalTemplate } from "../resource_deployment.js";
 import { publishTemplate } from "../template_publish.js";
 export * from "../template_catalog.js";
 
@@ -18,10 +18,9 @@ export async function providerTemplateCommand(name: string): Promise<Command | n
 }
 
 export const build = command("build", {
-  help: "Build a reusable template artifact without starting an application. Retains a private source snapshot and resource journal. --out never replaces an existing artifact.",
-  params: [argument(["source"], { default: ".", required: false }), option(["--out"]), option(["--clean"], { help: "Clean owned resources from an unused build artifact; retain its journal." }), option(["--build-profile"]),
-    option(["--alias", "-a"]), option(["--timeout"], { type: FLOAT, default: 600 }), option(["--yes", "-y"], { is_flag: true })],
-  callback: handleErrors(buildTemplate),
+  help: "Build local Docker images from template source. Does not publish images, register templates, create instances or run deployment actions.",
+  params: [argument(["source"], {default: ".", required: false}), option(["--build-profile"]), option(["--timeout"], {type: FLOAT, default: 600}), option(["--yes", "-y"], {is_flag: true})],
+  callback: handleErrors(buildLocalTemplate),
 });
 template.addCommand(build);
 

@@ -3,7 +3,7 @@
 当前 abx 使用统一命令入口，选择 Express 或其他 Provider 不会切换解析器。迁移时需要调整命令路径，不能只替换可执行文件名称。Python 标准客户端的导入与兼容范围见 [Python 迁移指南](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/docs/zh/guide/migrate-from-e2b.md)。
 
 ```bash
-abx deploy --template-id code-interpreter-v1 --name work --yes
+abx create --template code-interpreter-v1 --name work --yes
 abx --json list
 abx exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
 abx connect work

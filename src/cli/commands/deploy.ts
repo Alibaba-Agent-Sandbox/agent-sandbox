@@ -12,7 +12,7 @@ import { INT, FLOAT, Choice } from "../types.js";
 import { acquireTemplateSource, _findTemplateYaml } from "../template_catalog.js";
 import { snapshotTemplateSource } from "../template_build.js";
 import { checkTemplatePrerequisites, executeTemplateLaunch } from "../template_launch.js";
-import { ApplicationError, readTemplate, readYaml, record, sourceDigest, writeJson } from "../../application/config.js";
+import { ApplicationError, readTemplate, readYaml, record, writeJson } from "../../application/config.js";
 import { applicationProfile } from "../../application/profile/normalize.mjs";
 import { buildApplication } from "../../application/tools.js";
 import { applicationId, applyPlan, createPlan, defaultReceiptFile, readReceipt, withApplicationLock } from "../../application/service.js";
@@ -23,15 +23,14 @@ import { paths, loadLayeredConfig } from "../../transport/config_layers.js";
 import { getProvider, resolveProviderId } from "../../providers/registry.js";
 import { cliProvider, cliOptions } from "../../providers/selection.js";
 import type { ApplicationPlan } from "../../application/types.js";
-import type { PreparedTemplate } from "../../providers/template_contract.js";
 import { ResourceJournal } from "../../template/resource_journal.js";
-import { digest } from "../../application/config.js";
 import { validateTemplateManifest, planTemplateLaunch } from "../../template/launch_plan.mjs";
 import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
 import { loadRegistryApis, type ApiContract } from "../api_contract.js";
 import { applicationToken } from "../template_environment.js";
 import { saveApiBinding, selectResource, verifiedApplicationCredentials } from "../api_binding.js";
+import { deployResources, resourceDeploymentSummary } from "../resource_deployment.js";
 import { assertManagedApplicationHost } from "../../application/host.js";
 
 export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
@@ -49,6 +48,7 @@ export function applicationLock<T>(plan: ApplicationPlan, account: string, work:
   return withApplicationLock(path.join(paths.abxDir, "app-locks"), `${account}/${plan.template.application.deployment.region}/${applicationId(plan)}`, work);
 }
 export function deploymentSummary(value: Deployment): Record<string, unknown> {
+  if (value.kind === "resources") return resourceDeploymentSummary(value);
   const receipt = value.receipt && fs.existsSync(value.receipt) ? readReceipt(value.receipt) : undefined;
   const services = record(value.launch?.services) ? Object.fromEntries(Object.entries(value.launch.services).filter(([, service]) => record(service)).map(([name, service]) => [name, { port: (service as Record<string, unknown>).port, url: (service as Record<string, unknown>).url }])) : undefined;
   return { name: value.name, kind: value.kind, provider: value.provider, status: value.status,
@@ -65,10 +65,10 @@ function pairs(values: string[] = [], unique = false): Record<string, string> {
 /** Persist source needed by receipts after Registry caches or the original checkout change. */
 export const snapshotDeploymentSource = snapshotTemplateSource;
 export const deploy_shortcut = command("deploy", {
-  help: "Deploy a catalog template or local project. --name identifies the running instance. Use --template-id for a Provider-native template; --plan previews resources without building or deploying.",
-  params: [argument(["source"], { required: false }), option(["--name"]), option(["--template-id"]), option(["--build"], { help: "Reuse a template build artifact." }),
+  help: "Deploy a catalog template or local project. --name identifies this deployment. Resource specVersion: 1 prepares templates and Serving; use create --template for an instance. Source spec_version: 5 also starts its declared instance. --plan previews without building or deploying.",
+  params: [argument(["source"], { required: false }), option(["--name"]),
     option(["--plan"], { is_flag: true }), option(["--bindings"], { help: "Private application binding references JSON file." }), option(["--build-profile"]),
-    option(["--build-timeout"], { type: FLOAT, default: 600 }), option(["--sandbox-timeout"], { type: INT, default: 300 }), option(["--request-timeout"], { type: FLOAT }), option(["--upload"]),
+    option(["--build-timeout"], { type: FLOAT, default: 600 }), option(["--sandbox-timeout"], { type: INT, help: "Source spec_version: 5 instance lifetime in seconds (default: 300)." }), option(["--request-timeout"], { type: FLOAT }), option(["--upload"]),
     option(["--on-timeout"], { type: new Choice(["pause", "kill"]) }), option(["--auto-resume"], { is_flag: true }),
     option(["--env", "-e"], { multiple: true }), option(["--metadata", "-m"], { multiple: true }), option(["--volume-mount"], { multiple: true }), option(["--yes", "-y"], { is_flag: true })],
   callback: handleErrors(async (ctx, params) => {
@@ -80,27 +80,19 @@ export const deploy_shortcut = command("deploy", {
     }
     if (params.auto_resume && params.on_timeout !== "pause") throw new UsageError("--auto-resume requires --on-timeout pause.");
     const lifecycle = params.on_timeout ? { onTimeout: params.on_timeout as "pause" | "kill", autoResume: Boolean(params.auto_resume) } : undefined;
-    if (params.template_id && (params.source || params.build)) throw new UsageError("--template-id cannot be combined with source or --build.");
-    const artifact: Record<string, unknown> | undefined = params.build ? JSON.parse(fs.readFileSync(path.resolve(String(params.build)), "utf8")) : undefined;
-    if (artifact?.kind === "SandboxTemplateBuild" && (artifact.status !== "ready" || !record(artifact.prepared))) throw new UsageError("Build is not ready. Recover or clean its owned resources before rebuilding.");
-    if (artifact && artifact.kind !== "SandboxTemplateBuild" && artifact.kind !== "ManagedApplicationBuild") throw new UsageError("Expected a template build artifact.");
     let source: string | undefined, manifest: Record<string, unknown> = {};
-    if (params.template_id) {
-      manifest = { name: "sandbox" };
-    } else if (artifact?.kind === "SandboxTemplateBuild") {
-      if (params.source) throw new UsageError("A Sandbox build already identifies its source; omit SOURCE.");
-      source = String(artifact.projectRoot);
-      if (artifact.sourceDigest !== sourceDigest(source)) throw new ApplicationError("Built template source changed; build it again.");
-      const yaml = _findTemplateYaml(source); if (!yaml) throw new ApplicationError("Built template manifest is missing.");
-      manifest = readYaml(yaml) as Record<string, unknown>;
-    } else {
-      const input = String(params.source ?? artifact?.projectRoot ?? ".");
+    {
+      const input = String(params.source ?? ".");
       if (fs.existsSync(input)) source = fs.statSync(input).isDirectory() ? fs.realpathSync(input) : path.dirname(fs.realpathSync(input));
       else { const acquired = await acquireTemplateSource(ctx, input, { allowManaged: true }); source = acquired.directory; if (acquired.manifest) manifest = acquired.manifest; }
       if (source) { const yaml = _findTemplateYaml(source); if (!yaml) throw new UsageError("Template source has no template.yaml. Use template init to create one."); manifest = readYaml(yaml) as Record<string, unknown>; }
       if (!Object.keys(manifest).length) throw new UsageError("Template source could not be resolved.");
     }
     if (!record(manifest)) throw new UsageError("Template manifest must be an object.");
+    if (manifest.specVersion === 1) {
+      if (!source) throw new UsageError("Resource deployment requires template source.");
+      await deployResources(ctx, params, path.join(source, "template.yaml")); return;
+    }
     const profile = applicationProfile(manifest);
     if (profile && profile !== "fc-managed-agents") throw new UsageError(`Unsupported application profile: ${profile}.`);
     if (manifest.application && !profile) throw new UsageError("This application has no supported deployment profile.");
@@ -110,21 +102,20 @@ export const deploy_shortcut = command("deploy", {
       const registry = readYaml(path.join(source, "registry.yaml"));
       if (record(registry) && registry.apis !== undefined) apis = selectResource(loadRegistryApis(path.join(source, "registry.yaml")));
     }
-    const name = validateDeploymentName(String(params.name ?? (params.template_id ? `sandbox-${randomUUID().slice(0, 8)}` : manifest.name)));
+    const name = validateDeploymentName(String(params.name ?? manifest.name));
     const provider = profile ? "alicloud-express" : resolveProviderId(cliProvider());
     if (profile && cliProvider() && resolveProviderId(cliProvider()) !== provider) throw new UsageError("This application profile requires alicloud-express.");
-    if (artifact?.provider && artifact.provider !== provider) throw new UsageError("Build Provider differs from selected Provider.");
     if (profile && (params.env.length || params.metadata.length || params.volume_mount.length || params.upload || lifecycle)) throw new UsageError("Application runtime configuration belongs in the template and its bindings.");
-    if (!profile && !params.template_id) { validateTemplateManifest(manifest); const planned = planTemplateLaunch(manifest, getProvider(provider), "cli"); if (!planned.supported) throw new UsageError(`Template is unsupported: ${planned.reason ?? planned.missing_operations.join(", ")}`); }
+    if (!profile) { validateTemplateManifest(manifest); const planned = planTemplateLaunch(manifest, getProvider(provider), "cli"); if (!planned.supported) throw new UsageError(`Template is unsupported: ${planned.reason ?? planned.missing_operations.join(", ")}`); }
     if (profile && source) readTemplate(path.join(source, "template.yaml"));
-    const summary = { name, kind, provider, profile, source: params.source ?? params.template_id ?? artifact?.projectRoot ?? ".", resources: profile ? ["server image", "sandbox template", "worker", "dispatcher", "gateway"] : ["sandbox", ...(source && !artifact ? ["template build when required"] : [])] };
+    const summary = { name, kind, provider, profile, source: params.source ?? ".", resources: profile ? ["server image", "sandbox template", "worker", "dispatcher", "gateway"] : ["sandbox", ...(source ? ["template build when required"] : [])] };
     if (params.plan) { getFormatter(ctx).printData({ ...summary, status: "preview", builds_or_cloud_changes: false }); return; }
     if (profile) assertManagedApplicationHost();
-    if (!profile && source && !artifact) {
+    if (!profile && source) {
       const yaml = _findTemplateYaml(source);
       await deploymentSeams.checkPrerequisites(ctx, provider, yaml ? path.dirname(yaml) : source, manifest, params.build_profile);
     }
-    const buildsTemplate = !profile && !artifact && !params.template_id && source && !manifest["template_id"] && !manifest["image"];
+    const buildsTemplate = !profile && source && !manifest["template_id"] && !manifest["image"];
     const consent = profile ? "This may create billable cloud resources." : buildsTemplate
       ? "Build or register the template and create a billable Sandbox." : "Create a billable Sandbox.";
     await approve(ctx, params, `Deploy ${name}? ${consent}`);
@@ -158,33 +149,16 @@ export const deploy_shortcut = command("deploy", {
           const file = path.join(value.source!, "template.yaml"), template = readTemplate(file);
           const credential = await deploymentSeams.credentials(template.application.deployment.accessRef);
           deploymentSeams.bindings(template.application, value.bindings, { scope: { applicationId: name, accountId: credential.AccountID, region: template.application.deployment.region }, mode: previous ? "existing" : "initial-apply" });
-          value.ownsBuild = !artifact;
-          value.build = artifact ? fs.realpathSync(String(params.build)) : path.join(folder, "build.json"); saveDeployment(value);
-          if (!artifact) { await deploymentSeams.build(template, value.source!, credential, value.build); }
-          const plan = createPlan(file, value.build, previous?.receipt, name, Boolean(artifact));
+          value.ownsBuild = true;
+          value.build = path.join(folder, "build.json"); saveDeployment(value);
+          await deploymentSeams.build(template, value.source!, credential, value.build);
+          const plan = createPlan(file, value.build, previous?.receipt, name, false);
           value.receipt = defaultReceiptFile(plan); saveDeployment(value);
           const services = await applicationServices(plan, value.bindings, true);
           await applicationLock(plan, services.fc.accountId, () => deploymentSeams.apply(plan, services, value.receipt));
-        } else if (params.template_id) {
-          const { create } = await import("./sandbox.js");
-          const journal = new ResourceJournal(provider, digest({ name, template: params.template_id })); value.journal = journal.file; saveDeployment(value);
-          let intent: string | undefined;
-          await ctx.invoke(create, { template: String(params.template_id), template_name: null, prompt: null, upload: params.upload ?? null, lifecycle, cmd_timeout: params.sandbox_timeout, request_timeout: params.request_timeout ?? null, env: params.env, metadata: [...params.metadata, `abx.deployment=${name}`], volume_mount: params.volume_mount, yes: Boolean(params.yes), model: null, output_dir: null, _quietResult: true,
-            _beforeCreate: async () => { Object.assign(value, captureDeploymentTarget(provider, loadLayeredConfig({ provider, provider_options: cliOptions() }))); value.effectsStarted = true; saveDeployment(value); intent = await journal.intent({ kind: "sandbox", correlation_key: `${name}-${randomUUID()}`, cleanup: "sandbox.delete" }); return { "abx.launch": journal.id, "abx.intent": intent }; },
-            _onCreated: async (id: string) => { value.sandboxId = id; saveDeployment(value); if (intent && journal.entries.find(entry => entry.intent_id === intent)?.state === "intent") await journal.created(intent, id); } });
         } else {
-          if (artifact) {
-            value.borrowedBuild = fs.realpathSync(String(params.build)); saveDeployment(value);
-            await withApplicationLock(path.join(paths.abxDir, "template-build-locks"), value.borrowedBuild, async () => {
-              const current = JSON.parse(fs.readFileSync(value.borrowedBuild!, "utf8"));
-              if (current.status !== "ready" || digest(current.prepared) !== digest(artifact.prepared) || digest(current.target) !== digest(artifact.target)) throw new ApplicationError("Build changed before deployment admission.");
-              const consumer = path.join(deploymentDirectory(name), "deployment.json");
-              current.consumers = [...new Set([...(current.consumers ?? []), consumer])]; writeJson(value.borrowedBuild!, current);
-            });
-          }
-          const launched = await deploymentSeams.launch(ctx, { template_ref: value.source, alias: name, timeout: params.build_timeout, sandbox_timeout: params.sandbox_timeout, build_profile: params.build_profile ?? artifact?.build_profile, yes: Boolean(params.yes) }, {
+          const launched = await deploymentSeams.launch(ctx, { template_ref: value.source, alias: name, timeout: params.build_timeout, sandbox_timeout: params.sandbox_timeout ?? 300, build_profile: params.build_profile, yes: Boolean(params.yes) }, {
             approved: true, recoveryTarget: value.name, lifecycle, envs, metadata, volume_mounts: volumeMounts, request_timeout: params.request_timeout ?? undefined,
-            ...(artifact ? { prepared: artifact.prepared as PreparedTemplate, builtTarget: artifact.target as Record<string, unknown> } : {}),
             onTarget: target => { Object.assign(value, target); saveDeployment(value); },
             onVerifiedApplication: service => {
               const verified = verifiedApplicationCredentials(apis, service, applicationToken());
@@ -201,7 +175,7 @@ export const deploy_shortcut = command("deploy", {
       } catch (error) {
         // The callback runs before requests so a crash stays conservative. A returned error
         // with an acknowledged empty journal proves that this deployment started no requests.
-        if (kind === "sandbox" && source && !artifact && !value.sandboxId &&
+        if (kind === "sandbox" && source && !value.sandboxId &&
             (value.effectsStarted === false || preparationJournal?.hasRecordedIntent === false)) {
           value.effectsStarted = false;
           value.status = "deleted";

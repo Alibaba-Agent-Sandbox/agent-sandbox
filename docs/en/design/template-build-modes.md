@@ -5,17 +5,15 @@ Status: current source behavior for Sandbox template preparation. The mode rules
 ## Commands and outputs
 
 ```bash
-abx template build ./project --out ./.abx/build.json --timeout 600 --yes
-abx deploy --build ./.abx/build.json --name my-app --yes
-# Or prepare and deploy directly:
+abx template build ./project --timeout 600
 abx deploy ./project --name my-app --build-timeout 600 --yes
 ```
 
-`template build` prepares a reusable artifact without creating an instance. `deploy --build FILE` consumes that artifact; `--build` does not select a mode. Direct `deploy SOURCE` prepares source and creates a named deployment. Source publication is a separate `template publish SOURCE --tag VERSION` operation.
+Local build creates Docker images only. Native Steps and Serving actions are deployment work. Source publication remains `template publish SOURCE --tag VERSION`. Resource v1 separates static deploy from `abx create`; existing v5 source deploy retains its instance startup behavior. See [resource projects](../guide/native-resources.md).
 
 ## Choosing the preparation path
 
-For Express, set `build.mode` in `template.yaml` to `auto`, `dockerfile` or `steps`. Without an explicit Dockerfile profile, the adapter uses that value, or `auto` when omitted.
+For the existing v5 Express source deployment path, set `build.mode` in `template.yaml` to `auto`, `dockerfile` or `steps`. Without an explicit Dockerfile profile, the adapter uses that value, or `auto` when omitted.
 
 | Manifest mode | Preparation |
 |---|---|
@@ -76,10 +74,10 @@ Express native `ENV` is not a guarantee that a value reaches later `RUN` command
 
 ## Readiness, deadlines and cleanup
 
-Both reusable builds and direct source deployments wait for template preparation to become ready. A successful native registration submission alone is not proof of readiness. Inspect native state with `abx --provider alicloud-express provider run template.get --input-file template-get.json`, where the file contains `template_id` and optionally `team_id`.
+Deploy waits for cloud template preparation to become ready; local build only waits for Docker. A successful native registration submission alone is not proof of readiness. Inspect native state with `abx --provider alicloud-express provider run template.get --input-file template-get.json`, where the file contains `template_id` and optionally `team_id`.
 
-For Sandbox preparation, `template build --timeout SECONDS` and `deploy --build-timeout SECONDS` set the preparation budget: 600 seconds by default, greater than zero and at most 3600. `deploy --sandbox-timeout` separately sets instance lifetime; `--request-timeout` configures request timing. A local deadline does not prove remote work stopped or that an uncertain create can be replayed safely.
+For Sandbox preparation, `deploy --build-timeout SECONDS` sets the cloud preparation budget: 600 seconds by default, greater than zero and at most 3600. `deploy --sandbox-timeout` separately sets instance lifetime; `--request-timeout` configures request timing. A local deadline does not prove remote work stopped or that an uncertain create can be replayed safely.
 
-Use `status` and `recover` for a failed named deployment, then `delete` for resources it owns. A separately prepared build remains independent: remove its consumers before `template build --clean BUILD_FILE --yes`, and inspect reported images requiring manual cleanup. See [authoring templates](../guide/authoring-templates.md) and [deployment boundaries](../guide/template-launch.md).
+Use `status` and `recover` after a failed deployment, then `delete` for confirmed owned resources. Manage local build images with Docker and retained remote images with their registry.
 
 Model-assisted authoring uses `template init --prompt` or `--adopt` and stops at source files. SDK sandbox creation does not invoke this build pipeline.

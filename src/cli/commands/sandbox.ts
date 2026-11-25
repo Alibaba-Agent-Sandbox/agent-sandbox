@@ -1,4 +1,10 @@
-import { connectSandboxTarget } from "../deployment_store.js";
+import { connectSandboxTarget, captureDeploymentTarget, readDeployment, saveDeployment, validateDeploymentName, type Deployment } from "../deployment_store.js";
+import { deployedTemplateSelection } from "../resource_deployment.js";
+import {ResourceJournal} from "../../template/resource_journal.js";
+import {randomUUID} from "node:crypto";
+import {withApplicationLock} from "../../application/lock.js";
+import {paths} from "../../transport/config_layers.js";
+import { cliOptions } from "../../providers/selection.js";
 import { connectNative, isExpressReference } from "./sandbox_native.js";
 export { logs } from "./sandbox_native.js";
 import { canGuideConfiguration, withGuidedConfiguration } from "../config_guidance.js";
@@ -83,8 +89,9 @@ export const sandboxSeams: {
 // ---------------------------------------------------------------------------------------------------------------------
 
 const CREATE_HELP = `Create one Sandbox from an already registered Provider template.
-    This internal service is used by abx deploy --template-id. Source authoring
-    and generation belong to abx template init.
+    Select a deployed resource project or native template ID with --template.
+    Use --resource when the project has several templates. Source authoring
+    belongs to abx template init; cloud resource publication belongs to abx deploy.
     `;
 
 const LIST_HELP = `List sandboxes, optionally filtered by lifecycle status.
@@ -99,7 +106,7 @@ const LIST_HELP = `List sandboxes, optionally filtered by lifecycle status.
     \b
     Related commands:
       abx status SANDBOX_ID  Show one sandbox in detail
-      abx deploy --template-id base --yes   Create a sandbox
+      abx create --template base --yes   Create a sandbox
       abx delete SANDBOX_ID  Destroy a sandbox
     `;
 
@@ -133,7 +140,7 @@ const KILL_HELP = `Permanently destroy one sandbox or all running sandboxes.
     Related commands:
       abx list              Find running sandbox IDs
       abx status SANDBOX_ID   Verify a sandbox before deletion
-      abx deploy --template-id base --yes   Create a replacement sandbox
+      abx create --template base --yes   Create a replacement sandbox
     `;
 
 const EXEC_HELP = `Run a command in a sandbox and preserve its exit code.
@@ -830,9 +837,13 @@ export const create = command("create", {
   help: CREATE_HELP,
   params: () => [
     argument(["template_name"], { required: false, default: null }),
-    option(["--template", "-T"], { default: null, help: "Provider-native template ID or alias; defaults to base." }),
+    option(["--template", "-T"], { default: null, help: "Deployed resource project name or Provider-native template ID; defaults to base." }),
+    option(["--resource"], {help: "Select a Sandbox template when the deployment contains several."}),
+    option(["--name"], {help: "Save a local name for this new instance."}),
     option(["--upload", "-u"], { type: new Path({ exists: true }), default: null, help: "Local file or directory to upload after creation" }),
     option(["--timeout", "-t", "cmd_timeout"], { type: INT, default: 300, help: "Sandbox lifetime in seconds (positive integer; default: 300)" }),
+    option(["--on-timeout"], {type: new Choice(["pause", "kill"]), help: "Action when the Sandbox lifetime expires, when supported by the Provider."}),
+    option(["--auto-resume"], {is_flag: true, help: "Resume a paused Sandbox on access; requires --on-timeout pause and Provider support."}),
     option(["--request-timeout"], {
       type: FLOAT,
       default: null,
@@ -848,7 +859,13 @@ export const create = command("create", {
     option(["-v", "--verbose", "verbose_flag"], { is_flag: true, help: "Verbose output (DEBUG level)" }),
   ],
   callback: handleErrors(async (ctx: Context, params) => {
+    if (params.auto_resume && params.on_timeout !== "pause") throw new UsageError("--auto-resume requires --on-timeout pause.");
+    const lifecycle = params.on_timeout ? {onTimeout: params.on_timeout as "pause" | "kill", autoResume: Boolean(params.auto_resume)} : undefined;
     const template: string = params["template"] ?? params["template_name"] ?? "base";
+    const selectedTemplate = await deployedTemplateSelection(template, params.resource);
+    const selectedProviderId = selectedTemplate?.provider ?? providerView().effective;
+    const instanceName = validateDeploymentName(String(params.name ?? `sandbox-${randomUUID().slice(0, 8)}`));
+
     const upload: string | null = params["upload"];
     const cmdTimeout: number = params["cmd_timeout"];
     const requestTimeout: number | null = params["request_timeout"];
@@ -871,7 +888,7 @@ export const create = command("create", {
     try { volumeMounts = validateVolumeMounts(Object.fromEntries(mountEntries)); }
     catch { throw new UsageError("--volume-mount requires a nonempty Volume name and a normalized absolute Unix path outside system/hidden directories."); }
     if (mountEntries.length) {
-      const selected = providerView().effective;
+      const selected = selectedProviderId;
       if (!getProvider(selected).createOptions.has("volume_mounts")) throw new ProviderFeatureNotSupportedError(selected, "volume_mounts");
     }
 
@@ -893,11 +910,19 @@ export const create = command("create", {
 
     if (requestTimeout !== null && (!Number.isFinite(requestTimeout) || requestTimeout <= 0)) throw new ValueError(`request_timeout must be a positive number of seconds, got ${pyRepr(new PyFloat(requestTimeout))}`);
     const execute = async (): Promise<void> => {
+    if (instanceName) {const previous = readDeployment(instanceName); if (previous && previous.status !== "deleted") throw new UsageError("This instance name is already in use. Choose another name.");}
     const effectiveTemplate = template || "base";
 
     // Build create kwargs
-    const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout };
-    if (params["lifecycle"] !== undefined) createKwargs["lifecycle"] = params["lifecycle"];
+    const createKwargs: Record<string, unknown> = { template: effectiveTemplate, timeout: cmdTimeout, ...selectedTemplate };
+    let named: Deployment | undefined, namedJournal: ResourceJournal | undefined, namedIntent: string | undefined;
+    if (instanceName) {
+      const target = selectedTemplate ? {provider: selectedTemplate.provider, providerOptions: selectedTemplate.provider_options, connection: {api_url: selectedTemplate.api_url, domain: selectedTemplate.domain}} : captureDeploymentTarget(selectedProviderId, loadLayeredConfig({provider: selectedProviderId, provider_options: cliOptions()}));
+      named = {version: 1, name: instanceName, kind: "sandbox", ...target, status: "preparing", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), effectsStarted: false};
+      namedJournal = new ResourceJournal(selectedProviderId, randomUUID()); named.journal = namedJournal.file;
+      saveDeployment(named);
+    }
+    if (lifecycle !== undefined) createKwargs["lifecycle"] = lifecycle;
     if (Object.keys(envs).length > 0) createKwargs["envs"] = envs;
     if (Object.keys(meta).length > 0) createKwargs["metadata"] = meta;
     if (mountEntries.length) createKwargs["volume_mounts"] = volumeMounts;
@@ -917,7 +942,24 @@ export const create = command("create", {
     const runCreate = async (note: ((text: string) => void) | null): Promise<Sandbox> => {
       if (params["_beforeCreate"]) createKwargs["metadata"] = { ...meta, ...await params["_beforeCreate"]() };
       if (params["_onCreated"]) createKwargs["on_created"] = params["_onCreated"];
-      const sbx = await Sandbox.create(createKwargs);
+      if (named) {
+        const previous = createKwargs["on_created"] as ((id: string) => Promise<void>) | undefined;
+        namedIntent = await namedJournal!.intent({kind: "sandbox", correlation_key: `${instanceName}-${randomUUID()}`, cleanup: "sandbox.delete"});
+        createKwargs["metadata"] = {...(createKwargs["metadata"] as Record<string, string> ?? {}), "abx.launch": namedJournal!.id, "abx.intent": namedIntent};
+        createKwargs["on_created"] = async (id: string) => {
+          named!.sandboxId = id; saveDeployment(named!);
+          if (namedJournal!.entries.find(entry => entry.intent_id === namedIntent)?.state === "intent") await namedJournal!.created(namedIntent!, id);
+          await previous?.(id);
+        };
+        named.effectsStarted = true; saveDeployment(named);
+      }
+      let sbx: Sandbox;
+      try {sbx = await Sandbox.create(createKwargs);} catch (error) {if (named) {named.status = "requires_recovery"; saveDeployment(named);} throw error;}
+      if (named) {
+        named.sandboxId = sbx.id;
+        if (namedJournal!.entries.find(entry => entry.intent_id === namedIntent)?.state === "intent") await namedJournal!.created(namedIntent!, sbx.id);
+        named.status = "ready"; saveDeployment(named);
+      }
       if (params["_onCreated"]) await params["_onCreated"](sbx.id);
       if (upload) {
         const remoteBase = "/home/user";
@@ -953,24 +995,19 @@ export const create = command("create", {
     if (params["_quietResult"]) { await sandbox.close(); return; }
     const createView = providerView(sandbox.provider);
     const data: Record<string, unknown> = {
-      ID: sandbox.id,
-      Status: sandbox.status,
-      Template: sandbox.info.template,
-      URL: sandbox.url,
+      name: instanceName, sandbox_id: out.jsonMode ? sandbox.id : printedId(createView, sandbox.id),
+      status: sandbox.status, template: sandbox.info.template, provider: createView.effective, url: sandbox.url,
     };
-    if (sandbox.info.envd_version) data["EnvdVersion"] = sandbox.info.envd_version;
-    if (!out.jsonMode) data["ID"] = printedId(createView, sandbox.id);
-    else data["provider"] = createView.effective;
     // Result channel (task 167): the machine-consumable document goes to stdout; the success notice is skipped in --json
     // mode so that stdout stays a single parseable JSON document.
     out.data(data);
     if (!out.jsonMode) out.success(`Sandbox ${printedId(createView, sandbox.id)} created successfully.`);
     };
-    const selectedProvider = getProvider(providerView().effective);
+    const selectedProvider = getProvider(selectedProviderId);
     selectedProvider.require("sandbox.lifecycle");
     return withGuidedConfiguration(ctx, { operation: "Create sandbox", provider: selectedProvider.id, yes,
       requirements: selectedProvider.id === "alicloud-express" ? ["sandbox_api_key"] : undefined,
-      validateProvider: selectedProvider.id !== "alicloud-express", overrides: { region: params["region"] } }, execute);
+      validateProvider: selectedProvider.id !== "alicloud-express", overrides: { region: params["region"] } }, () => instanceName ? withApplicationLock(nodePath.join(paths.abxDir, "deployment-locks"), instanceName, execute) : execute());
   }),
 });
 

@@ -78,7 +78,7 @@ npm run e2e:cleanup                   # 清理被中断运行遗留沙箱的 jan
 
 ## 云端命令合同
 
-`cloud-readonly` 和 `cloud-lifecycle` 使用 `deploy --template-id`、根级
+`cloud-readonly` 和 `cloud-lifecycle` 使用 `create --template`、根级
 `list/status/delete` 与 `exec`/文件/进程/应用命令。JSON 清单为
 `{items, partial, errors}`，部署结果包含 `name` 和 `sandbox_id`。原生模板 CRUD
 通过 `provider run template.list/get/create/delete` 与 JSON 输入调用，需要已有云 AK/SK；
@@ -136,7 +136,7 @@ metrics 和 pip 包清单使用现行结构化 JSON 合同。原生模板 info �
 | `cloud-readonly` | 云端 | 统一认证与列表、typed 错误信封、官方真实 TemplateID 回读与精确不存在诊断、`config list` 密钥脱敏 |
 | `cloud-lifecycle` | 云端 | `deploy` → `list` → `status` → `exec`(退出码透传、`--cwd`、JSON/quiet/CI 输出、受支持的命令期限)→ `upload`/`download`(二进制往返)→ 后台/流式执行/命令 env → `files/process/system/capabilities` → 显式 API 绑定、离线帮助与 `sandbox TARGET OPERATION`（鉴权、别名和 JSON 文件）→ 创建时注入 env/上传 → `delete` |
 | `catalog` | 可访问 GitHub | 针对远程索引的 `template search` 与 `template init --from` |
-| `docker-deploy` | 云端 + Docker,需主动开启 | `template init` → `template build`(docker build、ACR push、CreateTemplate)→ `deploy` → `exec` → `template build --clean` |
+| `docker-deploy` | 云端 + Docker，主动开启 | `template init` → 本地 `template build` → 源码 `deploy` → `exec` → 具名 `delete`；核查保留资源 |
 
 ## 场景格式
 

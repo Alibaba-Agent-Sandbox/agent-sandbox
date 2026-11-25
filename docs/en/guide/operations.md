@@ -5,7 +5,7 @@ Public commands use one parser. `--provider` selects a backend and `--json` sele
 | Task | Command |
 | --- | --- |
 | Deploy source/catalog template | `abx deploy SOURCE --name APP` |
-| Create from a native template | `abx deploy --template-id TEMPLATE --name APP` |
+| Create from a native template | `abx create --template TEMPLATE --name APP` |
 | List/status/logs | `abx list`, `abx status APP`, `abx logs APP` |
 | Delete/recover | `abx delete APP --yes`, `abx recover APP` |
 | Run a process | `abx exec APP -- COMMAND` |

@@ -17,8 +17,7 @@ Options:
   -h, --help  Show this message and exit.
 
 Commands:
-  build       Build a reusable template artifact without starting an
-              application.
+  build       Build local Docker images from template source.
   info        Show a catalog template's source, version reference and declared
               services.
   init        Scaffold a new sandbox template project.

@@ -10,7 +10,8 @@ import { getProvider, resolveProviderId } from "../providers/registry.js";
 export interface Deployment {
   version: 1;
   name: string;
-  kind: "sandbox" | "application";
+  kind: "sandbox" | "application" | "resources";
+  resourceTargets?: Record<string, {region: string; team?: string; provider: string; providerOptions?: Record<string, unknown>; connection?: {api_url?: string; domain?: string}}>;
   provider: string;
   providerOptions?: Record<string, unknown>;
   connection?: { api_url?: string; domain?: string };
@@ -42,7 +43,7 @@ export function readDeployment(name: string): Deployment | undefined {
   let data: unknown;
   try { data = JSON.parse(fs.readFileSync(file, "utf8")); }
   catch { throw new ApplicationError("Saved deployment information cannot be read. Keep the local configuration and restore a trusted backup before continuing."); }
-  if (!record(data) || data.version !== 1 || data.name !== name || !["application", "sandbox"].includes(String(data.kind)) || typeof data.provider !== "string") throw new ApplicationError("Invalid local deployment record; preserve it for recovery.");
+  if (!record(data) || data.version !== 1 || data.name !== name || !["application", "sandbox", "resources"].includes(String(data.kind)) || typeof data.provider !== "string") throw new ApplicationError("Invalid local deployment record; preserve it for recovery.");
   return data as unknown as Deployment;
 }
 export function saveDeployment(value: Deployment): void {
@@ -71,6 +72,7 @@ export function sandboxTarget(reference: string): { id: string; provider?: strin
   const saved = readDeployment(reference);
   if (!saved) return { id: reference };
   checkDeploymentSelection(saved);
+  if (saved.kind === "resources") throw new ApplicationError(`This name identifies deployed resources. Create an instance with abx create --template ${reference}; sandbox operations require an instance name or ID.`);
   if (saved.kind !== "sandbox") throw new ApplicationError("This deployment is an application. Use its business endpoint; sandbox operations require a Sandbox ID.");
   if (!saved.sandboxId || saved.status === "deleted") throw new ApplicationError("This deployment has no available Sandbox. Inspect its status or recover it.");
   return { id: saved.sandboxId, provider: saved.provider, provider_options: saved.providerOptions, ...saved.connection };

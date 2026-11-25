@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "activation": "coordinated-consumer-migration",
+  "providers": {
+    "alicloud-express": {
+      "api": "Sandbox/2026-08-20",
+      "templateFields": "flattened-provider-attributes",
+      "stepsResult": "templateId"
+    }
+  },
+  "buildContextDefault": "dockerfile-directory",
+  "resourceOutputNamespace": "resources.<name>.output",
+  "registryRuntimeDependency": false
+}

@@ -28,7 +28,7 @@ abx recover APP
 abx delete APP --yes
 ```
 
-Recover observes saved ownership without replaying creation or publication. Distinguish confirmed absence from authentication/network failures, and retain local records when cleanup is uncertain. Separately prepared builds use `template build --clean BUILD_FILE --yes`; remove their consumers first. Handle manually retained images as reported. Delete only this run’s resources rather than substituting an account-wide cleanup.
+Recover observes saved ownership without replaying creation or publication. Distinguish confirmed absence from authentication/network failures, and retain local records when cleanup is uncertain. Local image builds are managed with Docker. Handle manually retained images as reported. Delete only this run’s resources rather than substituting an account-wide cleanup.
 
 ## Commands and files
 

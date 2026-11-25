@@ -84,18 +84,13 @@ abx delete my-agents --yes
 `abx logs my-agents --role gateway` 读取已有 FC 日志库。默认配方没有配置 FC 日志，使用前需要配置函数
 `logConfig` 及日志访问权限；暂不支持持续跟随应用日志。
 
-模板作者可以单独构建，供多个部署复用：
+托管应用直接通过 deploy 准备并发布：
 
 ```bash
-abx template build . --out .abx/build.json --yes
-abx deploy . --build .abx/build.json --name my-agents --bindings .abx/bindings.json --yes
-# 所有使用该构建的应用删除后：
-abx template build --clean .abx/build.json --yes
+abx deploy . --name my-agents --bindings .abx/bindings.json --yes
 ```
 
-显式传入的构建由作者管理，应用删除后保留；仍有部署使用时，CLI 拒绝清理构建。
-部署自动产生的构建属于该应用的生命周期。输出中要求手动清理的镜像，需要在确认没有保留模板或函数引用后
-使用 ACR 工具删除。
+删除后保留的镜像由镜像仓库管理；确认没有模板或函数引用后再删除。
 
 数据库、模型账号、执行角色及外部提供的自定义域名仍由用户管理。删除后保留数据库历史和停止接收输入的状态；
 完整删除后再创建应用，须选择新的应用名或新的空状态数据库。`deploy` 不会自动重新开放已排空的账本。

@@ -135,7 +135,7 @@ abx config set sandbox_api_key your-api-key
 Use deploy `--env` for the newly created runtime. A per-command override belongs to `exec --env` and does not reconfigure an already running service:
 
 ```bash
-abx deploy --template-id base --name my-sandbox --env MODE=example --yes
+abx create --template base --name my-sandbox --env MODE=example --yes
 ```
 
 > **Historical note**: macOS Keychain integration was removed in the overdesign cleanup (ADR 2026-09-23). The `abx secret` CLI command group has also been removed. All secret management is now done through environment variables, `.env` files, or `abx config set`.

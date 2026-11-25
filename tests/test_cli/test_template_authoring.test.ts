@@ -6,7 +6,9 @@ import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import { cli } from "../../src/cli/main.js";
-import { templateBuildSeams, snapshotTemplateSource } from "../../src/cli/template_build.js";
+import {deploymentSeams} from "../../src/cli/commands/deploy.js";
+import {resourceDeploymentSeams} from "../../src/cli/resource_deployment.js";
+import { snapshotTemplateSource } from "../../src/cli/template_build.js";
 import { ResourceJournal } from "../../src/template/resource_journal.js";
 import { withApplicationLock } from "../../src/application/lock.js";
 import { paths } from "../../src/transport/config_layers.js";
@@ -29,7 +31,7 @@ function project(name = "source", version = 5): string {
 
 describe("template authoring", () => {
   it("rejects a missing source with initialization guidance before build work", async () => {
-    const launch = vi.spyOn(templateBuildSeams, "launch");
+    const launch = vi.spyOn(deploymentSeams, "launch");
     const source = path.join(tmp(), "missing");
     const result = await run(["template", "build", source, "--yes"]);
     expect(result.exit_code).toBe(2);
@@ -65,57 +67,17 @@ describe("template authoring", () => {
     expect(JSON.parse(json).method).toBe("initialize");
   });
 
-  it("freezes source and a reusable prepared artifact without creating an application", async () => {
-    const source = project(), output = path.join(tmp(), "build.json");
-    fs.writeFileSync(path.join(source, ".env"), "PLACEHOLDER=private\n");
-    fs.writeFileSync(path.join(source, "start.sh"), "#!/bin/sh\necho ok\n", { mode: 0o755 });
-    fs.chmodSync(path.join(source, "start.sh"), 0o755);
-    const prepare = vi.spyOn(templateBuildSeams, "launch").mockImplementation(async (_ctx, params, options) => {
-      expect(options?.prepareOnly).toBe(true);
-      expect(fs.existsSync(path.join(String(params.template_ref), ".env"))).toBe(false);
-      return { receipt: { kind: "SandboxTemplateBuild", version: 1, prepared: { template: "built" }, journal_id: "build-journal", target: { provider: "alicloud-express" } }, creation: {} };
-    });
-    const result = await run(["--json", "template", "build", source, "--out", output, "--yes"]);
-    expect(result.exit_code, result.output).toBe(0); expect(prepare).toHaveBeenCalledOnce();
-    const artifact = JSON.parse(fs.readFileSync(output, "utf8"));
-    expect(artifact).toMatchObject({ status: "ready", prepared: { template: "built" }, target: { provider: "alicloud-express" } });
-    expect(artifact.sourceDigest).toBe(sourceDigest(artifact.projectRoot));
-    fs.writeFileSync(path.join(source, "Dockerfile"), "changed");
-    expect(artifact.sourceDigest).toBe(sourceDigest(artifact.projectRoot));
-    if (process.platform !== "win32") {
-      expect(fs.statSync(artifact.projectRoot).mode & 0o777).toBe(0o700);
-      expect(fs.statSync(path.join(artifact.projectRoot, "start.sh")).mode & 0o777).toBe(0o755);
-    }
-    const again = await run(["template", "build", source, "--out", output, "--yes"]);
-    expect(again.exit_code).not.toBe(0); expect(prepare).toHaveBeenCalledOnce();
+  it("builds local images through the public command without a cloud-preparation handoff", async () => {
+    const source = project(), prepare = vi.spyOn(deploymentSeams, "launch");
+    const build = vi.spyOn(resourceDeploymentSeams, "build").mockResolvedValue({status: "built", images: [{resource: "example", image_id: `sha256:${"a".repeat(64)}`, cached: false}], deferred: []});
+    const result = await run(["--json", "template", "build", source]);
+    expect(result.exit_code, result.output).toBe(0);expect(build).toHaveBeenCalledWith(path.join(source, "template.yaml"), {timeoutSeconds: 600, buildProfile: null});
+    expect(prepare).not.toHaveBeenCalled();expect(JSON.parse(result.stdout)).toMatchObject({status: "built", images: [{resource: "example"}]});expect(result.output).not.toMatch(/build_file|journal|receipt/);
   });
-
-  it("retains failed preparation and only cleans an unused artifact", async () => {
-    const source = project(), output = path.join(tmp(), "failed-build.json");
-    vi.spyOn(templateBuildSeams, "launch").mockImplementation(async (_ctx, _params, options) => {
-      options?.onTarget?.({ provider: "alicloud-express", providerOptions: {}, connection: {} });
-      options?.onJournal?.(new ResourceJournal("alicloud-express", "fixture"));
-      throw new Error("preparation failed");
-    });
-    const failed = await run(["template", "build", source, "--out", output, "--yes"]);
-    expect(failed.exit_code).not.toBe(0);
-    const artifact = JSON.parse(fs.readFileSync(output, "utf8"));
-    expect(artifact).toMatchObject({ status: "requires_reconcile", target: { provider: "alicloud-express" } });
-    expect(artifact.journal_file).toContain(artifact.journal_id);
-    const cleanup = vi.spyOn(templateBuildSeams, "cleanup").mockResolvedValue({ complete: true, failures: [], retained: [{ kind: "image", cleanup: "manual" }] });
-    fs.writeFileSync(output, JSON.stringify({ ...artifact, consumers: ["running-app"] }));
-    expect((await run(["template", "build", "--clean", output, "--yes"])).exit_code).not.toBe(0);
-    expect(cleanup).not.toHaveBeenCalled();
-    fs.writeFileSync(output, JSON.stringify(artifact));
-    await withApplicationLock(path.join(paths.abxDir, "template-build-locks"), fs.realpathSync(output), async () => {
-      const locked = await run(["template", "build", "--clean", output, "--yes"]);
-      expect(locked.exit_code).not.toBe(0); expect(locked.output).toContain("locked by another operation");
-      expect(cleanup).not.toHaveBeenCalled();
-    });
-    const cleaned = await run(["--json", "template", "build", "--clean", output, "--yes"]);
-    expect(cleaned.exit_code, cleaned.output).toBe(0);
-    expect(JSON.parse(cleaned.stdout)).toMatchObject({ status: "cleaned", retained: [{ kind: "image" }] });
-    expect(JSON.parse(fs.readFileSync(output, "utf8")).status).toBe("cleaned");
+  it.each(["--out", "--clean"])("rejects retired build-file option %s before preparation", async flag => {
+    const source = project(), build = vi.spyOn(resourceDeploymentSeams, "build");
+    const result = await run(["template", "build", source, flag, "private-build-file"]);
+    expect(result.exit_code).toBe(2);expect(result.output).toContain("No such option");expect(build).not.toHaveBeenCalled();
   });
 
   it("rejects symlinked source before a build", () => {

@@ -100,19 +100,13 @@ Use the saved application name for recovery; no internal deployment file needs t
 configure FC logging; configure the function's `logConfig` and required logging access before using
 this command. Continuous application log following is not supported.
 
-Template authors can build once for several deployments:
+Deploy prepares and publishes this managed application directly:
 
 ```bash
-abx template build . --out .abx/build.json --yes
-abx deploy . --build .abx/build.json --name my-agents --bindings .abx/bindings.json --yes
-# After every application using this build has been deleted:
-abx template build --clean .abx/build.json --yes
+abx deploy . --name my-agents --bindings .abx/bindings.json --yes
 ```
 
-An explicitly supplied build belongs to its author and remains after application deletion.
-The CLI refuses to clean it while a deployment still uses it. An automatic deployment build is owned
-by that application's lifecycle. Images listed for manual cleanup must be removed with ACR tooling
-only after no retained template or function references them.
+Images retained after deletion remain in their registry until no template or function references them.
 
 The database, model account, execution role and supplied custom domain remain yours. Deletion retains
 the database history and admission fence. To create another application after complete deletion,

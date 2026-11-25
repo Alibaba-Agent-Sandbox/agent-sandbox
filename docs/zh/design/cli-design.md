@@ -11,7 +11,7 @@ CLI 按用户任务组织；[命令参考](../reference/cli-commands.md)是语�
 | 安装后端、执行原生操作 | `provider` |
 | 接入 AI 工具 | `mcp` |
 
-`deploy SOURCE --name NAME` 按模板的显式 profile 选择既有流程；`deploy --template-id ID` 使用 Provider 原生引用创建。`--plan` 只做本地预览，用户无需管理中间 plan/apply 文件。托管应用更新复用同一个名称；普通 Sandbox 部署须先删除，再用相同名称重新创建。
+`deploy SOURCE --name NAME` 按模板的显式 profile 选择既有流程；`create --template ID` 使用 Provider 原生引用创建。`--plan` 只做本地预览，用户无需管理中间 plan/apply 文件。托管应用更新复用同一个名称；普通 Sandbox 部署须先删除，再用相同名称重新创建。
 
 `template init --from` 只复制源码，`template build` 准备可复用产物而不创建实例，`template publish` 通过已有 GitHub remote 发布已提交源码。Provider 云模板 CRUD 归 `provider run`。
 

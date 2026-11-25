@@ -16,7 +16,7 @@ npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复�
 
 | 任务 | 0.6 预览版本命令 |
 |---|---|
-| 从 Provider 模板创建实例（原 `create`） | `abx deploy --template-id TEMPLATE --name demo --yes` |
+| 从 Provider 模板创建实例（原 `create`） | `abx create --template TEMPLATE --name demo --yes` |
 | 启动目录模板或本地源码模板（原 `template launch`） | `abx deploy TEMPLATE_OR_DIRECTORY --name demo --yes` |
 | 查看实例（原 `info`） | `abx status TARGET` |
 | 删除实例（原 `kill`） | `abx delete TARGET --yes` |
@@ -38,7 +38,7 @@ npm `next` 通道用于预览版本，`latest` 保持 0.5.10。需要可重复�
 0.5.10 的 `--ci` 可以授权 Express 托管管理 Key 的创建或续期。0.6 预览版本的 `--ci` 用于选择非交互、机器可读输出，**不代表授权变更**。需要确认的操作必须使用自身的显式 `--yes` 选项；云端管理 Key 的创建与续期仍保留该授权要求。非交互执行前须准备凭据及必需配置。
 
 ```bash
-abx --ci deploy --template-id base --name demo --yes
+abx --ci create --template base --name demo --yes
 abx --ci status demo
 abx --ci delete demo --yes
 ```

@@ -26,7 +26,8 @@ Options:
                            other Providers: 60s)
   --background             Start the command, print its pid after piped stdin
                            reaches EOF; do not wait for remote completion
-  --stream                 Print stdout/stderr live while the command runs
+  --stream                 Print stdout/stderr live; JSON mode returns one
+                           result (16 MiB combined output limit)
   -v, --verbose            Verbose output (DEBUG level)
   -h, --help               Show this message and exit.
 [exit_code:0]

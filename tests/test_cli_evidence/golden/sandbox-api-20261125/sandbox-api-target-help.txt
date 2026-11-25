@@ -1,20 +1,9 @@
-{
-  "target": "sbx-XXXXX",
-  "sandboxId": "sbx-XXXXX",
-  "operations": [
-    {
-      "api": "report",
-      "operationId": "report_totals",
-      "method": "POST",
-      "path": "/totals",
-      "summary": "Sum the supplied numbers"
-    }
-  ],
-  "aliases": {
-    "totals": {
-      "api": "report",
-      "operation": "report_totals"
-    }
-  }
-}
+Usage: abx sandbox sbx-XXXXX OPERATION [options]
+
+Declared operations (not a live availability or authorization check):
+  report_totals [report]  Sum the supplied numbers
+    POST /totals
+  totals → report:report_totals
+
+Details: abx sandbox sbx-XXXXX OPERATION --help
 [exit_code:0]

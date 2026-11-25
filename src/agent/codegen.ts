@@ -597,7 +597,7 @@ function validateServerEntrypoint(
  *
  * The manifest is returned as plain data (key order kept) so it can be dumped back with `dumpYaml`.
  *
- * `retry` replaces the default "inspect the workspace / fall back to `abx deploy --template-id <name> --name my-sandbox`" suggestion on every
+ * `retry` replaces the default "inspect the workspace / fall back to `abx create --template <name> --name my-sandbox`" suggestion on every
  * error.
  *
  * Throws `AICodegenError` when any check fails.

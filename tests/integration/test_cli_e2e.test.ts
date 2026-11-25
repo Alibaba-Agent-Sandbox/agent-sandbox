@@ -31,12 +31,12 @@ it("test_cli_create_exec_kill",async()=>{
   create();execution();let deleted=false;
   const kill=vi.spyOn(Sandbox,"killById").mockImplementation(async()=>{deleted=true;});
   vi.spyOn(Sandbox,"getInfoById").mockImplementation(async()=>{if(deleted)throw new SandboxNotFoundError(id);return info();});
-  let r=await invoke(["deploy","--template-id","base","--name","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);
+  let r=await invoke(["create","--template","base","--name","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);
   r=await invoke(["exec","demo","echo","hello"]);expect(r.exit_code,r.output).toBe(0);expect(r.stdout).toContain("hello");
   r=await invoke(["delete","demo","--yes"]);expect(r.exit_code,r.output).toBe(0);expect(kill).toHaveBeenCalledWith(id,expect.objectContaining({provider:"alicloud-express"}));expect(deleted).toBe(true);
 });
 it("test_cli_json_output",async()=>{
-  create();const r=await invoke(["--json","deploy","--template-id","base","--name","demo","--yes"]);
+  create();const r=await invoke(["--json","create","--template","base","--name","demo","--yes"]);
   expect(r.exit_code,r.output).toBe(0);expect(JSON.parse(r.stdout)).toMatchObject({name:"demo",sandbox_id:id,status:"ready",kind:"sandbox"});
 });
 it("test_cli_exec_json_output",async()=>{
@@ -53,7 +53,7 @@ for(const [title,error] of [
   ["test_cli_error_auth",new AuthenticationError("Invalid API key")],
 ] as const) it(title,async()=>{
   const request=vi.spyOn(Sandbox,"create").mockRejectedValue(error);
-  const r=await invoke(["deploy","--template-id","base","--name","failed","--yes"]);
+  const r=await invoke(["create","--template","base","--name","failed","--yes"]);
   expect(r.exit_code).not.toBe(0);expect(r.output+r.stderr).toContain(error.message);expect(request).toHaveBeenCalledTimes(1);
 });
 it("test_cli_list_sandboxes",async()=>{
@@ -69,6 +69,6 @@ it("test_cli_info_command",async()=>{
   const json=await invoke(["--json","status",id]);expect(JSON.parse(json.stdout)).toMatchObject({sandbox_id:id,status:"running"});expect(json.output).not.toContain("envd_access_token");
 });
 it("test_cli_quiet_mode",async()=>{
-  create();const r=await invoke(["--quiet","deploy","--template-id","base","--name","demo","--yes"]);
+  create();const r=await invoke(["--quiet","create","--template","base","--name","demo","--yes"]);
   expect(r.exit_code,r.output).toBe(0);expect(r.output).toContain(id);expect(r.stderr).not.toContain("Deploy demo?");
 });

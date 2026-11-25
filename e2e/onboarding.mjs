@@ -120,7 +120,7 @@ def main():
         print("PASS: actual terminal confirmation replaces selected entries and keeps unrelated data")
 
         secret_fixture = "hidden-cancel-fixture-do-not-save"
-        status, output, _ = invoke(["deploy", "--template-id", "base", "--name", "native-key-cancel"], [
+        status, output, _ = invoke(["create", "--template", "base", "--name", "native-key-cancel"], [
             ("Deploy native-key-cancel?", b"y\r"),
             ("Choose an authentication method", b"1\r"),
             ("sandbox_api_key (input hidden)", secret_fixture.encode() + b"\x03"),
@@ -183,10 +183,10 @@ def main():
         (home / ".abx/.env").unlink()
 
         cases = [
-            (["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], {}),
-            (["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], {"CI": "1"}),
-            (["--quiet", "deploy", "--template-id", "base", "--name", "auto-quiet", "--yes"], {}),
-            (["deploy", "--template-id", "base", "--name", "auto-yes", "-y"], {}),
+            (["--json", "create", "--template", "base", "--name", "auto-json", "--yes"], {}),
+            (["create", "--template", "base", "--name", "auto-plain", "--yes"], {"CI": "1"}),
+            (["--quiet", "create", "--template", "base", "--name", "auto-quiet", "--yes"], {}),
+            (["create", "--template", "base", "--name", "auto-yes", "-y"], {}),
         ]
         for arguments, extra in cases:
             status, output, _ = invoke(arguments, [], extra_environment=extra)
@@ -200,12 +200,12 @@ def main():
 
         status, _, _ = invoke(["delete", "auto-plain", "--yes"], [])
         assert status == 0
-        status, terminal, result = invoke(["deploy", "--template-id", "base", "--name", "auto-plain", "--yes"], [], stdout_pipe=True)
+        status, terminal, result = invoke(["create", "--template", "base", "--name", "auto-plain", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "Missing configuration" in terminal + result
         assert "Configuration scope" not in terminal + result and "input hidden" not in terminal + result, "Piped stdout must not enable credential input"
         status, _, _ = invoke(["delete", "auto-json", "--yes"], [])
         assert status == 0
-        status, terminal, result = invoke(["--json", "deploy", "--template-id", "base", "--name", "auto-json", "--yes"], [], stdout_pipe=True)
+        status, terminal, result = invoke(["--json", "create", "--template", "base", "--name", "auto-json", "--yes"], [], stdout_pipe=True)
         assert status == 1 and "sandbox_api_key" in json.loads(result)["message"]
         assert "Configuration scope" not in terminal + result
         assert requests == [], "The whole fixture must stay before the first backend request"

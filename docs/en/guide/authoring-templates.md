@@ -51,31 +51,15 @@ numbered `.abx-bak` backups. An existing template or unrelated commands.py needs
 and dependency directories; existing Docker ignore rules must exclude secrets.
 Generated files still need review before building or deploying.
 
-## Build once, deploy an application
+## Build and deploy
 
 ```bash
-abx template build ./my-template --yes
-# Use the build path printed by the command:
-abx deploy --build BUILD_FILE --name my-app
+abx template build ./my-template
+abx deploy ./my-template --name my-app --yes
 abx status my-app
 ```
 
-Build prepares the real image/template without starting an application. Its
-private artifact records the Provider target, prepared result, resource journal
-and a source snapshot. The default is a unique file under `.abx`; `--out FILE`
-chooses another unused path. An existing artifact is never overwritten.
-`--build-profile NAME` selects a declared Dockerfile profile; `--timeout` bounds
-sandbox template preparation.
-
-`deploy --build` verifies the snapshot and Provider target before reusing the
-prepared result. Editing the original project does not edit an existing build.
-For a new version, build again. Direct `abx deploy ./my-template --name my-app`
-combines preparation and deployment when a separate build is unnecessary.
-
-Service implementations belong in application code. For SandboxServer named
-commands, use the server's `@command()` registration and the application's
-explicit invocation endpoint. Arbitrary HTTP services, including MCP, declare
-their own protocol and use their documented HTTP API.
+Build prepares only local Docker images. Deployment publishes the selected source; resource v1 automatically reuses a verified local image when the inputs match. Native Steps and Serving actions run during deployment. See [build and deploy](deploy-and-build.md) for the v1 resource flow and the existing v5 instance flow.
 
 ## Publish reusable source
 
@@ -99,15 +83,4 @@ deploy it with `abx deploy REFERENCE --name APP`. Catalog contributions follow t
 
 ## Resource cleanup
 
-Remove a running application with `abx delete my-app --yes`. A separately prepared
-build remains reusable until explicitly cleaned:
-
-```bash
-abx template build --clean BUILD_FILE --yes
-```
-
-Cleanup refuses a build still used by an application and deletes only confirmed
-owned resources. Keep failed build artifacts and their journals for retry.
-Retained images requiring manual cleanup are listed in the result. Source
-snapshots and artifacts remain available for inspection; remove those local files
-when you no longer need them.
+Use `abx delete NAME --yes` for the deployment's confirmed owned resources. Use `abx recover NAME` if an operation was interrupted. Existing external services, retained resources and image repositories remain with their owner. Local build images can be removed with Docker after they are no longer needed.
