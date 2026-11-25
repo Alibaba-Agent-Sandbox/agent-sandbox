@@ -24,7 +24,7 @@ for name in "${ORDER[@]}"; do
       template init "$source" --from "$name" --yes
   fi
   "$ABX_BIN" --provider alicloud-express --opt "region=$REGION" \
-    template build "$source" --yes && result=0 || result=$?
+    template build "$source" && result=0 || result=$?
   printf '%s | %s | %s\n' "$name" "$result" "$source" >> "$RESULTS_FILE"
   if [[ "$result" -ne 0 ]]; then failed=1; fi
 done

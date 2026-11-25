@@ -15,7 +15,7 @@ export interface Deployment {
   provider: string;
   providerOptions?: Record<string, unknown>;
   connection?: { api_url?: string; domain?: string };
-  status: "preparing" | "ready" | "requires_recovery" | "deleted";
+  status: "preparing" | "deployed" | "ready" | "requires_recovery" | "deleted";
   createdAt: string;
   updatedAt: string;
   source?: string;

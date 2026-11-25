@@ -31,7 +31,7 @@ export interface ResourceEntry {
 }
 export interface ResourceReceipt {
   kind: "ResourceDeployment"; version: 1; name: string; accountId: string;
-  source: string; status: "preparing" | "ready" | "requires_recovery" | "deleted";
+  source: string; status: "preparing" | "deployed" | "ready" | "requires_recovery" | "deleted";
   resources: ResourceEntry[];
   retainedComponentResources?: Array<{resource: string; nativeName: string; field: string; status: "requested" | "observed"; references: string[]}>;
 }
@@ -159,6 +159,7 @@ export async function deployResourceProject(file: string, receiptFile: string, o
   };
   const createEntry = (entry: ResourceEntry): ResourceEntry => {receipt.resources.push(entry); save(); return entry;};
   receipt.status = "preparing"; save();
+  let allResourcesReady = true;
   try {
     for (const node of plan) {
       progress(`Preparing ${node.kind} ${node.name}`);
@@ -304,26 +305,33 @@ export async function deployResourceProject(file: string, receiptFile: string, o
             name: receipt.name, resource: node.name, props: controls, credential, timeoutSeconds: timeout, sensitiveValues: secretValues, onLog, ...(createOnly ? {functionCreationGuard: {endpoint: nativeFcEndpoint(credential.AccountID, region, typeof controls.endpoint === "string" ? controls.endpoint : undefined), functionName: name}} : {})});
           let actual = await fc.describeFunction(name);
           if (!actual) throw new ApplicationError("FC deploy returned without an observable function.");
+          if (entry.identity) sameFunction(entry, actual);
+          else if (!Array.isArray(actual.tags) || !actual.tags.some(tag => record(tag) && tag.key === "abx-resource-owner" && tag.value === entry.ownerTag)) throw new ApplicationError("FC deploy returned a function without the expected ownership tag. Its creation remains unresolved.");
           entry.id = identity(actual.functionArn, "FC function ARN");
           entry.identity = {functionId: identity(actual.functionId, "FC function ID"), createdTime: String(actual.createdTime)};
           entry.status = "created"; save();
           const readinessDeadline = Date.now() + timeout * 1000;
           while (actual.state === "Pending" || actual.lastUpdateStatus === "InProgress") {
+            if (actual.state === "Failed" || actual.lastUpdateStatus === "Failed") throw new ApplicationError("FC reported failed preparation. Its identity was retained for recovery.");
             if (Date.now() >= readinessDeadline) throw new ApplicationError("FC preparation remains incomplete. Inspect the named deployment before retrying.");
             await delay(250);
             const observed = await fc.describeFunction(name); sameFunction(entry, observed);
             actual = observed!;
           }
-          if (actual.state !== "Active" || actual.lastUpdateStatus !== "Successful") throw new ApplicationError("FC did not confirm an active function with a successful update. Its identity was retained for recovery.");
+          const ready = actual.state === "Active" && actual.lastUpdateStatus === "Successful";
+          const stateOmitted = actual.state === undefined || actual.state === null;
+          const updateOmitted = actual.lastUpdateStatus === undefined || actual.lastUpdateStatus === null;
+          const readinessOmitted = (stateOmitted || updateOmitted) && (stateOmitted || actual.state === "Active") && (updateOmitted || actual.lastUpdateStatus === "Successful");
+          if (!ready && !readinessOmitted) throw new ApplicationError("FC did not confirm an active function with a successful update. Its identity was retained for recovery.");
           const referenceKeys = new Set(["role", "project", "logstore", "vpcId", "securityGroupId", "vSwitchIds", "serverAddr", "bucketName"]);
           const refs = (value: unknown, key = ""): string[] => Array.isArray(value) ? value.flatMap(v => refs(v, key)) : record(value) ? Object.entries(value).flatMap(([k, v]) => refs(v, k)) : referenceKeys.has(key) && typeof value === "string" ? [value] : [];
           for (const item of receipt.retainedComponentResources) if (item.nativeName === name && autoFields.includes(item.field)) {item.references = [...new Set([...item.references, ...refs(actual[item.field], item.field)])]; item.status = "observed";}
           entry.id = identity(actual.functionArn, "FC function ARN"); entry.identity = {functionId: identity(actual.functionId, "FC function ID"), createdTime: String(actual.createdTime)};
-          entry.configDigest = digest(controls); entry.status = "ready"; save();
+          entry.configDigest = digest(controls); entry.status = ready ? "ready" : "created"; allResourcesReady &&= ready; save();
           outputs[node.name] = {...(record(result) ? result : {result}), functionName: name, functionArn: actual.functionArn};
         }
         await action("success-deploy", raw.actions, node.name, controls);
-        progress(`${node.name} ready`);
+        progress(node.kind === "serving" && receipt.resources.find(entry => entry.kind === "serving" && entry.name === node.name)?.status !== "ready" ? `${node.name} deployed; runtime readiness is unknown` : `${node.name} ready`);
       } catch (error) {
         failure = error;
         try {await action("fail-deploy", raw.actions, node.name, controls);} catch {logger.warning("Failure action also failed for %s.", node.name);}
@@ -332,7 +340,7 @@ export async function deployResourceProject(file: string, receiptFile: string, o
       }
       if (failure) throw failure;
     }
-    receipt.status = "ready";
+    receipt.status = allResourcesReady ? "ready" : "deployed";
     save(); return receipt;
   } catch (error) {
     receipt.status = "requires_recovery"; save();

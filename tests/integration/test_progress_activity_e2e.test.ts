@@ -120,7 +120,7 @@ function _installBuilder(): void {
 async function _invokeBuild(dir: string, prefix: string[] = []): Promise<Result> {
   iso.monkeypatch.setenv("ACR_NAMESPACE", "test-progress");
   _installBuilder();
-  return runner().invoke(cli, [...prefix, "template", "build", dir, "--yes"]);
+  return runner().invoke(cli, [...prefix, "template", "build", dir]);
 }
 
 function _sandbox(sandbox_id = "sbx-cli-test-001") {

@@ -57,8 +57,8 @@ assert.match(rootHelp, /Usage:/i);
 assert.doesNotMatch(rootHelp, /^Providers:$/m, "Provider belongs in Command groups");
 assert.match(rootHelp.split("Command groups:\n")[1]?.split("\n\n")[0] ?? "", /^ {2}provider\s/m);
 assert.match(rootHelp, /https:\/\/registry\.agent-sandbox\.cn\/templates\//);
-for (const name of ["deploy", "list", "status", "logs", "delete", "recover", "sandbox", "exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
-assert.doesNotMatch(rootHelp, /^ {2}(create|run|kill|info|registry-command)\s/m);
+for (const name of ["deploy", "create", "list", "status", "logs", "delete", "recover", "sandbox", "exec", "connect", "upload", "download", "capabilities", "files", "process", "system", "pause", "resume", "metrics", "snapshot", "fork", "network"]) assert.match(rootHelp, new RegExp(`^ {2}${name}\\s`, "m"));
+assert.doesNotMatch(rootHelp, /^ {2}(run|kill|info|registry-command)\s/m);
 assert.match(run(["create", "--help"]), /--template/);
 assert.match(run(["exec", "--help"]), /Everything after the sandbox ID/);
 const sandboxHelp = run(["sandbox", "--help"]);
@@ -112,12 +112,13 @@ try {
     const preview = invokeProject(["deploy", managed, "--plan", "--name", "managed-probe"]);
     assert.equal(preview.status, 0, preview.stderr);
     assert.match(preview.stdout, /builds_or_cloud_changes/);
-    for (const args of [["deploy", managed, "--name", "managed-probe", "--yes"], ["template", "build", managed, "--yes"]]) {
-      const refused = invokeProject(args);
-      assert.equal(refused.status, 1);
-      assert.match(refused.stdout + refused.stderr, /Node.js 20\+ and the npm CLI/);
-      assert.doesNotMatch(refused.stdout + refused.stderr, /MODULE_NOT_FOUND|Missing configuration/);
-    }
+    const refused = invokeProject(["deploy", managed, "--name", "managed-probe", "--yes"]);
+    assert.equal(refused.status, 1);
+    assert.match(refused.stdout + refused.stderr, /Node.js 20\+ and the npm CLI/);
+    assert.doesNotMatch(refused.stdout + refused.stderr, /MODULE_NOT_FOUND|Missing configuration/);
+    const noLocalBuild = invokeProject(["template", "build", managed]);
+    assert.equal(noLocalBuild.status, 1);
+    assert.match(noLocalBuild.stdout + noLocalBuild.stderr, /deployment-managed builds; use abx deploy SOURCE/);
     assert.ok(!existsSync(join(managed, ".abx")), "Unsupported managed preparation must not copy sources or write a build");
     assert.ok(!existsSync(join(projectRoot, ".abx", "deployments")), "Unsupported managed deployment must not write an owned record");
     assert.ok(!existsSync(join(projectRoot, ".abx", ".env")), "Unsupported managed preparation must not save credentials");
@@ -184,13 +185,16 @@ try {
   assert.match(applicationContract, /openapi: 3\.1\.0/);
   assert.match(applicationContract, /operationId: hello/);
   assert.match(applicationContract, /scheme: bearer/);
-  const missing = invokeProject(["template", "build", project, "--yes"]);
-  assert.equal(missing.status, 1, "Source build must reach Provider credential preflight");
-  assert.match(missing.stdout + missing.stderr, /Missing configuration/i);
-  assert.match(missing.stdout + missing.stderr, /access_key_id/);
-  assert.doesNotMatch(missing.stdout + missing.stderr, /Configuration scope|input hidden/i);
-  const ci = invokeProject(["--ci", "template", "build", project, "--yes"]);
-  assert.equal(ci.status, 1); assert.match(JSON.parse(ci.stdout).message, /Missing configuration/i);
+  const resourceProject = join(projectRoot, "native-resources"); mkdirSync(resourceProject);
+  writeFileSync(join(resourceProject, "template.yaml"), JSON.stringify({specVersion:1,name:"artifact-build",vars:{runtimeSecret:"${env('MISSING_RUNTIME_SECRET')}"},sandbox:{agent:{provider:"alicloud-express",actions:{"pre-deploy":[{run:"exit 99"}]},template:{image:"example.invalid/base:v1",buildConfig:{steps:[{type:"RUN",args:["exit 99"]}]}}}}}));
+  for (const mode of ["--json", "--ci"]) {
+    const built = invokeProject([mode, "template", "build", resourceProject]);
+    assert.equal(built.status, 0, "Steps-only build must defer publication without Docker, credentials or actions");
+    const result = JSON.parse(built.stdout);
+    assert.equal(result.status, "no_local_build"); assert.deepEqual(result.images, []);
+    assert.equal(result.deferred[0].resource, "agent");
+    assert.doesNotMatch(built.stdout + built.stderr, /Missing configuration|input hidden|build_file|receipt_file/);
+  }
   writeFileSync(join(project, "Dockerfile"), "keep original\n");
   const overwrite = invokeProject(["template", "init", "--template", "python", project, "-y"]);
   assert.equal(overwrite.status, 1, "Yes alone must not authorize replacement");

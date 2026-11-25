@@ -271,7 +271,7 @@ export default {
       },
     },
     {
-      id: 'template-build-missing-dir', title: 'template build requires existing source', argv: ['template', 'build', '/nonexistent/e2e-dir', '--yes'], creds: false, exit: 2, output: ['directory', 'abx template init', { not: 'Configuration scope' }],
+      id: 'template-build-missing-dir', title: 'template build requires existing source', argv: ['template', 'build', '/nonexistent/e2e-dir'], creds: false, exit: 2, output: ['directory', 'abx template init', { not: 'Configuration scope' }],
     },
     {
       id: 'template-search-local-index', title: 'template list against a local --index-url file (offline, deterministic)', creds: false,

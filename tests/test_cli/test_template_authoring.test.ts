@@ -29,7 +29,7 @@ describe("template authoring", () => {
   it("rejects a missing source with initialization guidance before build work", async () => {
     const launch = vi.spyOn(deploymentSeams, "launch");
     const source = path.join(tmp(), "missing");
-    const result = await run(["template", "build", source, "--yes"]);
+    const result = await run(["template", "build", source]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("abx template init DIRECTORY");
     expect(result.output).not.toContain("Unexpected error");
@@ -77,7 +77,7 @@ describe("template authoring", () => {
     expect(result.output).toContain("abx deploy");
     expect(result.output).not.toMatch(/--out\b|--clean\b|build\.json/);
   });
-  it.each(["--out", "--clean"])("rejects retired build-file option %s before preparation", async flag => {
+  it.each(["--out", "--clean", "--yes", "-y"])("rejects retired build option %s before preparation", async flag => {
     const source = project(), build = vi.spyOn(resourceDeploymentSeams, "build");
     const result = await run(["template", "build", source, flag, "private-build-file"]);
     expect(result.exit_code).toBe(2);expect(result.output).toContain("No such option");expect(build).not.toHaveBeenCalled();

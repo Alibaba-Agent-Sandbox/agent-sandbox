@@ -39,7 +39,7 @@ abx template list python
 abx template info python-hello
 abx template init ./my-template --from python-hello
 abx template init ./my-mcp --template mcp
-abx template build ./my-template --yes
+abx template build ./my-template
 abx deploy ./my-template --name demo --yes
 abx template publish ./my-template --tag v1.0.0 --yes
 ```

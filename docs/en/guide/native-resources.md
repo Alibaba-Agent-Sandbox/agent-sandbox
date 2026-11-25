@@ -73,6 +73,8 @@ Sandbox and Serving can contain several named resources. Their logical names are
 
 `status` reads saved native identities and reports current cloud state separately from recorded deployment completion. Authentication and network failures do not mean a resource is missing. `recover NAME` observes interrupted operations without replaying publication. An uncertain image push remains unresolved; inspect the reported destination before deleting/retrying with a new image tag.
 
+For FC, `deployed` means the native component completed publication and the owned function identity was confirmed, while FC omitted optional runtime readiness fields. `status` then reports `unknown` readiness alongside the recorded deployment result. `ready` requires explicit `Active` and `Successful` states; failed, pending or unrecognized states are not converted to successful readiness. `success-deploy` runs after successful resource publication, not after a business HTTP health check. A ready Sandbox template can still be selected from a project whose Serving readiness is unknown.
+
 Delete removes confirmed owned templates, volumes and functions. Borrowed references, retained volumes, shared component dependencies and image destinations remain with their owner. Deleting resource templates does not delete separately created instances. Local image IDs can be managed with Docker.
 
 Creating a Sandbox does not automatically start a business HTTP service, inject application credentials, bind OpenAPI or provision an Agents API gateway. Express `startCommand`/`readyCommand` retain their template-build/snapshot meaning. Existing source `spec_version: 5` deployment recipes keep their declared service startup path; see [build and deploy](deploy-and-build.md).

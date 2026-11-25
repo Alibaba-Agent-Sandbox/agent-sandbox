@@ -73,6 +73,8 @@ Sandbox 和 Serving 均可包含多个具名资源，逻辑名全局唯一。`${
 
 `status` 查询已记录的原生 ID，将当前云状态和原有部署结果分开显示。鉴权和网络失败不代表资源不存在。`recover NAME` 观察中断操作，不重放发布。结果不确定的镜像推送会保留未解决状态；检查报告的目标后，再清理或使用新 tag 部署。
 
+FC 的 `deployed` 表示原生组件已完成发布、函数归属已确认，但 FC 没有返回可选的运行时就绪字段。此时 `status` 会同时显示当前就绪状态 `unknown` 和已记录的部署结果。只有明确返回 `Active`、`Successful` 才显示 `ready`；失败、处理中或不认识的状态不会被当成就绪。`success-deploy` 在资源发布成功后执行，不代表业务 HTTP 健康检查通过。即使项目中的 Serving 就绪状态未知，已就绪的 Sandbox 模板仍可以单独用于创建实例。
+
 Delete 删除确认归属的模板、卷和函数。借用资源、保留卷、组件共享依赖和镜像目标仍由原拥有者管理。删除资源模板不会删除另外创建的动态实例。本地镜像 ID 可用 Docker 管理。
 
 创建 Sandbox 不会自动启动业务 HTTP 服务、注入应用凭据、绑定 OpenAPI 或部署 Agents API Gateway。Express `startCommand`/`readyCommand` 仍表示模板构建和快照阶段的原生含义。已有 `spec_version: 5` 源码部署保留声明的服务启动流程，见[构建与部署](deploy-and-build.md)。

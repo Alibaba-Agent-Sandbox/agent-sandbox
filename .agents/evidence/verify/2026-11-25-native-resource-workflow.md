@@ -135,3 +135,79 @@ Repository health after required ADR headings and the Node example correction:
 PASS 105, WARN 11, FAIL 0. Hygiene passed. The native example now uses Node and a
 hello.mjs source so it remains valid in this TypeScript-owned repository. No test
 result is promoted to a published-package claim.
+
+## Native FC component check and publication/readiness distinction
+
+The 3e7258c candidate then ran one bounded FC check. Read-only inspection found an
+existing execution role. The official fc3 0.1.26 archive's publish.yaml and source
+were inspected: explicit role and omitted auto dependencies do not create a role,
+SLS project/logstore, VPC/NAS or OSS bucket; a tiny local code directory uses inline
+ZIP upload. Component removal does not remove the borrowed execution role.
+
+The private project declared one unique nodejs20 function with that existing role,
+CPU 0.35, memory 512, disk 512, timeout 10 and internetAccess false, with no HTTP
+trigger, domain, image, mount, database or Sandbox. Preview succeeded. Deployment
+returned E7000 after the native function identity was saved. The normal CLI delete
+succeeded, followed by independent exact GetFunction typed absence. The complete
+sequence took 12 seconds, creating and deleting one function and no other declared
+resources. Native Invoke was not reached; no business execution success is claimed.
+
+The probe retained phase codes but discarded the exact deployment error message.
+Private state and component cache contained no recoverable stderr/log file. The
+original cause is therefore unproved. No second function was created to repair the
+probe's evidence capture.
+
+A separate read-only investigation sampled existing GetFunction responses: two
+custom code runtime functions omitted state and lastUpdateStatus; eight container
+functions reported Active/Successful. Omissions persisted with and without the
+LATEST qualifier. With temporary borrowed observation records, the candidate's
+actual describeFunction/observeResourceProject path returned unknown for the
+custom.debian12 function and ready for custom-container. Those temporary records
+were removed and the existing functions were not changed or invoked. Official SDK
+field documentation describes Successful after creation, while the pinned fc3
+implementation only performs readiness polling for custom-container/micro-sandbox.
+The observed omission must not be rewritten as Active/Successful.
+
+Root and API reviewers independently approved distinguishing completed publication
+from runtime readiness. After a successful native component call and a verified
+owned function identity, omitted optional readiness fields record deployed, with
+current readiness still unknown. Known failure, inactive/unrecognized states,
+pending deadlines, authentication errors, component timeouts and ownership mismatch
+cannot become deployed. A new function must carry the reserved ownership tag;
+an existing function must retain its exact native identity. Template readiness is
+unchanged. A ready template remains selectable in a mixed project whose Serving
+readiness is unknown.
+
+Focused public/resource/catalog regressions: 56 passed, including CLI deploy/status/
+delete, missing-state shapes, pending/failed states, mismatched tags, post-update
+replacement, inspection 401/403/503, uncertain-component no-replay and ready-template
+selection. Typecheck passed. This correction is supported by the independently
+observed existing-runtime omission; it is not asserted as the cause of the earlier
+nodejs20 failure.
+
+## Final CI and installed artifact corrections
+
+[CI 45598619751](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/actions/runs/45598619751)
+at 3e7258c passed Node 20 and Node 22 unit and parity checks, plus actual Docker on
+Node 22. The newly reached package job failed an obsolete assertion forbidding root
+create. The artifact checker was corrected to require explicit create and retain
+rejection of retired wrappers. Its next actual installed-npm execution exposed the
+old assumption that pure build must request cloud credentials. That assertion now
+runs a Steps-only specVersion 1 project and requires no_local_build with no Docker,
+credentials or hook execution, in both JSON and CI modes. Actual image construction
+remains covered by the independent Docker test. The corrected checker passed against
+a locally packed and freshly installed npm artifact. This is private artifact
+validation, not a package publication. The complete final-head CI remains separate.
+
+The ownership-tag prerequisite was separately checked read-only: two existing
+functions with tags returned their full lowercase key/value tag arrays from native
+GetFunction, matching ListFunctions. No tag values or resource IDs were retained in
+this record. The new-function guard can therefore compare actual returned ownership
+metadata instead of depending only on test doubles.
+
+Pure build's no-op --yes/-y options were removed. Current guides, scripts, help and
+artifact consumers were updated; deployment/create/delete confirmations remain.
+A reachable generation-update suggestion now directs publication to deploy rather
+than implying that local build publishes a template. Five focused suites passed
+187 tests after these changes, including the real CLI help snapshots. Provider SDK
+management flags with their own cloud behavior were retained.

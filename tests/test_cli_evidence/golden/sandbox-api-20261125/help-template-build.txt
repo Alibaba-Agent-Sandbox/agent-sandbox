@@ -7,6 +7,5 @@ SOURCE to publish resources.
 Options:
   --build-profile <BUILD_PROFILE>
   --timeout <FLOAT>
-  -y, --yes
   -h, --help                       Show this message and exit.
 [exit_code:0]

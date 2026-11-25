@@ -9,5 +9,5 @@ WORK_DIR="${WORK_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/abx-hermes-build.XXXXXX")}"
 "$ABX_BIN" --provider alicloud-express --opt "region=$REGION" \
   template init "$WORK_DIR/source" --from hermes-agent --yes
 "$ABX_BIN" --provider alicloud-express --opt "region=$REGION" \
-  template build "$WORK_DIR/source" --yes
+  template build "$WORK_DIR/source"
 printf 'Template source: %s\n' "$WORK_DIR/source"

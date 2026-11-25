@@ -110,3 +110,22 @@ The final candidate is reviewed separately from the completed bounded UX fixes.
   package contents. No new package version is included here.
 
 See [verification](../../../evidence/verify/2026-11-25-native-resource-workflow.md).
+
+### Static publication and FC runtime state
+
+A successful native component operation and confirmed owned identity establish
+publication, not business readiness. Some observed FC code runtimes omit optional
+state fields. Such results are recorded as deployed; current status remains unknown.
+Explicit Active/Successful is ready. Explicit failure, inactive/unrecognized states,
+inspection failures and uncertain component completion remain errors. Pending states
+retain bounded waiting. No synthetic health request or runtime compatibility layer
+was added. A new function must carry the deployment ownership tag; updates must keep
+the original native identity. Ready Sandbox templates remain independently usable.
+
+This change followed a failed actual FC check with successful owned cleanup and a
+separate read-only observation of omitted runtime fields. The first failure's exact
+message was not retained, so that failure is not retroactively attributed to omission.
+
+Pure local build also removes its unused --yes/-y flag; cloud confirmation remains
+on deploy, create and delete. Native SDK management flags keep their distinct
+cloud semantics. The public generation-update guidance uses deploy for publication.

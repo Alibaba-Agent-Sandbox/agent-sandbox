@@ -56,7 +56,7 @@ export async function deployResources(ctx: Context, params: Params, file: string
       for (const entry of receipt.resources.filter(entry => entry.kind === "template" && entry.status === "ready")) {
         value.resourceTargets[entry.name] ??= {...captureDeploymentTarget(entry.provider, loadLayeredConfig({provider: entry.provider, provider_options: {...cliOptions(), region: entry.region}})), region: entry.region, team: entry.team};
       }
-      value.status = "ready"; saveDeployment(value); getFormatter(ctx).printData(resourceDeploymentSummary(value, receipt));
+      value.status = receipt.status; saveDeployment(value); getFormatter(ctx).printData(resourceDeploymentSummary(value, receipt));
     } catch (error) {value.status = "requires_recovery"; saveDeployment(value); throw error;}
   });
 }

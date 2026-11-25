@@ -13,7 +13,7 @@ Public commands use one parser. `--provider` selects a backend and `--json` sele
 | Registered functions | `abx sandbox APP --help`, `abx sandbox APP NAME --body @request.json` |
 | Files and process tools | `abx files --help`, `abx process --help` |
 | Catalog and source | `abx template list`, `abx template info NAME`, `abx template init` |
-| Build/source publication | `abx template build SOURCE --yes`, `abx template publish SOURCE --tag VERSION --yes` |
+| Build/source publication | `abx template build SOURCE`, `abx template publish SOURCE --tag VERSION --yes` |
 | Provider-native operations | `abx provider command list PROVIDER`, `abx provider run OPERATION --input-file request.json` |
 
 APP is a deployment name saved on this host. Sandbox operations also accept raw IDs; managed applications use their business HTTP APIs and cannot be treated as one Sandbox. Provider writes/deletes require `--yes` in automation. Inspect operation help for JSON fields and effects.

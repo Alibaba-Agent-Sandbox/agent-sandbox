@@ -582,7 +582,7 @@ describe("TestGeneration1StartCommand", () => {
     } catch (exc) {
       expect(exc).toBeInstanceOf(TemplateBuildError);
       expect((exc as TemplateBuildError).suggestion).toContain('provider run template.delete --input \'{"template_id":"tpl-old"}\' --yes');
-      expect((exc as TemplateBuildError).suggestion).toContain("abx template build . --yes");
+      expect((exc as TemplateBuildError).suggestion).toContain("abx deploy SOURCE");
       expect((exc as TemplateBuildError).suggestion).toContain("new template name");
     }
   });

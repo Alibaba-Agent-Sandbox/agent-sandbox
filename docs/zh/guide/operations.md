@@ -13,7 +13,7 @@
 | 注册函数 | `abx sandbox APP --help`、`abx sandbox APP NAME --body @request.json` |
 | 文件和进程工具 | `abx files --help`、`abx process --help` |
 | 目录与源码 | `abx template list`、`abx template info NAME`、`abx template init` |
-| 构建/源码发布 | `abx template build SOURCE --yes`、`abx template publish SOURCE --tag VERSION --yes` |
+| 构建/源码发布 | `abx template build SOURCE`、`abx template publish SOURCE --tag VERSION --yes` |
 | Provider 原生操作 | `abx provider command list PROVIDER`、`abx provider run OPERATION --input-file request.json` |
 
 APP 是本机保存的部署名称。Sandbox 操作也接受原生 ID；托管应用通过业务 HTTP API 使用，不能被当作一个 Sandbox。Provider 写入/删除操作在非交互模式需要 `--yes`。查看操作帮助确认输入 JSON 的字段和效果。
