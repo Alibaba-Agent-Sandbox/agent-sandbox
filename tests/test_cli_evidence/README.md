@@ -7,7 +7,8 @@ Golden-file regression tests for the exact text the CLI prints.
 | `evidence_cases.ts` | The registry (`REGISTRY`, ~110 cases): command line, description, category, the mock that makes it offline, golden file name. Also `normalize`, `formatResult`, `runCase`. |
 | `test_evidence_snapshots.test.ts` | Port of `test_evidence_snapshots.py`. One `test_evidence_snapshot [<golden>]` per offline-deterministic case; compares the normalised stdout byte for byte with `golden/<name>.txt`. |
 | `capture_cli_evidence.capture.ts` | The capture driver behind `scripts/capture-cli-evidence.mjs` (Markdown evidence documents). |
-| `golden/` | The committed snapshots, copied unchanged from the Python repository. |
+| `golden/sandbox-api-20261125/` | Active snapshots for the target-first API command surface. |
+| Other `golden/` batches | Immutable historical snapshots from earlier command surfaces. |
 
 Category A cases need nothing but the CLI; category B cases drive a mocked backend (`Sandbox.create`/`connect`, template
 API, MCP IDE config map, API-key lookup, ...). The mocks are installed per case and undone afterwards, so the snapshots
@@ -20,8 +21,9 @@ npx vitest run tests/test_cli_evidence          # compare every case with its go
 ABX_UPDATE_EVIDENCE=1 npx vitest run tests/test_cli_evidence   # (re)write golden files instead of asserting
 ```
 
-Only refresh a golden file when the output change is intentional and reviewed: the files are the byte-level contract with
-the Python CLI.
+Only refresh the active batch when an output change is intentional and reviewed. Historical batches remain unchanged.
+Current root help, removed-wrapper rejections and Sandbox API fixtures also assert their expected exit codes before a
+snapshot can be refreshed. API captures use fixed local contracts and mocked HTTP responses; they do not verify a cloud service.
 
 ## Capture script
 

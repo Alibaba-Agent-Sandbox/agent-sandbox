@@ -1,0 +1,5 @@
+apis:
+  report:
+    resource: sandbox.report
+    port: 9000
+    openapi: ./openapi.yaml

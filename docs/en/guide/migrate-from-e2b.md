@@ -5,13 +5,13 @@ Current abx uses one command surface for Express and other Providers. Migration 
 ```bash
 abx deploy --template-id code-interpreter-v1 --name work --yes
 abx --json list
-abx sandbox exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
-abx sandbox connect work
+abx exec --cwd /tmp work -- sh -c 'printf hello; exit 7'
+abx connect work
 abx status work
 abx delete work --yes
 ```
 
-Deploy returns after creating a named instance and does not automatically open a terminal. `sandbox connect` attaches a terminal and leaves the borrowed instance running on exit. Put local exec options before the target; arguments after it belong to the remote program. Remote output and exit status are preserved. Delete only owned resources, using `--yes` in automation.
+Deploy returns after creating a named instance and does not automatically open a terminal. `connect` attaches a terminal and leaves the borrowed instance running on exit. Put local exec options before the target; arguments after it belong to the remote program. Remote output and exit status are preserved. Delete only owned resources, using `--yes` in automation.
 
 Express retains its documented `E2B_API_KEY`, `E2B_API_URL` and `E2B_DOMAIN` settings as well as project `ABX_SANDBOX_*` configuration. It uses the configured Alibaba identity without E2B browser login or Team administration. Never send Express credentials to another Provider.
 

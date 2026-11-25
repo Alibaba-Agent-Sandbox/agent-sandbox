@@ -112,7 +112,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-03 an unrepresentable command timer is rejected before connecting", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runAbx(["sandbox", "exec", "--timeout", "2147483648", SB, "echo hi"], { home, cwd, url: stub.url });
+      const r = await runAbx(["exec", "--timeout", "2147483648", SB, "echo hi"], { home, cwd, url: stub.url });
       expect(r.stderr).not.toContain("TimeoutOverflowWarning");
       expect(r.stderr).not.toContain("E3001");
       expect(r.status, r.stderr).toBe(2);
@@ -123,7 +123,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-04 a negative command budget is rejected before any Start request is sent", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runAbx(["sandbox", "exec", "--timeout", "-5", SB, "echo hi"], { home, cwd, url: stub.url });
+      const r = await runAbx(["exec", "--timeout", "-5", SB, "echo hi"], { home, cwd, url: stub.url });
       // The unified parser rejects a negative deadline before any execution request.
       // Direct HTTP connect-timeout behavior is covered separately.
       expect(r.status).toBe(2);
@@ -185,7 +185,7 @@ describe("commands (review regressions)", () => {
 
   it.skipIf(!existsSync("/dev/full"))("ADV-commands-10 a download write failure carries no filename (OS error: [Errno 28] No space left on device)", async () => {
     await withStub(async ({ stub, home, cwd }) => {
-      const r = await runAbx(["sandbox", "download", SB, "/home/user/hello.txt", "/dev/full"], { home, cwd, url: stub.url });
+      const r = await runAbx(["download", SB, "/home/user/hello.txt", "/dev/full"], { home, cwd, url: stub.url });
       expect(r.stderr).toContain("OS error: [Errno 28] No space left on device");
       expect(r.stderr).not.toContain("/dev/full");
     });
@@ -213,7 +213,7 @@ describe("commands (review regressions)", () => {
     homes.push(home, cwd);
     try {
       const url = `http://127.0.0.1:${(server.address() as any).port}`;
-      const r = await runAbx(["sandbox", "download", SB, "/trunc", "out"], { home, cwd, url });
+      const r = await runAbx(["download", SB, "/trunc", "out"], { home, cwd, url });
       expect(r.stderr).toContain("(received 1000 bytes, expected 5000)");
     } finally {
       server.closeAllConnections();
@@ -227,7 +227,7 @@ describe("commands (review regressions)", () => {
 
   it("ADV-commands-14 process signal --signal above 2**63 is rejected like python ('Integer exceeds 64-bit range')", async () => {
     await withStub(async ({ stub, home, cwd, log }) => {
-      const r = await runAbx(["sandbox", "process", "signal", SB, "1", "--signal", "99999999999999999999"], { home, cwd, url: stub.url });
+      const r = await runAbx(["process", "signal", SB, "1", "--signal", "99999999999999999999"], { home, cwd, url: stub.url });
       const sentSignal = (await log()).some((e) => e.path === "/process.Process/SendSignal");
       expect(sentSignal).toBe(false);
       expect(r.status).not.toBe(0);

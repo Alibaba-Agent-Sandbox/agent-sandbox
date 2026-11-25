@@ -6,7 +6,7 @@ Status: proposed; implementation and verification are tracked in the repository 
 
 Core CLI groups and shortcuts are fixed in `src/cli/command_surface.ts`. Providers implement
 the shared sandbox protocols and declare the existing 18 feature tokens. Those tokens are
-not executable management commands. `abx sandbox command` discovers application commands
+not executable management commands. `abx sandbox TARGET --help` discovers application commands
 registered by the server inside a sandbox; it does not manage cloud infrastructure.
 
 Provider management commands have the identity `(provider ID, command ID)`. They cannot

@@ -188,15 +188,15 @@ export const system_info = command("info", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox system info abc123\n" +
+    "    abx system info abc123\n" +
     "\n" +
-    "    abx --json sandbox system info abc123\n" +
+    "    abx --json system info abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
     "  abx status SANDBOX_ID\n" +
-    "  abx sandbox system metrics SANDBOX_ID\n" +
-    "  abx sandbox system packages SANDBOX_ID",
+    "  abx system metrics SANDBOX_ID\n" +
+    "  abx system packages SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -253,14 +253,14 @@ export const system_env = command("env", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox system env abc123\n" +
+    "    abx system env abc123\n" +
     "\n" +
-    "    abx sandbox system env abc123 --filter PATH,HOME,LANG\n" +
+    "    abx system env abc123 --filter PATH,HOME,LANG\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx sandbox exec SANDBOX_ID \"env | sort\"\n" +
+    "  abx system info SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"env | sort\"\n" +
     "  abx deploy --template-id base --env KEY=VALUE --yes",
   params: [
     argument(["sandbox_id"]),
@@ -330,15 +330,15 @@ export const system_ports = command("ports", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox system ports abc123\n" +
+    "    abx system ports abc123\n" +
     "\n" +
-    "    abx --json sandbox system ports abc123\n" +
+    "    abx --json system ports abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx sandbox process list SANDBOX_ID\n" +
-    "  abx sandbox exec SANDBOX_ID \"ss -tlnp\"",
+    "  abx system info SANDBOX_ID\n" +
+    "  abx process list SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"ss -tlnp\"",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -374,15 +374,15 @@ export const system_packages = command("packages", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox system packages abc123\n" +
+    "    abx system packages abc123\n" +
     "\n" +
-    "    abx sandbox system packages abc123 --manager npm\n" +
+    "    abx system packages abc123 --manager npm\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx sandbox exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
-    "  abx sandbox process list SANDBOX_ID",
+    "  abx system info SANDBOX_ID\n" +
+    "  abx exec SANDBOX_ID \"python3 -m pip show PACKAGE\"\n" +
+    "  abx process list SANDBOX_ID",
   params: [
     argument(["sandbox_id"]),
     option(["--manager", "-m"], {
@@ -477,14 +477,14 @@ export const system_metrics = command("metrics", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox system metrics abc123\n" +
+    "    abx system metrics abc123\n" +
     "\n" +
-    "    abx --json sandbox system metrics abc123\n" +
+    "    abx --json system metrics abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
-    "  abx sandbox system info SANDBOX_ID\n" +
-    "  abx sandbox process list SANDBOX_ID\n" +
+    "  abx system info SANDBOX_ID\n" +
+    "  abx process list SANDBOX_ID\n" +
     "  abx status SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
@@ -557,15 +557,15 @@ export const capabilities = command("capabilities", {
     "\n" +
     "Examples:\n" +
     "\n" +
-    "    abx sandbox capabilities abc123\n" +
+    "    abx capabilities abc123\n" +
     "\n" +
-    "    abx --json sandbox capabilities abc123\n" +
+    "    abx --json capabilities abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
     "  abx status SANDBOX_ID\n" +
     "  abx template info TEMPLATE_ID\n" +
-    "  abx sandbox system info SANDBOX_ID",
+    "  abx system info SANDBOX_ID",
   params: [argument(["sandbox_id"])],
   callback: handleErrors(async (ctx, params) => {
     const sandbox_id = params["sandbox_id"] as string;
@@ -596,15 +596,15 @@ export const system = group("system", {
     "\n" +
     "\b\n" +
     "Examples:\n" +
-    "  abx sandbox system info abc123\n" +
-    "  abx sandbox system env abc123 --filter PATH,HOME\n" +
-    "  abx sandbox system metrics abc123\n" +
+    "  abx system info abc123\n" +
+    "  abx system env abc123 --filter PATH,HOME\n" +
+    "  abx system metrics abc123\n" +
     "\n" +
     "\b\n" +
     "Related commands:\n" +
     "  abx status SANDBOX_ID\n" +
-    "  abx sandbox process --help\n" +
-    "  abx sandbox capabilities SANDBOX_ID",
+    "  abx process --help\n" +
+    "  abx capabilities SANDBOX_ID",
   callback: (ctx) => {
     ctx.ensureObject(Object);
   },

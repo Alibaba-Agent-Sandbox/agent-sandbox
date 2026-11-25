@@ -1,6 +1,6 @@
 /**
  * Plugin-provider behaviour of commands that used to assume the built-in Alibaba Cloud provider: template commands
- * answer E8004 before any ACR/Docker work, named commands answer E8004 instead of an untyped crash, capabilities come
+ * answer E8004 before any ACR/Docker work, unbound APIs fail before Provider data-plane access, capabilities come
  * from the provider's declared features, and SandboxInfo carries no built-in region/timeout defaults.
  */
 
@@ -10,9 +10,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { main } from "../../src/cli/main.js";
+import { Sandbox } from "../../src/api/sandbox.js";
 import * as installer from "../../src/providers/installer.js";
 import { useIso } from "../_support/iso.js";
 import { LOCAL_PROCESS, TEST_HOST_VERSION, pythonAvailable } from "../_support/plugins.js";
@@ -25,7 +26,7 @@ let tmp = "";
 beforeEach(() => {
   tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "abx-gaps-"));
 });
-afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
+afterEach(() => { vi.restoreAllMocks(); fs.rmSync(tmp, { recursive: true, force: true }); });
 
 async function abx(...args: string[]): Promise<{ code: number; out: string; err: string }> {
   const code = await main({ args });
@@ -57,6 +58,19 @@ describe("template commands honour the active provider", () => {
   });
 });
 
+it("rejects an unbound API before loading or connecting to its Provider", async () => {
+  const connect = vi.spyOn(Sandbox, "connect").mockRejectedValue(new Error("must not connect"));
+  const run = vi.spyOn(Sandbox.prototype, "runCommand").mockRejectedValue(new Error("must not run via envd"));
+  for (const args of [["sandbox", "unbound-id", "--help"], ["sandbox", "unbound-id", "report"]]) {
+    const result = await abx("--provider", "not-installed", ...args);
+    expect(result.err + result.out).toContain("No API contract is bound to this target");
+    expect(result.err + result.out).not.toContain("E8001");
+    expect(result.code).not.toBe(0);
+  }
+  expect(connect).not.toHaveBeenCalled();
+  expect(run).not.toHaveBeenCalled();
+});
+
 describe.skipIf(!hasPython)("a plugin sandbox", () => {
   async function createSandbox(): Promise<string> {
     await installLocal();
@@ -65,23 +79,9 @@ describe.skipIf(!hasPython)("a plugin sandbox", () => {
     return JSON.parse(created.out).sandbox_id as string;
   }
 
-  it("test_named_commands_answer_e8004_not_an_untyped_crash", async () => {
-    const sid = await createSandbox();
-    for (const args of [
-      ["sandbox", "command", "list", sid],
-      ["sandbox", "command", "run", sid, "build"],
-    ]) {
-      const r = await abx("--provider", "local-process", ...args);
-      expect(r.err + r.out, args.join(" ")).toContain("E8004");
-      expect(r.err + r.out).not.toContain("_createEnvdClient");
-      expect(r.err + r.out).toContain("ports.url");
-      expect(r.code).toBe(1);
-    }
-  });
-
   it("test_capabilities_come_from_the_declared_features", async () => {
     const sid = await createSandbox();
-    const r = await abx("--json", "--provider", "local-process", "sandbox", "capabilities", sid);
+    const r = await abx("--json", "--provider", "local-process", "capabilities", sid);
     expect(r.code, r.err).toBe(0);
     expect(JSON.parse(r.out).capabilities).toEqual(["files", "shell"]);
   });

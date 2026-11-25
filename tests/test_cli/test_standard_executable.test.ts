@@ -20,15 +20,17 @@ async function run(args: string[]): Promise<{ code: number; stdout: string; stde
   }));
 }
 describe("single executable contract", () => {
-  it.each(["pause", "resume", "metrics", "snapshot", "fork", "network", "exec", "connect", "files", "process", "command", "system"])("exposes native %s capability", async name => {
-    const result = await run(["sandbox", name, "--help"]);
+  it.each(["pause", "resume", "metrics", "snapshot", "fork", "network", "exec", "connect", "files", "process", "system"])("exposes native %s capability", async name => {
+    const result = await run([name, "--help"]);
     expect(result.code, result.stderr).toBe(0); expect(result.stdout).toContain("Usage:");
   });
-  it.each(["create", "list", "info", "kill", "logs"])("has no duplicate sandbox %s management entry", async name => {
-    expect((await run(["sandbox", name, "--help"])).code).toBe(2);
+  it.each(["create", "list", "info", "kill", "logs"])("treats former sandbox subcommand %s as a target", async name => {
+    const result = await run(["sandbox", name, "--help"]);
+    expect(result.code).not.toBe(0);
+    expect(result.stderr).toContain("No API contract is bound to this target");
   });
   it.each(["--json", "--quiet", "--verbose", "--no-color"])("uses the root %s option for protocol operations", async flag => {
-    const result = await run([flag, "sandbox", "metrics", "--help"]);
+    const result = await run([flag, "metrics", "--help"]);
     expect(result.code, result.stderr).toBe(0);
   });
   it("rejects the retired parser switch", async () => { expect((await run(["--native", "config", "get", "region"])).code).toBe(2); });

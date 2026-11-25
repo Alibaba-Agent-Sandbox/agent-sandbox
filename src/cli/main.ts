@@ -38,6 +38,8 @@ const _hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProper
 const COMMAND_MODULES: Record<string, () => Promise<Record<string, unknown>>> = {
   "commands/deployment_management": () => import("./commands/deployment_management.js"),
   "commands/sandbox": () => import("./commands/sandbox.js"),
+  "commands/sandbox_api": () => import("./commands/sandbox_api.js"),
+  "commands/sandbox_native": () => import("./commands/sandbox_native.js"),
   "commands/config_cmd": () => import("./commands/config_cmd.js"),
   "commands/mcp": () => import("./commands/mcp.js"),
   "commands/provider": () => import("./commands/provider.js"),

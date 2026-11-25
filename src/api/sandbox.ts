@@ -844,7 +844,7 @@ export class Sandbox {
     if (response.status_code === 404) {
       throw new CommandNotFoundError(name, {
         server_status: "HTTP 404",
-        suggestion: "List the registered commands with 'abx sandbox command list SANDBOX_ID'.",
+        suggestion: "Inspect the application's registered functions with your Sandbox instance's listCommands(), or bind its OpenAPI contract for CLI help.",
       });
     }
 

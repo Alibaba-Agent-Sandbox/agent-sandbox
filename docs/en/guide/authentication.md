@@ -132,7 +132,7 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 abx config set sandbox_api_key your-api-key
 ```
 
-Use deploy `--env` for the newly created runtime. A per-command override belongs to `sandbox exec --env` and does not reconfigure an already running service:
+Use deploy `--env` for the newly created runtime. A per-command override belongs to `exec --env` and does not reconfigure an already running service:
 
 ```bash
 abx deploy --template-id base --name my-sandbox --env MODE=example --yes

@@ -43,13 +43,13 @@ abx deploy --template-id base --name demo --yes
 后续操作使用部署名称：
 
 ```bash
-abx sandbox exec demo -- echo hello
+abx exec demo -- echo hello
 abx status demo
-abx sandbox connect demo
+abx connect demo
 abx delete demo --yes
 ```
 
-`sandbox connect` 打开远程终端，退出终端后沙箱仍在运行；`delete` 删除沙箱。文件操作、后台进程等用法见 [CLI 教程](docs/zh/guide/cli-tutorial.md)。
+`connect` 打开远程终端，退出终端后沙箱仍在运行；`delete` 删除沙箱。文件操作、后台进程等用法见 [CLI 教程](docs/zh/guide/cli-tutorial.md)。
 
 ## 启动应用模板
 

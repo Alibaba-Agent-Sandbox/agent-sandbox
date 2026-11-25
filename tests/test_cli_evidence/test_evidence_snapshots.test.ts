@@ -42,9 +42,10 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   // Compare normalised CLI output against committed golden file.
   // `stdout` only (not the interleaved `output`): the stdout/stderr split is what the evidence must prove.
   const { stdout, stderr, exit_code } = await runCase(testCase);
+  if (testCase.expected_exit !== undefined) expect(exit_code, `${testCase.output_file}: ${stdout}${stderr}`).toBe(testCase.expected_exit);
   const actual = normalize(formatResult(stdout, stderr, exit_code));
 
-  const batch = testCase.output_file === "help-mcp" ? "guidance-20261112" : "single-frontend-20261110";
+  const batch = "sandbox-api-20261125";
   const goldenPath = path.join(GOLDEN_DIR, batch, `${testCase.output_file}.txt`);
   if (UPDATE) {
     fs.mkdirSync(path.dirname(goldenPath), { recursive: true });

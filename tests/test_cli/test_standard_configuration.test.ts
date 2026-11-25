@@ -38,7 +38,7 @@ describe("single frontend protocol configuration", () => {
           writeFileSync(path.join(dir, "deployment.json"), JSON.stringify({ version: 1, name: target, kind: "sandbox", provider: "alicloud-express", providerOptions: { region: "cn-shanghai" }, connection: { api_url: endpoint }, status: "ready", sandboxId: "raw-sandbox" }));
         }
       }
-      const result = await run(["--json", "--provider", "alicloud-express", "sandbox", "metrics", target], env, cwd);
+      const result = await run(["--json", "--provider", "alicloud-express", "metrics", target], env, cwd);
       expect(result.code, result.stdout + result.stderr).toBe(0); expect(JSON.parse(result.stdout)).toEqual([]);
       expect(calls).toEqual([{ path: "/sandboxes/raw-sandbox/metrics", key: "scoped-key" }]);
     } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
@@ -49,7 +49,7 @@ describe("single frontend protocol configuration", () => {
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     try {
       const address = server.address(); if (!address || typeof address === "string") throw new Error("Missing fixture address");
-      const result = await run(["--json", "sandbox", "snapshot", "create", "raw-id", "--name", "fixture"], { ABX_SANDBOX_API_KEY: "fixture-key", ABX_SANDBOX_BASE_URL: `http://127.0.0.1:${address.port}` }, home);
+      const result = await run(["--json", "snapshot", "create", "raw-id", "--name", "fixture"], { ABX_SANDBOX_API_KEY: "fixture-key", ABX_SANDBOX_BASE_URL: `http://127.0.0.1:${address.port}` }, home);
       expect(result.code, result.stdout + result.stderr).toBe(0); expect(JSON.parse(result.stdout)).toEqual({ snapshotId: "snap-fixture", names: ["fixture"] });
       expect(route).toBe("/sandboxes/raw-id/snapshots"); expect(JSON.parse(body)).toEqual({ name: "fixture" });
     } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }

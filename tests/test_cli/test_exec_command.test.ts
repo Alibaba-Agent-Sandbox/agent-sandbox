@@ -1,5 +1,5 @@
 import { useMockCloudConfiguration } from "../_support/mockCloudConfiguration.js";
-/** Tests for `abx exec` / `abx sandbox exec`: wait (default), `--stream`, `--background`, `--env`, argv handling. */
+/** Tests for `abx exec`: wait (default), `--stream`, `--background`, `--env`, argv handling. */
 
 import "../_support/isolatedHome.js";
 
@@ -54,7 +54,7 @@ describe("TestExecWait", () => {
     const sb = _sandbox();
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "out\n", stderr: "err\n", exit_code: 3, execution_time: 0.1 }));
 
-    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-1", "--", "false"]);
+    const result = await runner().invoke(cli, ["exec", "sbx-1", "--", "false"]);
 
     expect(result.exit_code).toBe(3);
     expect(result.stdout).toBe("out\n");
@@ -66,29 +66,31 @@ describe("TestExecWait", () => {
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "", stderr: "", exit_code: 0, execution_time: 0 }));
 
     const result = await runner().invoke(cli, [
-      "sandbox", "exec", "--cwd", "/app", "-e", "A=1", "--env", "B=two=2", "--timeout", "7", "sbx-1", "--", "pytest", "-q",
+      "exec", "--cwd", "/app", "-e", "A=1", "--env", "B=two=2", "--timeout", "7", "sbx-1", "--", "pytest", "-q",
     ]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(sb.commands.run).toHaveBeenCalledWith("pytest -q", { timeout: 7, cwd: "/app", env: { A: "1", B: "two=2" } });
   });
 
-  it("test_sandbox_exec_is_the_same_command", async () => {
+  it("preserves argv with and without an explicit terminator", async () => {
     const sb = _sandbox();
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "ok\n", stderr: "", exit_code: 0, execution_time: 0 }));
 
-    const a = await runner().invoke(cli, ["sandbox", "exec", "sbx-1", "--", "echo", "ok"]);
-    const b = await runner().invoke(cli, ["sandbox", "exec", "sbx-1", "--", "echo", "ok"]);
+    const a = await runner().invoke(cli, ["exec", "sbx-1", "--", "echo", "--provider", "remote"]);
+    const b = await runner().invoke(cli, ["exec", "sbx-1", "echo", "--provider", "remote"]);
 
     expect([a.exit_code, a.output]).toEqual([b.exit_code, b.output]);
     expect(sb.commands.run).toHaveBeenCalledTimes(2);
+    expect(sb.commands.run.mock.calls[0]?.[0]).toBe("echo --provider remote");
+    expect(sb.commands.run.mock.calls[1]?.[0]).toBe("echo --provider remote");
   });
 
   it("test_exec_json", async () => {
     const sb = _sandbox();
     sb.commands.run.mockResolvedValue(new ProcessResult({ stdout: "hi\n", stderr: "", exit_code: 0, execution_time: 0.2 }));
 
-    const result = await runner().invoke(cli, ["--json", "sandbox", "exec", "sbx-1", "--", "echo", "hi"]);
+    const result = await runner().invoke(cli, ["--json", "exec", "sbx-1", "--", "echo", "hi"]);
 
     expect(result.exit_code).toBe(0);
     expect(JSON.parse(result.output)).toMatchObject({ stdout: "hi\n", exit_code: 0 });
@@ -96,20 +98,20 @@ describe("TestExecWait", () => {
 
   it("test_exec_invalid_env_is_a_usage_error", async () => {
     _sandbox();
-    const result = await runner().invoke(cli, ["sandbox", "exec", "--env", "NOPE", "sbx-1", "--", "true"]);
+    const result = await runner().invoke(cli, ["exec", "--env", "NOPE", "sbx-1", "--", "true"]);
     expect(result.exit_code).toBe(2);
     expect(result.output).toContain("KEY=VALUE");
   });
 
   it("test_exec_requires_a_command", async () => {
-    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-1"]);
+    const result = await runner().invoke(cli, ["exec", "sbx-1"]);
     expect(result.exit_code).toBe(2);
   });
 
   it("test_exec_timeout_error_exit_code", async () => {
     const sb = _sandbox();
     sb.commands.run.mockRejectedValue(new CommandTimeoutError("timed out"));
-    const result = await runner().invoke(cli, ["sandbox", "exec", "sbx-1", "--", "sleep", "9999"]);
+    const result = await runner().invoke(cli, ["exec", "sbx-1", "--", "sleep", "9999"]);
     expect(result.exit_code).toBe(5);
   });
 });
@@ -123,7 +125,7 @@ describe("TestExecStream", () => {
       gen([chunk(ProcessChunkType.STDOUT, "o1"), chunk(ProcessChunkType.STDERR, "e1"), chunk(ProcessChunkType.STDOUT, ""), chunk(ProcessChunkType.EXIT, "", 4)]),
     );
 
-    const result = await runner().invoke(cli, ["sandbox", "exec", "--stream", "sbx-1", "--", "make"]);
+    const result = await runner().invoke(cli, ["exec", "--stream", "sbx-1", "--", "make"]);
 
     expect(result.exit_code).toBe(4);
     expect(result.stdout).toBe("o1");
@@ -135,7 +137,7 @@ describe("TestExecStream", () => {
   it("test_stream_json_reports_exit_code", async () => {
     const sb = _sandbox();
     sb.commands.stream.mockReturnValue(gen([chunk(ProcessChunkType.EXIT, "", 0)]));
-    const result = await runner().invoke(cli, ["--json", "sandbox", "exec", "--stream", "sbx-1", "--", "true"]);
+    const result = await runner().invoke(cli, ["--json", "exec", "--stream", "sbx-1", "--", "true"]);
     expect(result.exit_code).toBe(0);
     expect(JSON.parse(result.stdout)).toEqual({ exit_code: 0 });
   });
@@ -148,7 +150,7 @@ describe("TestExecBackground", () => {
     const sb = _sandbox();
     sb.commands.start.mockResolvedValue(started(new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "", pid: 4242 })));
 
-    const result = await runner().invoke(cli, ["sandbox", "exec", "--background", "sbx-1", "--", "python", "-m", "http.server"]);
+    const result = await runner().invoke(cli, ["exec", "--background", "sbx-1", "--", "python", "-m", "http.server"]);
 
     expect(result.exit_code, result.output).toBe(0);
     expect(result.stdout).toBe("4242\n");
@@ -159,21 +161,21 @@ describe("TestExecBackground", () => {
   it.each([7, "opaque-process-id", "0007"])("test_background_json [%j]", async pid => {
     const sb = _sandbox();
     sb.commands.start.mockResolvedValue(started(new ProcessChunk({ type: ProcessChunkType.STDOUT, data: "", pid })));
-    const result = await runner().invoke(cli, ["--json", "sandbox", "exec", "--background", "sbx-1", "--", "sleep", "100"]);
+    const result = await runner().invoke(cli, ["--json", "exec", "--background", "sbx-1", "--", "sleep", "100"]);
     expect(JSON.parse(result.stdout)).toEqual({ pid });
   });
 
   it("test_background_without_pid_fails", async () => {
     const sb = _sandbox();
     sb.commands.start.mockResolvedValue(started(new ProcessChunk({ type: ProcessChunkType.EXIT, exit_code: 127 })));
-    const result = await runner().invoke(cli, ["sandbox", "exec", "--background", "sbx-1", "--", "nope"]);
+    const result = await runner().invoke(cli, ["exec", "--background", "sbx-1", "--", "nope"]);
     expect(result.exit_code).toBe(1);
     expect(result.output).toContain("process id");
   });
 
   it("test_background_and_stream_are_exclusive", async () => {
     _sandbox();
-    const result = await runner().invoke(cli, ["sandbox", "exec", "--background", "--stream", "sbx-1", "--", "true"]);
+    const result = await runner().invoke(cli, ["exec", "--background", "--stream", "sbx-1", "--", "true"]);
     expect(result.exit_code).not.toBe(0);
     expect(result.output).toContain("cannot be combined");
   });

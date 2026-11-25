@@ -141,7 +141,7 @@ export const fork = byId("fork", "Fork a running sandbox and return the new sand
 }, [option(["--count", "-n"], { type: INT, default: 1 }), option("--timeout", { type: INT, help: "Lifetime in seconds (minimum 30)" })]);
 
 export const network = group("network", { help: "Read or update a sandbox's network policy." });
-network.addCommand(byId("get", "Read the current sandbox network policy.", async (ctx, id) => {
+network.addCommand(byId("get", "Read the current network policy.", async (ctx, id) => {
   await withNativeSandbox(ctx, id, async (runtime, bare, options) => { getFormatter(ctx).printData((await runtime.Sandbox.getInfo(bare!, options)).network ?? {}); });
 }));
 network.addCommand(byId("update", "Replace all egress rules from JSON (allowOut, denyOut, rules, egressProxy, allowInternetAccess). Omitted rules and proxy settings are cleared.", async (ctx, id, params) => {

@@ -176,7 +176,7 @@ providers.<id>.<key>
 ### 4.1 `--provider`
 
 * 接受为**根选项**（`abx --provider ID <cmd> …`），也接受为每个与提供方通信的命令上的**命令级选项**；命令级的值优先。帮助：`--provider ID  Provider for this command (default: 'abx provider default' value, else alicloud-express)`。
-* 接受它的命令（及其需要的特性）：`create`/`sandbox create`（`sandbox.lifecycle`）、`list`/`sandbox list`、`info`、`kill`、`connect`、`exec`（`exec.run`；`exec --stream` 需要 `exec.stream`）、`run`、`shell`、`upload`/`download`/`files`（`files.rw`）、`sandbox process …`（`process.manage`）、`sandbox system …`、`sandbox timeout`（`sandbox.timeout`）、`sandbox pause/resume`（`sandbox.pause`）、`template list/info/build/deploy/delete/install/push/create` 和 `deploy`（`templates.read`/`templates.build`）、`mcp install/start/deploy`（`sandbox.lifecycle`）。
+* 接受它的命令（及其需要的特性）：`create`/`sandbox create`（`sandbox.lifecycle`）、`list`/`sandbox list`、`info`、`kill`、`connect`、`exec`（`exec.run`；`exec --stream` 需要 `exec.stream`）、`run`、`shell`、`upload`/`download`/`files`（`files.rw`）、`process …`（`process.manage`）、`system …`、`sandbox timeout`（`sandbox.timeout`）、`pause/resume`（`sandbox.pause`）、`template list/info/build/deploy/delete/install/push/create` 和 `deploy`（`templates.read`/`templates.build`）、`mcp install/start/deploy`（`sandbox.lifecycle`）。
 * 不绑定提供方（永不接受）：`config`（有自己的 `--provider` 用于限定范围）、`template init/search`、`mcp status`、`provider *`。
 * 拼写提示：未知的 id 会在 `E8001` 的建议里加上 `Did you mean 'X'?`（对内置 / 已安装 id 的编辑距离 ≤ 2）。缺少特性 → 在任何副作用**之前**失败：退出码 1，`[E8004] Provider 'ID' does not support 'FEATURE'.` + 建议 `Run 'abx provider info ID' to see supported features.`（JSON：`{"status":"error","code":"E8004","message":…,"suggestion":…}`）。
 * 内置提供方的提供方作用域选项（`--region/-r`、`--acr-*`、`--team-id`、`--vpc-id`、`--vswitch-ids`、`--security-group-id`）只有当生效的提供方声明了对应的键时才被接受；否则退出码 2：`Option '--region' is not supported by provider 'ID'.`，建议 `Use '--opt KEY=VALUE' for provider options (see 'abx provider info ID').`
@@ -198,7 +198,7 @@ providers.<id>.<key>
 
 ### 4.4 限定的沙箱引用
 
-输入语法：每个接受沙箱 id 的命令（`info`、`kill`、`exec`、`connect`、`upload`、`download`、`files`、`sandbox process/system …`）都接受 `[provider:]sandbox_id`。只有当第一个 `:` 之前的部分符合提供方 id 语法**并且**等于某个内置 / 已安装的提供方 id 时，才解析前缀；否则整个字符串就是 id。文本输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。`--provider P` + 引用 `Q:id` 且 `P≠Q` → 退出码 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
+输入语法：每个接受沙箱 id 的命令（`info`、`kill`、`exec`、`connect`、`upload`、`download`、`files`、`process/system …`）都接受 `[provider:]sandbox_id`。只有当第一个 `:` 之前的部分符合提供方 id 语法**并且**等于某个内置 / 已安装的提供方 id 时，才解析前缀；否则整个字符串就是 id。文本输出统一使用 `provider:sandbox_id`，JSON 行包含 `provider` 并保留裸 ID 字段。`--provider P` + 引用 `Q:id` 且 `P≠Q` → 退出码 2 `[E8030] Sandbox reference 'Q:id' conflicts with --provider P.`
 
 `abx list --all-providers` —— 增加 `Provider` 列 / 键，查询每个已配置（其 `credential` 字段能解析）的提供方，跳过失败的提供方并向 stderr 打印警告（`warning: provider 'ID' skipped: <message>`），至少一个成功则退出码 0，否则为第一个错误的退出码。
 

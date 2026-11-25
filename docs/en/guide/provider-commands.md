@@ -45,7 +45,7 @@ abx --json --provider alicloud-express provider run snapshot.create \
 
 Use these JSON interfaces for AI discovery and automation. Human help is presentation, not a stable
 JSON response contract. Provider management operations are distinct from sandbox application commands
-(`abx sandbox command`) and from template preparation (`abx deploy`). Neither management
+(`abx sandbox TARGET --help`) and from template preparation (`abx deploy`). Neither management
 registration nor help creates a template or a cloud resource. This change does not automatically add
 MCP tools, shell completion entries or typed SDK methods.
 

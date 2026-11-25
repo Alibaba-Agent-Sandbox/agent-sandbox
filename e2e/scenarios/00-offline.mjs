@@ -4,8 +4,9 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 // The fixed top-level surface: command groups plus the sandbox shortcuts (see docs/en/reference/cli-commands.md).
-const ROOT_COMMANDS = ['config', 'deploy', 'delete', 'list', 'logs', 'mcp', 'provider', 'recover', 'sandbox', 'status', 'template'];
-const REMOVED_ROOT_COMMANDS = ['init', 'install', 'create', 'exec', 'connect', 'upload', 'download', 'run', 'info', 'kill', 'app'];
+const ROOT_COMMANDS = ['config', 'deploy', 'delete', 'list', 'logs', 'mcp', 'provider', 'recover', 'sandbox', 'status', 'template',
+  'exec', 'connect', 'upload', 'download', 'capabilities', 'files', 'process', 'system', 'pause', 'resume', 'metrics', 'snapshot', 'fork', 'network'];
+const REMOVED_ROOT_COMMANDS = ['init', 'install', 'create', 'run', 'info', 'kill', 'app', 'registry-command'];
 const MISSING_SANDBOX_AUTH = ['Missing configuration', 'sandbox_api_key', 'abx config set providers.alicloud-express.sandbox_api_key', { not: 'e2b auth login' }, { not: 'Configuration scope' }, { not: 'E2B_API_KEY' }];
 
 const INDEX = `schema_version: 2
@@ -32,21 +33,21 @@ export default {
     { id: 'version', title: '--version prints "abx, version X.Y.Z"', argv: ['--version'], creds: false, stdout: /^abx, version \d+\.\d+\.\d+/m },
     { id: 'help-root', title: 'root help lists one command surface', argv: ['--help'], creds: false, stdout: ['Usage: abx', '--json', '--quiet', '--ci', 'Command groups:', 'https://registry.agent-sandbox.cn/templates/', ...ROOT_COMMANDS.map((c) => new RegExp(`^\\s+${c}\\s`, 'm')), { not: 'Sandbox shortcuts:' }] },
     ...REMOVED_ROOT_COMMANDS.map((c) => ({ id: `removed-root-${c}`, title: `top-level \`${c}\` is gone`, argv: [c], creds: false, exit: 2, output: 'No such command' })),
-    { id: 'removed-shell-stream', title: 'standard sandbox parser rejects the removed shell-stream command', argv: ['sandbox', 'shell-stream', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
-    { id: 'removed-process-start', title: '`sandbox process start` is gone (use `exec --background`)', argv: ['sandbox', 'process', 'start', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
+    { id: 'removed-shell-stream', title: 'unbound business operations never fall back to shell-stream', argv: ['sandbox', 'sbx-x', 'shell-stream'], creds: false, exit: 1, output: 'No API contract is bound to this target' },
+    { id: 'removed-process-start', title: '`process start` is gone (use `exec --background`)', argv: ['process', 'start', 'sbx-x'], creds: false, exit: 2, output: 'No such command' },
     { id: 'removed-global-timeout', title: 'there is no global --timeout', argv: ['--timeout', '5', 'list'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-no-args', title: 'bare `abx` prints usage/help and does not crash', argv: [], creds: false, exit: [0, 2], output: /Usage: abx/ },
-    { id: 'help-sandbox', title: 'sandbox --help lists subcommands', argv: ['sandbox', '--help'], creds: false, stdout: ['capabilities', 'command', 'files', 'process', 'system', 'exec', { not: /^\s+create\s/m }, { not: 'shell-stream' }] },
-    { id: 'help-sandbox-files', title: 'sandbox files --help', argv: ['sandbox', 'files', '--help'], creds: false, stdout: ['list', 'mkdir', 'mv', 'rm', 'search', 'stat'] },
-    { id: 'help-sandbox-process', title: 'sandbox process --help', argv: ['sandbox', 'process', '--help'], creds: false, stdout: ['info', 'list', 'signal', { not: /^\s+start\s/m }] },
-    { id: 'help-sandbox-command', title: 'sandbox command --help', argv: ['sandbox', 'command', '--help'], creds: false, stdout: ['list', 'run'] },
-    { id: 'help-sandbox-system', title: 'sandbox system --help', argv: ['sandbox', 'system', '--help'], creds: false, stdout: ['env', 'info', 'metrics', 'packages', 'ports'] },
+    { id: 'help-sandbox', title: 'sandbox --help describes target-first API invocation', argv: ['sandbox', '--help'], creds: false, stdout: ['Usage: abx sandbox TARGET [OPERATION]', '--bind', '--api', '--body', '--path', '--query', { not: 'shell-stream' }] },
+    { id: 'help-sandbox-files', title: 'files --help', argv: ['files', '--help'], creds: false, stdout: ['list', 'mkdir', 'mv', 'rm', 'search', 'stat'] },
+    { id: 'help-sandbox-process', title: 'process --help', argv: ['process', '--help'], creds: false, stdout: ['info', 'list', 'signal', { not: /^\s+start\s/m }] },
+    { id: 'help-sandbox-command', title: 'removed sandbox command list wrapper is rejected', argv: ['sandbox', 'command', 'list', 'sbx-x'], creds: false, exit: 2, output: 'Got unexpected extra arguments' },
+    { id: 'help-sandbox-system', title: 'system --help', argv: ['system', '--help'], creds: false, stdout: ['env', 'info', 'metrics', 'packages', 'ports'] },
     { id: 'help-template', title: 'template --help', argv: ['template', '--help'], creds: false, stdout: ['build', 'info', 'init', 'list', 'publish'] },
     { id: 'help-config', title: 'config --help', argv: ['config', '--help'], creds: false, stdout: ['delete', 'get', 'init', 'list', 'set'] },
     { id: 'help-mcp', title: 'mcp --help', argv: ['mcp', '--help'], creds: false, stdout: ['install', 'start', 'status', 'stop'] },
-    { id: 'help-exec', title: 'standard exec help documents pass-through and local options', argv: ["sandbox", 'exec', '--help'], creds: false, stdout: ['<SANDBOX_ID>', '<COMMAND...>', '--cwd', '--env', '--background', 'Everything after the sandbox ID'] },
-    { id: 'help-run', title: 'run --help documents --arg/--json-args', argv: ["sandbox", "command", 'run', '--help'], creds: false, stdout: ['SANDBOX_ID', 'COMMAND_NAME', '--arg', '--json-args'] },
-    { id: 'exec-unknown-local-option', title: 'exec rejects unknown options before the sandbox ID', argv: ["sandbox", 'exec', '--unknown-local-option', 'sbx-x', 'true'], creds: false, exit: 2, output: 'No such option' },
+    { id: 'help-exec', title: 'standard exec help documents pass-through and local options', argv: ['exec', '--help'], creds: false, stdout: ['<SANDBOX_ID>', '<COMMAND...>', '--cwd', '--env', '--background', 'Everything after the sandbox ID'] },
+    { id: 'help-run', title: 'removed root run wrapper is rejected', argv: ['run', '--help'], creds: false, exit: 2, output: 'No such command' },
+    { id: 'exec-unknown-local-option', title: 'exec rejects unknown options before the sandbox ID', argv: ['exec', '--unknown-local-option', 'sbx-x', 'true'], creds: false, exit: 2, output: 'No such option' },
     { id: 'help-kill', title: 'delete takes a deployment name or native ID', argv: ["delete", '--help'], creds: false, stdout: ['<TARGET>', '--yes'] },
     { id: 'help-create', title: 'deploy supports sources and native template references', argv: ["deploy", '--help'], creds: false, stdout: ['--template-id', '--sandbox-timeout', '--on-timeout', '--auto-resume'] },
 
@@ -68,12 +69,12 @@ export default {
     },
     { id: 'unknown-command', title: 'unknown command exits 2 with "No such command"', argv: ['nosuchcmd'], creds: false, exit: 2, output: 'No such command' },
     { id: 'unknown-command-json', title: 'unknown command under --json still exits 2', argv: ['--json', 'nosuchcmd'], creds: false, exit: 2 },
-    { id: 'missing-args-exec', title: 'standard exec requires a sandbox ID', argv: ["sandbox", 'exec'], creds: false, exit: 2, output: 'Missing argument' },
-    { id: 'missing-args-run', title: 'run without COMMAND_NAME exits 2', argv: ["sandbox", "command", 'run', 'sbx-x'], creds: false, exit: 2, output: 'Missing argument' },
+    { id: 'missing-args-exec', title: 'standard exec requires a sandbox ID', argv: ['exec'], creds: false, exit: 2, output: 'Missing argument' },
+    { id: 'missing-args-run', title: 'sandbox without a target exits 2 with usage', argv: ['sandbox'], creds: false, exit: 2, output: 'Usage: abx sandbox TARGET' },
     { id: 'invalid-log-level', title: 'standard list rejects native --log-level without changing its execution route', argv: ['--log-level', 'bogus', 'list'], creds: false, exit: 2, output: /Invalid value|not one of|Allowed choices/ },
     { id: 'invalid-list-status', title: 'standard list rejects retired --status spelling', argv: ['list', '--status', 'bogus'], creds: false, exit: 2, output: /Invalid value|not one of|Allowed choices/ },
     { id: 'invalid-mcp-target', title: 'invalid mcp install --target exits 2', argv: ['mcp', 'install', '--target', 'bogus'], creds: false, exit: 2, output: /not one of|Allowed choices/ },
-    { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ["sandbox", 'upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
+    { id: 'upload-missing-local', title: 'upload of a nonexistent local path exits 2 before any network call', argv: ['upload', 'sbx-x', 'does-not-exist.txt', '/tmp/x'], creds: false, exit: 2, output: /does not exist/ },
     { id: 'create-default-base-auth', title: 'create defaults to base and reaches authentication preflight', argv: ["deploy", "--template-id", "base", "--yes"], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     { id: 'delete-missing-id', title: 'delete requires a target before I/O', argv: ['delete'], creds: false, exit: 2, output: 'Missing argument' },
 
@@ -82,7 +83,7 @@ export default {
       id: 'no-credentials-list-json', title: 'JSON list preserves authentication preflight', argv: ['--json', 'list'], creds: false, exit: 1,
       output: MISSING_SANDBOX_AUTH,
     },
-    { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ["sandbox", 'exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
+    { id: 'no-credentials-exec', title: 'standard exec requires a configured key', argv: ['exec', 'sbx-x', 'echo hi'], creds: false, exit: 1, output: MISSING_SANDBOX_AUTH },
     { id: 'no-credentials-template-list', title: 'standard template list requires a configured key', argv: ['provider', 'run', 'template.list'], creds: false, exit: 1, output: /Missing configuration|AccessKey/ },
 
     // ---- config store (fresh HOME per scenario) -------------------------------------------------

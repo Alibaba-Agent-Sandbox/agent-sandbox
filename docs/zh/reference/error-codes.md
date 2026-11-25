@@ -47,7 +47,7 @@ except SandboxError as e:
 | E2006 | `QwenCodeCredentialError` | Qwen Code 凭证缺失 | `abx config set llm_api_key <KEY>` 或 `abx config init`；也可导出 `DASHSCOPE_API_KEY`/`OPENAI_API_KEY` | 生成路径下 `llm_api_key`、环境变量与 `~/.qwen/settings.json` 均无可用凭证 |
 | E2007 | `AICodegenError` | 模板生成失败 | 查看保留的生成目录（`~/.abx/generated/<名称>`，或 `--dir` 指定位置下）后重试，或改用 `abx deploy --template-id <名称>` | Qwen Code 生成失败/超时，或产出的 Dockerfile、template.yaml 缺失或未通过校验 |
 | E2008 | `DescriptionClarificationError` | 描述信息量不足以进行 模板生成 | 把建议中列出的缺失项（或示例描述）补进 `DESCRIPTION`；或传 `--yes`/`-y` 直接按当前描述生成；或改用 `abx deploy --template-id <名称>` | Agent 自行检索可公开查证的事实后，描述完整度仍低于 80%（缺失的是用户偏好 / 私有约束 / 业务决策）且当前会话无法提问（非 TTY / CI 未传 `-y`），或交互式澄清被取消 / 中断（EOF） |
-| E2009 | `SandboxNotFoundError` | 不存在该 ID 的沙箱 | 运行 `abx list` 查看运行中的沙箱；已销毁或已过期的沙箱无法重新连接 | `abx status / sandbox connect / sandbox pause / sandbox resume`（以及所有需要连接沙箱的命令）使用平台返回 HTTP 404 的 ID；退出码 4（`abx delete` 仍保持幂等） |
+| E2009 | `SandboxNotFoundError` | 不存在该 ID 的沙箱 | 运行 `abx list` 查看运行中的沙箱；已销毁或已过期的沙箱无法重新连接 | `abx status / connect / pause / resume`（以及所有需要连接沙箱的命令）使用平台返回 HTTP 404 的 ID；退出码 4（`abx delete` 仍保持幂等） |
 
 ### 排查步骤
 
@@ -67,8 +67,8 @@ except SandboxError as e:
 | E3002 | `ProcessError` | 进程非零退出码 | — | 命令返回非零退出码（携带 `exit_code`、`stdout`、`stderr` 属性） |
 | E3003 | `CodeExecutionError` | 代码执行失败 | 检查代码语法和运行时依赖 | Code Interpreter 执行代码失败 |
 | E3004 | `CapabilityNotSupportedError` | 能力未启用 | 在模板的 `capabilities` 列表中声明所需能力，或使用支持该能力的模板 | 调用了运行时门控能力但未声明（如在无 `code` 能力的模板上调用 `run_code()`）。也会在模板解析时由 `resolve_capabilities()` 抛出 |
-| E3005 | `CommandNotFoundError` | 具名命令未找到 | 用 `abx sandbox command list <SANDBOX_ID>` 列出已注册命令，并确认 SandboxServer 在运行 | `abx sandbox command run <名称>` / `sandbox.run(name)` 从沙箱内 SandboxServer 注册表得到 HTTP 404。带 `command_name` 属性 |
-| E3006 | `EnvdRpcError` | envd 拒绝了 RPC 调用（HTTP >= 400） | 检查命令与参数，或用 `abx -v` 查看原始错误响应 | 沙箱 envd 返回 HTTP >= 400（例如未知可执行文件触发 `process.Process/Start` 500）。携带 `status_code`、`rpc_path`、`envd_error`（解析后的 JSON 体）与 `body_text`；消息不包含完整沙箱 URL。`abx sandbox connect` 会将其映射为单条友好提示（如 `Command not found: <cmd>`） |
+| E3005 | `CommandNotFoundError` | SDK 注册函数不存在 | 使用应用客户端查看 Server SDK 已注册函数 | SDK 注册函数路由返回 HTTP 404；与 OpenAPI CLI 的契约校验分开 |
+| E3006 | `EnvdRpcError` | envd 拒绝了 RPC 调用（HTTP >= 400） | 检查命令与参数，或用 `abx -v` 查看原始错误响应 | 沙箱 envd 返回 HTTP >= 400（例如未知可执行文件触发 `process.Process/Start` 500）。携带 `status_code`、`rpc_path`、`envd_error`（解析后的 JSON 体）与 `body_text`；消息不包含完整沙箱 URL。`abx connect` 会将其映射为单条友好提示（如 `Command not found: <cmd>`） |
 
 ### E3004 详细说明
 

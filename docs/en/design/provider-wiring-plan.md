@@ -121,10 +121,10 @@ Edit sites (line numbers drift; use the command names):
 Open after the 2026-10-13 OpenSandbox run (each has a verified symptom):
 
 - **`template` commands ignore `--provider`.** `abx --provider opensandbox template deploy ...` runs the Alibaba Cloud ACR flow (`ACR credentials missing`). They should check `templates.read` / `templates.build` and answer `E8004` like every other feature-gated command.
-- **The capability set is not derived from provider features.** `abx sandbox capabilities` and `sandbox.capabilities` report `code, files, shell` for OpenSandbox, which declares no `code.interpret`; `Provider.capabilities()` and `FEATURE_TO_CAPABILITY` exist but nothing calls them. Image-based providers also log `Could not resolve capabilities for template '<image>'` on every create.
+- **The capability set is not derived from provider features.** `abx capabilities` and `sandbox.capabilities` report `code, files, shell` for OpenSandbox, which declares no `code.interpret`; `Provider.capabilities()` and `FEATURE_TO_CAPABILITY` exist but nothing calls them. Image-based providers also log `Could not resolve capabilities for template '<image>'` on every create.
 - **`abx sandbox command run` on a plugin without an HTTP data plane** fails with `this._http_client._createEnvdClient is not a function`. The Python SDK has `_require_data_plane("named commands")` and answers `E8004`; port that guard to `_callServerCommand` in `src/api/sandbox.ts`.
 - **`SandboxInfo` defaults** (`region = "cn-hangzhou"`, `timeout = 300`) belong to the built-in platform. `recordToInfo` now overrides them for plugins, so a plugin that reports no region and no lifetime shows an empty Region row and the requested timeout; the model should make both optional.
-- **No CLI for pause/resume**: `Sandbox.pause()` / `resume()` work (verified from Python), but there is no `abx sandbox pause` command in this tree.
+- **No CLI for pause/resume**: `Sandbox.pause()` / `resume()` work (verified from Python), but there is no `abx pause` command in this tree.
 - **Catalog rename is done.** The catalog ships `abx-provider.toml`. `opensandbox`, `e2b`, `cubesandbox` and `alicloud-container` are `runtime.kind = "node"`. Install with `abx provider install alibaba-agent-sandbox/awesome-providers//<id>`. The old `ebx-provider.toml` rename patch is not in this tree.
 
 Older gaps:

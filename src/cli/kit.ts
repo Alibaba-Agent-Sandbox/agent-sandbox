@@ -77,6 +77,8 @@ export interface LazyEntry {
 }
 
 export interface CommandAttrs {
+  /** Let the callback handle an explicitly declared help option (for local contract help). */
+  automaticHelp?: boolean;
   /** Stop parsing local options at the first positional argument (remote exec argv). */
   passThroughOptions?: boolean;
   help?: string | (() => string);
@@ -91,6 +93,7 @@ export interface CommandAttrs {
 }
 
 export class Command {
+  readonly automaticHelp: boolean;
   readonly passThroughOptions: boolean;
   readonly help: string;
   readonly helpFooter: (() => string) | undefined;
@@ -107,6 +110,7 @@ export class Command {
     attrs: CommandAttrs = {},
     isGroup = false,
   ) {
+    this.automaticHelp = attrs.automaticHelp ?? true;
     this.passThroughOptions = attrs.passThroughOptions ?? false;
     this.help = typeof attrs.help === "function" ? "" : attrs.help ?? "";
     if (typeof attrs.help === "function") Object.defineProperty(this, "help", { get: attrs.help });
@@ -458,7 +462,6 @@ function configure(cmd: CommanderCommand, spec: Command): void {
   specs.set(cmd, spec);
   cmd
     .exitOverride()
-    .helpOption("-h, --help", "Show this message and exit.")
     .helpCommand(false)
     .enablePositionalOptions()
     .configureHelp({ sortSubcommands: spec.lazy.size === 0, subcommandTerm: (sub) => sub.name() })
@@ -475,6 +478,8 @@ function configure(cmd: CommanderCommand, spec: Command): void {
       getOutHelpWidth: terminalWidth,
       getErrHelpWidth: terminalWidth,
     });
+  if (spec.automaticHelp) cmd.helpOption("-h, --help", "Show this message and exit.");
+  else cmd.helpOption(false);
   if (spec.passThroughOptions) cmd.passThroughOptions();
   if (spec.help) cmd.description(cleanHelp(spec.help));
   if (spec.helpFooter) cmd.addHelpText("after", () => spec.helpFooter!());
@@ -553,7 +558,7 @@ function rootHint(word: string, names: string[]): string {
   const candidates = closeMatches(word, names, 3, 0.6);
   return candidates.length
     ? ` Did you mean ${candidates.map((c) => `'${c}'`).join(", ")}?`
-    : " No similar command. See 'abx --help' for the command list (templates: 'abx template init|build|publish'; named commands in a sandbox: 'abx sandbox command run SANDBOX NAME').";
+    : " No similar command. See 'abx --help' for the command list (templates: 'abx template init|build|publish'; Sandbox API operations: 'abx sandbox TARGET --help').";
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

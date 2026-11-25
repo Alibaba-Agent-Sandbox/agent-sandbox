@@ -1,0 +1,22 @@
+Usage: abx capabilities [options] <SANDBOX_ID>
+
+Show the capability groups available in a sandbox.
+
+Capability groups include shell, files, code, terminal, and ports. The built-in
+provider reads them from the sandbox template; a plugin provider derives them
+from the features it declares (see abx provider info ID).
+
+Examples:
+
+    abx capabilities abc123
+
+    abx --json capabilities abc123
+
+Related commands:
+  abx status SANDBOX_ID
+  abx template info TEMPLATE_ID
+  abx system info SANDBOX_ID
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

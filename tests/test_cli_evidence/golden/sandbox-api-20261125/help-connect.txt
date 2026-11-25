@@ -1,0 +1,18 @@
+Usage: abx connect [options] <SANDBOX_ID>
+
+Open an interactive sandbox terminal.
+
+Express uses a PTY: shell state, terminal resizing and control characters
+are preserved. Other Providers use the existing line-based command REPL;
+each line runs in its own process. Use exec for automation.
+
+Examples:
+  abx connect abc123
+  abx connect --cwd /app --user root abc123
+
+Options:
+  -u, --user <USER>
+  -c, --cwd <CWD>
+  -e, --env <ENV>
+  -h, --help         Show this message and exit.
+[exit_code:0]

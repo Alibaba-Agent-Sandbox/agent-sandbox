@@ -8,10 +8,10 @@
 | 从原生模板创建 | `abx deploy --template-id TEMPLATE --name APP` |
 | 查看/状态/日志 | `abx list`、`abx status APP`、`abx logs APP` |
 | 删除/恢复 | `abx delete APP --yes`、`abx recover APP` |
-| 执行进程 | `abx sandbox exec APP -- COMMAND` |
-| 交互终端 | `abx sandbox connect APP` |
-| 注册函数 | `abx sandbox command list APP`、`abx sandbox command run APP NAME --arg key=value` |
-| 文件和进程工具 | `abx sandbox files --help`、`abx sandbox process --help` |
+| 执行进程 | `abx exec APP -- COMMAND` |
+| 交互终端 | `abx connect APP` |
+| 注册函数 | `abx sandbox APP --help`、`abx sandbox APP NAME --body @request.json` |
+| 文件和进程工具 | `abx files --help`、`abx process --help` |
 | 目录与源码 | `abx template list`、`abx template info NAME`、`abx template init` |
 | 构建/源码发布 | `abx template build SOURCE --yes`、`abx template publish SOURCE --tag VERSION --yes` |
 | Provider 原生操作 | `abx provider command list PROVIDER`、`abx provider run OPERATION --input-file request.json` |
@@ -19,3 +19,5 @@
 APP 是本机保存的部署名称。Sandbox 操作也接受原生 ID；托管应用通过业务 HTTP API 使用，不能被当作一个 Sandbox。Provider 写入/删除操作在非交互模式需要 `--yes`。查看操作帮助确认输入 JSON 的字段和效果。
 
 [入门](getting-started.md) · [模板编写](authoring-templates.md) · [完整命令参考](../reference/cli-commands.md)
+
+目标优先的业务调用入口需要已绑定 OpenAPI 契约，见[绑定与认证](sandbox-api.md)。

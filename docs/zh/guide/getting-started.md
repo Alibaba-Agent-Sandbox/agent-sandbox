@@ -8,7 +8,7 @@
 abx config init
 abx deploy --template-id base --name my-sandbox --yes
 abx status my-sandbox
-abx sandbox exec my-sandbox -- echo 'Hello from sandbox'
+abx exec my-sandbox -- echo 'Hello from sandbox'
 abx delete my-sandbox --yes
 ```
 
@@ -18,8 +18,7 @@ abx delete my-sandbox --yes
 abx template list python
 abx template info python-hello
 abx deploy python-hello --name hello
-abx sandbox command list hello
-abx sandbox command run hello hello --arg name=Ada
+abx status hello
 abx delete hello --yes
 ```
 
@@ -28,3 +27,5 @@ CLI 准备源码、启动服务并验证声明的就绪条件。需要 Docker、
 已有平台模板使用 `--template-id`，其值是 Provider 的模板或受支持的镜像引用。本机部署名称是保存在当前主机的管理入口；SDK 使用 `status` 显示的实际沙箱 ID 连接。
 
 后续见[模板编写](authoring-templates.md)、[配置引导](guided-configuration.md)、[Sandbox 操作](operations.md)和[托管应用](managed-applications.md)。
+
+[Sandbox API 操作](sandbox-api.md)说明如何先绑定应用 OpenAPI 契约，再使用 `abx sandbox TARGET --help` 和操作调用。没有该声明的模板继续按自身文档使用 HTTP/SDK 接口。

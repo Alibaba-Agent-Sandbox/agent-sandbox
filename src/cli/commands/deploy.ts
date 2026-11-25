@@ -29,6 +29,8 @@ import { digest } from "../../application/config.js";
 import { validateTemplateManifest, planTemplateLaunch } from "../../template/launch_plan.mjs";
 import { validateVolumeMounts } from "../../models/sandbox.js";
 import { deploymentDirectory, readDeployment, saveDeployment, validateDeploymentName, checkDeploymentSelection, captureDeploymentTarget, type Deployment } from "../deployment_store.js";
+import { loadRegistryApis, type ApiContract } from "../api_contract.js";
+import { saveApiBinding, selectResource } from "../api_binding.js";
 
 export const deploymentSeams = { launch: executeTemplateLaunch, checkPrerequisites: checkTemplatePrerequisites, build: buildApplication, apply: applyPlan, services: defaultServices, bindings: resolveBindings, credentials: resolveDeployCredentials };
 export async function approve(ctx: Context, params: Params, message: string): Promise<void> {
@@ -96,6 +98,11 @@ export const deploy_shortcut = command("deploy", {
     if (profile && profile !== "fc-managed-agents") throw new UsageError(`Unsupported application profile: ${profile}.`);
     if (manifest.application && !profile) throw new UsageError("This application has no supported deployment profile.");
     const kind = profile ? "application" : "sandbox";
+    let apis: ApiContract[] = [];
+    if (kind === "sandbox" && source && fs.existsSync(path.join(source, "registry.yaml"))) {
+      const registry = readYaml(path.join(source, "registry.yaml"));
+      if (record(registry) && registry.apis !== undefined) apis = selectResource(loadRegistryApis(path.join(source, "registry.yaml")));
+    }
     const name = validateDeploymentName(String(params.name ?? (params.template_id ? `sandbox-${randomUUID().slice(0, 8)}` : manifest.name)));
     const provider = profile ? "alicloud-express" : resolveProviderId(cliProvider());
     if (profile && cliProvider() && resolveProviderId(cliProvider()) !== provider) throw new UsageError("This application profile requires alicloud-express.");
@@ -125,6 +132,15 @@ export const deploy_shortcut = command("deploy", {
       if (kind === "sandbox") value.effectsStarted = false;
       if (source) { value.source = path.join(folder, "source"); snapshotDeploymentSource(source, value.source); }
       else if (!params.template_id) { value.source = path.join(folder, "source"); fs.mkdirSync(value.source); fs.writeFileSync(path.join(value.source, "template.yaml"), JSON.stringify(manifest)); }
+      // The contract must describe the same immutable source snapshot as the deployment.
+      if (kind === "sandbox" && value.source) {
+        apis = [];
+        const registryFile = path.join(value.source, "registry.yaml");
+        if (fs.existsSync(registryFile)) {
+          const registry = readYaml(registryFile);
+          if (record(registry) && registry.apis !== undefined) apis = selectResource(loadRegistryApis(registryFile));
+        }
+      }
       if (previous) { value.previous = path.join(folder, "previous.json"); writeJson(value.previous, previous); }
       saveDeployment(value);
       let preparationJournal: ResourceJournal | undefined;
@@ -165,6 +181,9 @@ export const deploy_shortcut = command("deploy", {
             onJournal: journal => { preparationJournal = journal; value.journal = journal.file; value.effectsStarted = true; saveDeployment(value); }, onCreated: async id => { value.sandboxId = id; saveDeployment(value); },
           }); value.launch = launched.receipt;
         }
+        if (apis.length && value.sandboxId) saveApiBinding({ version: 1,
+          target: { id: value.sandboxId, provider: value.provider, providerOptions: value.providerOptions, connection: value.connection },
+          deployment: { name: value.name, createdAt: value.createdAt }, apis, credentials: {}, aliases: {} });
         value.status = "ready"; saveDeployment(value); getFormatter(ctx).printData(deploymentSummary(value));
       } catch (error) {
         // The callback runs before requests so a crash stays conservative. A returned error

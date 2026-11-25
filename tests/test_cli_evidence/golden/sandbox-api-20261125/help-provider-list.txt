@@ -1,0 +1,18 @@
+Usage: abx provider list [options]
+
+List built-in and installed providers.
+
+Columns: ID, Version, Kind (builtin|rest|exec), Trust
+(builtin|pinned|local|link|unpinned), how many features the provider
+supports (a command that needs another feature fails with E8004; 'abx
+provider info ID' lists them; --json lists them inline as
+sandbox(lifecycle,pause) exec(run,stream) files(rw) ...) and whether it is
+the default. --json adds the Name. With --quiet only the ids are printed.
+
+Examples:
+  abx provider list
+  abx --json provider list
+
+Options:
+  -h, --help  Show this message and exit.
+[exit_code:0]

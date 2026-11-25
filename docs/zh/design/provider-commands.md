@@ -6,7 +6,7 @@
 
 CLI 的通用命令组和快捷命令由 `src/cli/command_surface.ts` 固定注册。Provider 通过
 18 个标准 feature token 接入通用沙箱协议；token 本身不是可以调用的云资源管理命令。
-`abx sandbox command` 调用沙箱内服务注册的应用命令。Provider 管理命令以
+`abx sandbox TARGET --help` 调用沙箱内服务注册的应用命令。Provider 管理命令以
 `(provider ID, command ID)` 唯一标识，不能覆盖通用命令或应用命令。
 
 ## 静态声明和发现

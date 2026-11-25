@@ -68,6 +68,15 @@ describe("unified deploy", () => {
     expect((await run(["deploy", source, "--name", "source-retry", "--yes"])).exit_code).toBe(0);
   });
 
+  it("binds the deployed source contract and retains offline help after source removal", async () => {
+    const source=project(); fakeLaunch();
+    fs.copyFileSync(new URL("../../docs/examples/sandbox-api/registry.yaml",import.meta.url),path.join(source,"registry.yaml"));
+    fs.copyFileSync(new URL("../../docs/examples/sandbox-api/openapi.yaml",import.meta.url),path.join(source,"openapi.yaml"));
+    const result=await run(["deploy",source,"--name","api-demo","--yes"]);
+    expect(result.exit_code,result.output).toBe(0); fs.rmSync(source,{recursive:true,force:true});
+    const help=await run(["sandbox","api-demo","--help"]);
+    expect(help.exit_code,help.output).toBe(0); expect(help.output).toContain("report_totals");
+  });
   it("rejects an invalid manifest during preview", async () => {
     const source=project(); fs.writeFileSync(path.join(source,"template.yaml"),"name: example\nspec_version: 999\n");
     expect((await run(["deploy",source,"--plan"])).exit_code).not.toBe(0);

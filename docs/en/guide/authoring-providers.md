@@ -46,7 +46,7 @@ Sandbox.create({ template: "base", ... })
       are still alicloud-express.
 ```
 
-Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The host checks the feature first. If `exec.run` was not declared, `abx sandbox exec` raises E8004 and does not send `exec.run`.
+Later commands (`exec`, `upload`, `kill my-cloud:<id>`) use that same id. The host checks the feature first. If `exec.run` was not declared, `abx exec` raises E8004 and does not send `exec.run`.
 
 Host routing and provider responsibilities differ for these paths:
 

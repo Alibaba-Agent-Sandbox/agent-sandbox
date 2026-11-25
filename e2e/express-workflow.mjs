@@ -12,6 +12,7 @@ import { requestApplication } from '../dist/transport/application_http.js';
 import { loadConfig } from '../dist/transport/config.js';
 import { listOfficialTemplates, getTemplate, deleteTemplate } from '../dist/providers/alicloud_express/fc_template.js';
 import { projectWorkflowImages, selectWorkflowImageJournals } from './express-workflow-images.mjs';
+import { writeHelloApiFixture } from './lib/hello-api-fixture.mjs';
 
 const cli = fileURLToPath(new URL('../dist/bin/abx.js', import.meta.url));
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'abx-express-acceptance-'));
@@ -83,18 +84,21 @@ try {
   assert.ok(entries.some(e=>e.kind==='template' && e.id===launch.template_reference && e.state==='retained'));
   assert.ok(entries.some(e=>e.kind==='image' && /@sha256:[a-f0-9]{64}$/.test(e.id) && e.state==='retained'));check('exact template handoff and immutable image receipt');
   await run(["status", launch.sandbox_id]);await run(['list']);check('CLI info and list');
-  const result = await run(["sandbox", 'exec', launch.sandbox_id, '--', 'python3', '-c', 'print(21 * 2)']);assert.equal(result.exit_code,0);assert.equal(result.stdout.trim(),'42');check('CLI exec');
-  const commands = await run(['sandbox','command','list',launch.sandbox_id]);assert.ok(JSON.stringify(commands).includes('hello'));check('CLI command discovery');
-  const hello = await run(['sandbox','command','run',launch.sandbox_id,'hello','--arg','name=Workflow']);assert.ok(JSON.stringify(hello).includes('Hello, Workflow!'));check('CLI named command');
+  const result = await run(['exec', launch.sandbox_id, '--', 'python3', '-c', 'print(21 * 2)']);assert.equal(result.exit_code,0);assert.equal(result.stdout.trim(),'42');check('CLI exec');
+  const registry = writeHelloApiFixture(path.join(directory, 'application-api'));
+  await run(['sandbox',launch.sandbox_id,'--bind',registry,'--credential','app.token=env:ABX_SERVER_TOKEN']);
+  const help = await run(['sandbox',launch.sandbox_id,'--help']);assert.ok(help.operations.some(operation => operation.operationId === 'hello'));check('CLI bound operation help');
+  const commands = await run(['sandbox',launch.sandbox_id,'catalog']);assert.equal(commands.status,200);assert.ok(JSON.stringify(commands.body).includes('hello'));check('CLI authenticated application catalog');
+  const hello = await run(['sandbox',launch.sandbox_id,'hello','--body','{"name":"Workflow"}']);assert.equal(hello.status,200);assert.equal(hello.body.result,'Hello, Workflow!');check('CLI OpenAPI operation');
   sandbox = await Sandbox.connect(launch.sandbox_id,{provider:'alicloud-express'});
   const endpoint = await sandbox.network.resolveEndpoint(9000);
   const response = await requestApplication(endpoint,'/commands/hello',{method:'POST',json:{name:'HTTP'},application_token:process.env.ABX_SERVER_TOKEN});
   assert.equal(response.status_code,200);assert.equal(response.json().result,'Hello, HTTP!');check('POST /commands/hello');
   const local = path.join(directory,'input.txt'), downloaded=path.join(directory,'output.txt');fs.writeFileSync(local,'workflow file roundtrip');
-  await run(["sandbox", 'upload', launch.sandbox_id, local, '/tmp/abx-workflow-e2e.txt'],false);
-  await run(["sandbox", 'download', launch.sandbox_id, '/tmp/abx-workflow-e2e.txt', downloaded],false);assert.equal(fs.readFileSync(downloaded,'utf8'),'workflow file roundtrip');
-  await run(['sandbox','files','stat',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt']);
-  await run(['sandbox','files','rm',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt','--yes'],false);check('CLI upload/download/stat/remove');
+  await run(['upload', launch.sandbox_id, local, '/tmp/abx-workflow-e2e.txt'],false);
+  await run(['download', launch.sandbox_id, '/tmp/abx-workflow-e2e.txt', downloaded],false);assert.equal(fs.readFileSync(downloaded,'utf8'),'workflow file roundtrip');
+  await run(['files','stat',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt']);
+  await run(['files','rm',launch.sandbox_id,'--path','/tmp/abx-workflow-e2e.txt','--yes'],false);check('CLI upload/download/stat/remove');
   if (process.env.ABX_WORKFLOW_FULL_E2E === '1') {
     const reportFile = path.join(directory,'full-e2e.json');
     const full = spawnSync(process.execPath,[fileURLToPath(new URL('./run.mjs',import.meta.url)),'--json',reportFile],{

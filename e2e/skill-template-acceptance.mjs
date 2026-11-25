@@ -95,7 +95,7 @@ try {
     const created = await request(["--json", "deploy", "--template-id", template.id, "--sandbox-timeout", "180", "--metadata", `skills_accept_run=${run}`, "--yes"]);
     assert.equal(created.code, 0, "Native CLI create failed; source must be a valid spec-5 manifest");
     owned.id = JSON.parse(created.stdout).sandbox_id; assert.ok(typeof owned.id === "string"); save();
-    const execution = await request(["sandbox", "exec", owned.id, "sh", "-c", "cat /opt/abx-acceptance/version; printf '\\n'; cat /opt/abx-acceptance/business.json"]);
+    const execution = await request(["exec", owned.id, "sh", "-c", "cat /opt/abx-acceptance/version; printf '\\n'; cat /opt/abx-acceptance/business.json"]);
     const lines = execution.stdout.trim().split("\n");
     check(`business-artifact-${version}`, execution.code === 0 && lines[0] === version && JSON.parse(lines[1]).result === 385,
       { business_result: 385, artifact_sha256: createHash("sha256").update(lines[1] + "\n").digest("hex") });

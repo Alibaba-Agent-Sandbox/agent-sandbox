@@ -132,7 +132,7 @@ export ABX_SANDBOX_API_KEY="your-api-key"
 abx config set sandbox_api_key your-api-key
 ```
 
-`abx deploy --env KEY=VALUE` 设置新沙箱的运行环境；`abx sandbox exec --env KEY=VALUE NAME -- COMMAND` 只设置该进程的环境。例如：
+`abx deploy --env KEY=VALUE` 设置新沙箱的运行环境；`abx exec --env KEY=VALUE NAME -- COMMAND` 只设置该进程的环境。例如：
 
 ```bash
 abx deploy --template-id base --name my-sandbox --env MODE=example --yes

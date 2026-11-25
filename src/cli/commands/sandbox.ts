@@ -1,5 +1,5 @@
 import { connectSandboxTarget } from "../deployment_store.js";
-import { connectNative, isExpressReference, pause, resume, metrics, snapshot, fork, network } from "./sandbox_native.js";
+import { connectNative, isExpressReference } from "./sandbox_native.js";
 export { logs } from "./sandbox_native.js";
 import { canGuideConfiguration, withGuidedConfiguration } from "../config_guidance.js";
 /**
@@ -30,14 +30,14 @@ import { dumpYaml, isMapping, loadYaml } from "../../utils/yaml_io.js";
 import { pyPathStr } from "../../agent/_pycompat.js";
 import { shlexQuote } from "../../api/_shlex.js";
 import { Sandbox } from "../../api/sandbox.js";
-import { type Option, Context, argument, command, group, option } from "../kit.js";
+import { Context, argument, command, option } from "../kit.js";
 import { Choice, FLOAT, INT, Path } from "../types.js";
 import { Abort, CliError, EOFError, KeyboardInterrupt, SystemExit, UsageError, sysExit } from "../errors.js";
 import { echo, sys } from "../io.js";
 import { confirm, prompt } from "../prompts.js";
 import { cpSlice } from "../../utils/_py.js";
-import { CommandNotFoundError, DescriptionClarificationError, ExecutionError } from "../../models/errors.js";
-import { ProcessChunkType, type CommandResult } from "../../models/process.js";
+import { DescriptionClarificationError } from "../../models/errors.js";
+import { ProcessChunkType } from "../../models/process.js";
 import { SandboxStatus, validateVolumeMounts } from "../../models/sandbox.js";
 import { ProviderFeatureNotSupportedError } from "../../models/provider_errors.js";
 import { loadLayeredConfig } from "../../transport/config_layers.js";
@@ -56,10 +56,6 @@ import { providersInUse } from "../../providers/in_use.js";
 import * as providerRegistry from "../../providers/registry.js";
 import { ValueError } from "../../models/value_error.js";
 import type { BuildMode } from "../../template/build_plan.js";
-import { applicationToken } from "../template_environment.js";
-import { files } from "./sandbox_files.js";
-import { process as process_ } from "./sandbox_process.js";
-import { capabilities, system } from "./sandbox_system.js";
 
 const _log = getLogger("cli.commands.sandbox");
 
@@ -116,8 +112,8 @@ const INFO_HELP = `Show status, template, region, timeout, and URL for a sandbox
     \b
     Related commands:
       abx list                  Find sandbox IDs
-      abx sandbox capabilities  Show declared capability groups
-      abx sandbox exec SANDBOX_ID -- CMD  Run a command in the sandbox
+      abx capabilities  Show declared capability groups
+      abx exec SANDBOX_ID -- CMD  Run a command in the sandbox
     `;
 
 const KILL_HELP = `Permanently destroy one sandbox or all running sandboxes.
@@ -150,121 +146,53 @@ const EXEC_HELP = `Run a command in a sandbox and preserve its exit code.
     stdout, stderr and exit_code without mixing terminal output into JSON.
 
     Examples:
-      abx sandbox exec abc123 python --version
-      abx sandbox exec --cwd /app --timeout 300 abc123 pytest -q
-      abx sandbox exec --env DEBUG=1 abc123 python app.py
-      abx sandbox exec --background abc123 python -m http.server 8000
-      abx --json sandbox exec abc123 echo ready
+      abx exec abc123 python --version
+      abx exec --cwd /app --timeout 300 abc123 pytest -q
+      abx exec --env DEBUG=1 abc123 python app.py
+      abx exec --background abc123 python -m http.server 8000
+      abx --json exec abc123 echo ready
     `;
 
 const CONNECT_HELP = `Open an interactive sandbox terminal.
 
     Express uses a PTY: shell state, terminal resizing and control characters
     are preserved. Other Providers use the existing line-based command REPL;
-    each line runs in its own process. Use sandbox exec for automation.
+    each line runs in its own process. Use exec for automation.
 
     Examples:
-      abx sandbox connect abc123
-      abx sandbox connect --cwd /app --user root abc123
+      abx connect abc123
+      abx connect --cwd /app --user root abc123
     `;
 
 const UPLOAD_HELP = `Upload a local file or directory to the sandbox.
 
     Examples:
 
-        abx sandbox upload abc123 ./script.py /app/script.py
+        abx upload abc123 ./script.py /app/script.py
 
-        abx sandbox upload abc123 ./data/ /app/data/
+        abx upload abc123 ./data/ /app/data/
 
     \b
     Related commands:
-      abx sandbox download SANDBOX_ID REMOTE_PATH LOCAL_PATH
-      abx sandbox files list SANDBOX_ID --path /app
-      abx sandbox exec SANDBOX_ID -- CMD
+      abx download SANDBOX_ID REMOTE_PATH LOCAL_PATH
+      abx files list SANDBOX_ID --path /app
+      abx exec SANDBOX_ID -- CMD
     `;
 
 const DOWNLOAD_HELP = `Download a file from the sandbox to local.
 
     Examples:
 
-        abx sandbox download abc123 /app/result.csv ./result.csv
+        abx download abc123 /app/result.csv ./result.csv
 
-        abx sandbox download abc123 /app/output.log .
-
-    \b
-    Related commands:
-      abx sandbox upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
-      abx sandbox files stat SANDBOX_ID --path REMOTE_PATH
-      abx sandbox files list SANDBOX_ID --path REMOTE_DIR
-    `;
-
-const RUN_HELP = `Run a named command registered in the sandbox.
-
-    This invokes a command registered by the sandbox application.
-
-    Named commands are functions the template registers on the SandboxServer
-    that runs inside the sandbox (\`\`POST /commands/NAME\`\`). List them with
-    'abx sandbox command list SANDBOX_ID'. Arguments are validated and
-    converted by the server according to the registered signature.
-
-    Pass arguments with --arg KEY=VALUE (repeatable) and/or --json-args
-    '{"key": value}' for typed values. The command's return value is printed
-    (JSON with --json). Fails with a clear error when the sandbox has no
-    server.
-
-    \b
-    Examples:
-      abx sandbox command run abc123 build
-      abx sandbox command run abc123 test --arg file=tests/
-      abx sandbox command run abc123 add --json-args '{"x": 1, "y": 2}'
-      abx --json sandbox command run abc123 greet --arg name=Ada
+        abx download abc123 /app/output.log .
 
     \b
     Related commands:
-      abx sandbox command list SANDBOX_ID   List the registered commands
-      abx sandbox exec SANDBOX_ID -- CMD            Run an arbitrary command
-      abx status SANDBOX_ID                   Inspect the target sandbox
+      abx upload SANDBOX_ID LOCAL_PATH REMOTE_PATH
+      abx files stat SANDBOX_ID --path REMOTE_PATH
+      abx files list SANDBOX_ID --path REMOTE_DIR
     `;
-
-const COMMAND_GROUP_HELP = `List and run the named commands registered in a sandbox.
-
-    The commands come from the SandboxServer running inside the sandbox
-    (CommandRegistry; \`\`GET /commands\`\`, \`\`POST /commands/NAME\`\`). A sandbox
-    without a server has none.
-
-    \b
-    Examples:
-      abx sandbox command list abc123
-      abx sandbox command run abc123 build --arg target=release
-
-    \b
-    Related commands:
-      abx sandbox command run SANDBOX_ID NAME    Shortcut for 'sandbox command run'
-      abx sandbox exec SANDBOX_ID -- CMD Run an arbitrary command
-    `;
-
-const COMMAND_LIST_HELP = `List the named commands registered in a sandbox.
-
-    Shows each command's name, argument signature and description, read from
-    the SandboxServer in the sandbox. Errors when no server is reachable.
-
-    \b
-    Examples:
-      abx sandbox command list abc123
-      abx --json sandbox command list abc123
-
-    \b
-    Related commands:
-      abx sandbox command run SANDBOX_ID NAME    Run one of them
-      abx sandbox capabilities SANDBOX_ID
-    `;
-
-const SANDBOX_HELP = `Run commands and manage Sandbox files, processes and advanced lifecycle.
-
-    Arguments accept a deployment name, raw Sandbox ID or provider-qualified ID.
-    Use root deploy/list/status/logs/delete/recover for instance management.
-    `;
-
 
 // ---------------------------------------------------------------------------------------------------------------------
 // create
@@ -1272,7 +1200,7 @@ function _processResultData(result: { stdout: string; stderr: string; exit_code:
   };
 }
 
-/** The command line `abx sandbox exec` sends: one argument is a command line as typed, several are an exact argv. */
+/** The command line `abx exec` sends: one argument is a command line as typed, several are an exact argv. */
 export function _execCommandLine(argv: readonly string[]): string {
   return argv.length === 1 ? (argv[0] as string) : argv.map((a) => shlexQuote(a)).join(" ");
 }
@@ -1391,7 +1319,7 @@ export const connect = command("connect", {
   callback: handleErrors(async (ctx: Context, params) => {
     const sandboxId: string = params["sandbox_id"];
     if (isExpressReference(sandboxId)) {
-      if (getFormatter(ctx).use_json) throw new UsageError("Interactive terminal output cannot use --json. Use sandbox exec.");
+      if (getFormatter(ctx).use_json) throw new UsageError("Interactive terminal output cannot use --json. Use exec.");
       const envs = _parsePairs(params["env"], item => { throw new UsageError(`Invalid --env ${item}; expected KEY=VALUE.`); });
       const native = await connectNative(ctx, sandboxId);
       const { connectTerminal } = await import("../../standard_cli/session.js");
@@ -1570,146 +1498,3 @@ export const download = command("download", {
     fmt.printSuccess(`Downloaded ${remotePath} -> ${local}`);
   }),
 });
-
-// ---------------------------------------------------------------------------------------------------------------------
-// named commands (registered on the in-sandbox server): list / run
-// ---------------------------------------------------------------------------------------------------------------------
-
-const _serverPortOption = (): Option =>
-  option(["--server-port"], {
-    type: INT,
-    default: 9000,
-    help: "Port of the SandboxServer inside the sandbox (default: 9000)",
-  }) as Option;
-
-/** `--arg KEY=VALUE` pairs (later duplicates win) merged with a `--json-args` object. */
-export function _commandArguments(pairs: readonly string[], jsonArgs: string | null, fmt: OutputFormatter): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  if (jsonArgs !== null) {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(jsonArgs);
-    } catch (exc) {
-      fmt.printError(`--json-args is not valid JSON: ${pyStr(exc)}`);
-      return sysExit(2);
-    }
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-      fmt.printError("--json-args must be a JSON object, for example '{\"x\": 1}'.");
-      return sysExit(2);
-    }
-    Object.assign(out, parsed);
-  }
-  const fromPairs = _parsePairs(pairs, (item) => {
-    fmt.printError(`Invalid argument format: ${pyRepr(item)} (expected KEY=VALUE)`);
-    return sysExit(2);
-  });
-  for (const [key, value] of Object.entries(fromPairs)) {
-    if (Object.hasOwn(out, key)) {
-      fmt.printError(`Argument ${pyRepr(key)} is given both in --json-args and with --arg.`);
-      return sysExit(2);
-    }
-    out[key] = value;
-  }
-  return out;
-}
-
-export const run_cmd = command("run", {
-  help: RUN_HELP,
-  params: [
-    argument(["sandbox_id"]),
-    argument(["command_name"]),
-    option(["--arg", "-a", "args"], { multiple: true, help: "Command argument, format KEY=VALUE (repeatable)" }),
-    option(["--json-args"], { default: null, help: 'Command arguments as a JSON object, e.g. \'{"x": 1}\' (for typed values)' }),
-    _serverPortOption(),
-  ],
-  callback: handleErrors(async (ctx: Context, params) => {
-    const sandboxId: string = params["sandbox_id"];
-    const commandName: string = params["command_name"];
-    const serverPort: number = params["server_port"];
-
-    const fmt = getFormatter(ctx);
-    const kwargs = _commandArguments(params["args"], params["json_args"], fmt);
-
-    const sandbox = await connectSandboxTarget(sandboxId);
-    let result: CommandResult;
-    try {
-      result = await sandbox.runCommand(commandName, kwargs, { server_port: serverPort, application_token: applicationToken() });
-    } catch (exc) {
-      if (exc instanceof CommandNotFoundError) {
-        fmt.printError(exc.message, { code: exc.code, suggestion: exc.suggestion });
-        return sysExit(2);
-      }
-      throw exc;
-    }
-
-    if (!result.success) {
-      if (fmt.use_json) fmt.printError(result.stderr || "Command execution failed", { code: ExecutionError.code });
-      else if (result.stderr) echo(result.stderr, { err: true });
-      return sysExit(1);
-    }
-    if (fmt.use_json) fmt.printData({ result: result.value });
-    else if (typeof result.value === "string") echo(result.value);
-    else if (result.value !== null && result.value !== undefined) echo(JSON.stringify(result.value));
-  }),
-});
-
-const _commandSignature = (args: Array<Record<string, unknown>>): string =>
-  args.map((a) => `${pyStr(a["name"])}${a["required"] ? "" : "?"}:${pyStr(a["type"] ?? "string")}`).join(", ");
-
-export const command_list = command("list", {
-  help: COMMAND_LIST_HELP,
-  params: [argument(["sandbox_id"]), _serverPortOption()],
-  callback: handleErrors(async (ctx: Context, params) => {
-    const sandboxId: string = params["sandbox_id"];
-    const fmt = getFormatter(ctx);
-    const sandbox = await connectSandboxTarget(sandboxId);
-    const commands = await sandbox.listCommands({ server_port: params["server_port"], application_token: applicationToken() });
-
-    if (fmt.use_json) {
-      fmt.printData(commands);
-      return;
-    }
-    if (!commands.length) {
-      fmt.printSuccess("No commands are registered in this sandbox.");
-      return;
-    }
-    fmt.printTable(
-      ["Name", "Arguments", "Description"],
-      commands.map((c) => [pyStr(c["name"]), _commandSignature((c["args"] ?? []) as Array<Record<string, unknown>>), pyStr(c["description"] ?? "")]),
-    );
-  }),
-});
-
-export const command_group = group("command", {
-  help: COMMAND_GROUP_HELP,
-  callback: (ctx: Context) => {
-    ctx.ensureObject(Object);
-  },
-});
-
-command_group.addCommand(command_list, "list");
-command_group.addCommand(run_cmd, "run");
-
-// ---------------------------------------------------------------------------------------------------------------------
-// sandbox group (abx sandbox list/info/kill/...)
-// ---------------------------------------------------------------------------------------------------------------------
-
-export const sandbox = group("sandbox", {
-  help: SANDBOX_HELP,
-  callback: (ctx: Context) => {
-    ctx.ensureObject(Object);
-  },
-});
-
-sandbox.addCommand(exec_cmd, "exec");
-sandbox.addCommand(connect);
-sandbox.addCommand(upload);
-sandbox.addCommand(download);
-sandbox.addCommand(capabilities, "capabilities");
-
-sandbox.addCommand(files, "files");
-sandbox.addCommand(process_, "process");
-sandbox.addCommand(command_group, "command");
-sandbox.addCommand(system, "system");
-
-for (const operation of [pause, resume, metrics, snapshot, fork, network]) sandbox.addCommand(operation);

@@ -93,19 +93,19 @@ roundtrip() {
   abx --json "${provider_args[@]}" list; expect_rc 0 && expect_out "$sid" && ok
 
   step "exec echo"
-  abx "${provider_args[@]}" sandbox exec "$ref" "echo e2e-hello"; expect_rc 0 && expect_out "e2e-hello" && ok
+  abx "${provider_args[@]}" exec "$ref" "echo e2e-hello"; expect_rc 0 && expect_out "e2e-hello" && ok
 
   step "exec propagates the exit code"
-  abx "${provider_args[@]}" sandbox exec "$ref" "sh -c 'exit 3'"; expect_rc 3 && ok
+  abx "${provider_args[@]}" exec "$ref" "sh -c 'exit 3'"; expect_rc 3 && ok
 
   step "upload then download round trip"
   printf 'payload-%s\n' "$$" > "$WORK/cwd/up.txt"
-  abx "${provider_args[@]}" sandbox upload "$ref" up.txt /tmp/up.txt; expect_rc 0 || return
-  abx "${provider_args[@]}" sandbox download "$ref" /tmp/up.txt down.txt; expect_rc 0 || return
+  abx "${provider_args[@]}" upload "$ref" up.txt /tmp/up.txt; expect_rc 0 || return
+  abx "${provider_args[@]}" download "$ref" /tmp/up.txt down.txt; expect_rc 0 || return
   if cmp -s "$WORK/cwd/up.txt" "$WORK/cwd/down.txt"; then ok; else bad "downloaded file differs"; fi
 
-  step "sandbox files list"
-  abx "${provider_args[@]}" sandbox files list "$ref" --path /tmp; expect_rc 0 && expect_out "up.txt" && ok
+  step "files list"
+  abx "${provider_args[@]}" files list "$ref" --path /tmp; expect_rc 0 && expect_out "up.txt" && ok
 
   step "kill"
   abx "${provider_args[@]}" delete "$ref" --yes; expect_rc 0 || return
@@ -113,7 +113,7 @@ roundtrip() {
   ok
 
   step "killed sandbox is gone (exit 4)"
-  abx "${provider_args[@]}" sandbox exec "$ref" "true"; expect_rc 4 && ok
+  abx "${provider_args[@]}" exec "$ref" "true"; expect_rc 4 && ok
 }
 
 # --- offline: install/list/doctor/default/uninstall behaviour that needs no backend ----------------------------------
@@ -218,7 +218,7 @@ suite_opensandbox() {
   step "explicit --provider with the default unset"
   abx config delete provider >/dev/null; abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
   local sid; sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
-  abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo via-flag"; expect_rc 0 && expect_out "via-flag" || return
+  abx --provider opensandbox exec "opensandbox:$sid" "echo via-flag"; expect_rc 0 && expect_out "via-flag" || return
   abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
 
   step "install from a local git repo pinned to a commit"
@@ -229,7 +229,7 @@ suite_opensandbox() {
   abx provider doctor opensandbox; expect_rc 0 || return
   abx --json --provider opensandbox deploy --yes --template-id "$OSB_IMAGE"; expect_rc 0 || return
   sid="$(json_get "d.get('sandbox_id')")"; KEEP_IDS+=("opensandbox:$sid")
-  abx --provider opensandbox sandbox exec "opensandbox:$sid" "echo from-git"; expect_rc 0 && expect_out "from-git" || return
+  abx --provider opensandbox exec "opensandbox:$sid" "echo from-git"; expect_rc 0 && expect_out "from-git" || return
   abx delete "opensandbox:$sid" --yes; expect_rc 0 && { KEEP_IDS=("${KEEP_IDS[@]/opensandbox:$sid}"); ok; }
 
   step "provider test (contract suite)"

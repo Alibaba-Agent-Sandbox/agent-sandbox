@@ -1,0 +1,16 @@
+Usage: abx template build [options] [SOURCE]
+
+Build a reusable template artifact without starting an application. Retains a
+private source snapshot and resource journal. --out never replaces an existing
+artifact.
+
+Options:
+  --out <OUT>
+  --clean <CLEAN>                  Clean owned resources from an unused build
+                                   artifact; retain its journal.
+  --build-profile <BUILD_PROFILE>
+  -a, --alias <ALIAS>
+  --timeout <FLOAT>
+  -y, --yes
+  -h, --help                       Show this message and exit.
+[exit_code:0]

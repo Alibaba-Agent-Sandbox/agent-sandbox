@@ -92,7 +92,7 @@ async function invoke(ctx, args, label, timeoutMs = 90_000) {
 }
 
 async function verify(ctx, id, config, mode) {
-  const json = await invoke(ctx, ["sandbox", "exec", "--timeout", "30", id, volumeMountCommand(config.path, config.sentinel, config.payload, mode)], `Volume ${mode}`);
+  const json = await invoke(ctx, ["exec", "--timeout", "30", id, volumeMountCommand(config.path, config.sentinel, config.payload, mode)], `Volume ${mode}`);
   if (json?.exit_code !== 0 || json.stdout?.trim() !== MARKERS[mode]) throw new Error(`Volume ${mode} did not prove its postcondition; raw command output omitted`);
 }
 

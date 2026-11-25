@@ -31,7 +31,7 @@ listed before and after; the run fails if any sandbox is left (`leak check: ... 
 | Scenario | KI | Checks (through the CLI unless noted) |
 |---|---|---|
 | `ki001-per-call-env` | 001 | SDK `commands.run(..., { env })`: the variable reaches the command (`envs`, not `envVars`) |
-| `ki002-prepare` | 002 | builds a directory tree with `abx sandbox files mkdir` and SDK `files.write` |
+| `ki002-prepare` | 002 | builds a directory tree with `abx files mkdir` and SDK `files.write` |
 | `ki002-list-json-reports-directories` | 002 | `files list --json`: directories are `directory`, files are `file`, real names and sizes |
 | `ki002-stat-directory-and-file` | 002 | `files stat --json`: real `Name`/`Path`/`Type`/`Size` (nested `entry`) |
 | `ki007-list-missing-directory` | 007 | `files list` of a missing directory: exit 4, `E4001` (envd answers HTTP 200 with no entries) |
@@ -41,10 +41,10 @@ listed before and after; the run fails if any sandbox is left (`leak check: ... 
 | `ki005-missing-sandbox` | 005 | `info` / `exec` of an unknown sandbox: exit 4, `E2009` |
 | `ki006-bad-api-key` | 006 | wrong API key: exit 3, `E1001` (`list` and `create`), the key never appears |
 | `ki003-sdk-timeout-kills-the-process` | 003 | SDK `run("sleep 113", { timeout: 3 })`: `CommandTimeoutError` (`E3001`) and the process is gone |
-| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express sandbox exec --timeout 3 ID -- "sleep 114"`: exit 5, `E3001`, process gone |
+| `ki003-cli-exec-timeout` | 003 | `abx --provider alicloud-express exec --timeout 3 ID -- "sleep 114"`: exit 5, `E3001`, process gone |
 | `ki004-sdk-kill` | 004 | SDK `commands.kill(pid)` terminates a running process |
 | `ki004-sdk-send-input` | 004 | SDK `commands.sendInput` reaches stdin of a running `head -n 1` |
-| `ki004-cli-unsupported-signal` | 004 | `abx sandbox process signal --signal 2`: rejected with the envd message before any request |
+| `ki004-cli-unsupported-signal` | 004 | `abx process signal --signal 2`: rejected with the envd message before any request |
 
 Per-call env, background processes and stdin have no `abx` command, so those scenarios use the Node SDK built from
 the same sources as `ABX_BIN` (`ABX_SDK_DIST`, default `<repo>/dist`).

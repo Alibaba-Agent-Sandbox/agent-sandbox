@@ -452,14 +452,14 @@ describe("TestTemplateInitCommand", () => {
     const target = path.join(tmpPath(), "pyproj");
     const result = await runner().invoke(cli, ["template", "init", target, "-t", "python"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
+    expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md", "registry.yaml", "openapi.yaml"]));
   });
 
   it("test_node_generates_expected_files", async () => {
     const target = path.join(tmpPath(), "nodeproj");
     const result = await runner().invoke(cli, ["template", "init", target, "-t", "node"]);
     expect(result.exit_code, result.output).toBe(0);
-    expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md"]));
+    expect(listDir(target)).toEqual(new Set(["template.yaml", "Dockerfile", "commands.py", "README.md", "registry.yaml", "openapi.yaml"]));
   });
 
   it("test_minimal_generates_expected_files", async () => {

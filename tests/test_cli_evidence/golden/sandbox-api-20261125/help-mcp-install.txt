@@ -1,0 +1,22 @@
+Usage: abx mcp install [options]
+
+Install MCP Server configuration to a target IDE.
+
+Generates the correct MCP config and merges it into the selected IDE's
+configuration file. Supported targets are cursor, claude, and vscode.
+
+Examples:
+  abx mcp install --target cursor
+  abx mcp install --target claude
+  abx mcp install --target vscode
+
+Related commands:
+  abx mcp status  Verify installed IDE configurations
+  abx mcp start   Run the configured STDIO server
+  abx config get sandbox_api_key
+
+Options:
+  --target <TARGET>  Target IDE for MCP installation. (choices: "cursor",
+                     "claude", "vscode")
+  -h, --help         Show this message and exit.
+[exit_code:0]

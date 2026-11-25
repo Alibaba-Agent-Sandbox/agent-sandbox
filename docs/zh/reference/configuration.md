@@ -79,7 +79,7 @@
 | `ALICLOUD_ACCESS_KEY_SECRET` | `access_key_secret` | 阿里云 AccessKey Secret |
 | `GITHUB_TOKEN` | `github_token` | GitHub token（模板下载用；用 `abx config set github_token` 保存；CI 以 Secret 注入） |
 
-从 CLI 0.4.17 起，`ABX_HTTP_TIMEOUT` 也作用于 `abx sandbox command run` 及命令发现的每次应用 HTTP 请求，默认 30 秒。长任务可以在调用前设置，例如 `ABX_HTTP_TIMEOUT=330 abx sandbox command run "$SANDBOX_ID" qwen --json-args '{"prompt":"检查已上传的项目","command_timeout":300}'`。HTTP 超时只停止等待响应，不会取消远端命令。
+业务操作使用 `abx sandbox TARGET OPERATION --timeout SECONDS`，默认 30 秒，最多 300 秒。该选项限制 HTTP 等待，不取消远端执行。帮助离线读取已保存契约。应用认证需显式绑定凭据引用，见 [Sandbox API 操作](../guide/sandbox-api.md)。
 
 ### 仅 CLI：模板构建与生成
 

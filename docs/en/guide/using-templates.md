@@ -18,6 +18,6 @@ abx deploy ./hello --name hello-custom --yes
 
 Git references accept `owner/repository//subdirectory@COMMIT`. Pin the commit for reproducible input. For private GitHub source, use `abx config set github_token` with hidden input or `GITHUB_TOKEN` in automation. Source acquisition does not deploy, build images or create cloud resources. Managed catalog entries without source can be deployed directly but cannot be copied for editing.
 
-Sandbox applications expose declared services. Discover Server commands with `abx sandbox command list hello`, invoke with `abx sandbox command run hello COMMAND`, and remove owned resources with `abx delete hello --yes`. Managed applications expose their own business HTTP APIs; see [managed applications](managed-applications.md).
+Sandbox applications expose services declared by their template. Bind an OpenAPI contract to use `abx sandbox TARGET --help` and `abx sandbox TARGET OPERATION --body @request.json`; see [Sandbox API operations](sandbox-api.md). Remove owned resources with `abx delete TARGET --yes`. Managed applications expose their own business HTTP APIs; see [managed applications](managed-applications.md).
 
 [Authoring, reusable builds and Git publication](authoring-templates.md) · [Startup and cleanup](template-launch.md)

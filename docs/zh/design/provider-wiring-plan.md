@@ -121,10 +121,10 @@
 2026-10-13 OpenSandbox 实测之后仍未解决的事项（每条都有已验证的现象）：
 
 - **`template` 命令忽略 `--provider`。** `abx --provider opensandbox template deploy ...` 会走阿里云 ACR 流程（`ACR credentials missing`）。它们应当检查 `templates.read` / `templates.build`，像其他受特性约束的命令一样返回 `E8004`。
-- **能力集合不是从提供商的特性推导出来的。** 对 OpenSandbox，`abx sandbox capabilities` 和 `sandbox.capabilities` 报告 `code, files, shell`，而它并未声明 `code.interpret`；`Provider.capabilities()` 与 `FEATURE_TO_CAPABILITY` 存在，但没有任何调用方。基于镜像的提供商每次 create 还会打印 `Could not resolve capabilities for template '<image>'`。
+- **能力集合不是从提供商的特性推导出来的。** 对 OpenSandbox，`abx capabilities` 和 `sandbox.capabilities` 报告 `code, files, shell`，而它并未声明 `code.interpret`；`Provider.capabilities()` 与 `FEATURE_TO_CAPABILITY` 存在，但没有任何调用方。基于镜像的提供商每次 create 还会打印 `Could not resolve capabilities for template '<image>'`。
 - **在没有 HTTP 数据面的插件上执行 `abx sandbox command run`** 会以 `this._http_client._createEnvdClient is not a function` 失败。Python SDK 有 `_require_data_plane("named commands")`，并返回 `E8004`；应把同样的保护移植到 `src/api/sandbox.ts` 的 `_callServerCommand`。
 - **`SandboxInfo` 的默认值**（`region = "cn-hangzhou"`、`timeout = 300`）属于内置平台。`recordToInfo` 现在对插件覆盖了这两个值，所以既不报告区域也不报告生命周期的插件会显示空的 Region 行和请求时的 timeout；模型应当把二者改为可选。
-- **没有 pause/resume 的 CLI 命令**：`Sandbox.pause()` / `resume()` 可用（已在 Python 中验证），但这个树里没有 `abx sandbox pause`。
+- **没有 pause/resume 的 CLI 命令**：`Sandbox.pause()` / `resume()` 可用（已在 Python 中验证），但这个树里没有 `abx pause`。
 - **目录改名已经完成。** 目录仓库带的是 `abx-provider.toml`。`opensandbox`、`e2b`、`cubesandbox`、`alicloud-container` 都是 `runtime.kind = "node"`。用 `abx provider install alibaba-agent-sandbox/awesome-providers//<id>` 安装。旧的 `ebx-provider.toml` 改名补丁不在这棵树里。
 
 更早的缺口：

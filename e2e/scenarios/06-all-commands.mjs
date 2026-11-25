@@ -15,6 +15,8 @@ const DETAIL = join(tmpdir(), 'abx-all-commands-detail.json');
 const EXPECTED_ROOTS = [
   'config', 'provider', 'sandbox', 'template', 'mcp',
   'deploy', 'list', 'status', 'logs', 'delete', 'recover',
+  'exec', 'connect', 'upload', 'download', 'capabilities', 'files', 'process', 'system',
+  'pause', 'resume', 'metrics', 'snapshot', 'fork', 'network',
 ];
 
 const COMMAND_HEADINGS = new Set(['Commands:', 'Command groups:', 'Providers:', 'Sandbox shortcuts:']);
@@ -76,6 +78,7 @@ function labelOf(path) {
 function planSafe(path, { isGroup, usage }) {
   const key = path.join(' ');
   if (path.length === 0) return { argv: [], code: 0, match: /Usage: abx/ };
+  if (key === 'sandbox') return { argv: [...path], code: 2, match: /Usage: abx sandbox TARGET/ };
   if (key === 'config list') return { argv: [...path], code: 0, match: /region/ };
   if (key === 'config get') return { argv: [...path, 'region'], code: 0, match: /^cn-hangzhou$/m };
   if (key === 'config set') return { argv: [...path, 'http_timeout', '45'], code: 0, match: /http_timeout = 45/ };
@@ -208,7 +211,7 @@ export default {
         for (const name of EXPECTED_ROOTS) {
           if (!seen.has(name)) failures.push({ command: name, phase: 'missing', output: `command ${name} was not reached from --help` });
         }
-        for (const group of ['sandbox files', 'sandbox process', 'sandbox system']) {
+        for (const group of ['files', 'process', 'system']) {
           if (!seen.has(group)) failures.push({ command: group, phase: 'missing', output: `group ${group} was not reached from --help` });
         }
 

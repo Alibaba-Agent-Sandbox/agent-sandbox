@@ -135,7 +135,7 @@ describe("TestGuideText", () => {
 
   it("teaches verified application CLI arguments and provider-owned HTTP bindings", () => {
     const guide = buildTemplateGuide("create", "alicloud-express");
-    expect(guide).toContain("--json-args");
+    expect(guide).toContain("--body @request.json");
     expect(guide).toContain("APPLICATION_URL");
     expect(guide).toContain("本次 README 只提供上述 CLI/HTTP 调用");
     expect(guide).toContain("X-Access-Token");
@@ -152,8 +152,8 @@ describe("TestGuideText", () => {
 
   it("matches CLI JSON output and distinguishes token auth from group enablement", () => {
     const guide = buildTemplateGuide("create", "alicloud-express");
-    expect(guide).toContain("abx --json sandbox command run");
-    expect(guide).toContain('该 JSON 模式返回 `{"result": <返回值>}`');
+    expect(guide).toContain("abx sandbox TARGET OPERATION");
+    expect(guide).toContain("HTTP 输出保留 status 和 body");
     expect(guide).toContain("`/capabilities` 需要应用 token");
     expect(guide).toContain("enable_group 不会关闭其他默认组");
   });

@@ -108,3 +108,5 @@ The Python SDK, the in-sandbox server SDK and the shared platform contracts are 
 The [CLI command reference](reference/cli-commands.md) describes the single current command surface. The [E2B migration guide](guide/migrate-from-e2b.md) explains how to move existing workflows to it.
 
 - [Local conditional acceptance](guide/conditional-acceptance.md)
+
+- [Invoke a Sandbox API](guide/sandbox-api.md)

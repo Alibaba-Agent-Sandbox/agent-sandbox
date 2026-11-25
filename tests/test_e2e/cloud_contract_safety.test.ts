@@ -19,6 +19,11 @@ const scenario = (id: string) => suite.scenarios.find((item: { id: string }) => 
 const fail = (message: string): never => { throw new Error(message); };
 const journalFixture = () => ({ beginCreateAttempt: vi.fn(() => 'fixture-attempt'), resolveCreateAttempt: vi.fn() });
 const result = (value: unknown, code = 0) => ({ code, stdout: '', stderr: '', out: '', rawJson: () => value });
+const applicationWorkspace = () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'abx-application-contract-'));
+  directories.push(cwd);
+  return cwd;
+};
 
 it('configures each CLI surface from the selected test account without losing negative overrides', async () => {
   const execute = async (...args: [string[], { env: Record<string, string> }]) => ({ argv: args[0] });
@@ -91,7 +96,7 @@ it('checks actual owned process disappearance after signalling its backend ID', 
   };
   await scenario('process-signal').run(ctx);
   expect(retries).toBe(1);
-  expect(abx.mock.calls[2][0]).toEqual(['sandbox', 'process', 'signal', 'sbx-owned-test', '987654', '--signal', '15']);
+  expect(abx.mock.calls[2][0]).toEqual(['process', 'signal', 'sbx-owned-test', '987654', '--signal', '15']);
   expect(abx).toHaveBeenCalledTimes(5);
 });
 
@@ -104,7 +109,7 @@ it('attempts owned process cleanup when termination verification fails', async (
     .mockResolvedValueOnce(result(null));
   const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, check() {}, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('process-signal').run(ctx)).rejects.toThrow('still running');
-  expect(abx.mock.calls[4][0]).toEqual(['sandbox', 'process', 'signal', 'sbx-owned-test', '987654', '--signal', '9']);
+  expect(abx.mock.calls[4][0]).toEqual(['process', 'signal', 'sbx-owned-test', '987654', '--signal', '9']);
 });
 
 it('does not untrack a sandbox when info is absent but list still reports it', async () => {
@@ -202,27 +207,35 @@ it('starts an explicitly selected application command once and requires its real
   vi.stubEnv('ABX_E2E_APP_START_COMMAND', 'fixture-server --port 9000');
   const abx = vi.fn()
     .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
+    .mockResolvedValueOnce(result({ status: 'bound' }))
+    .mockResolvedValueOnce(result({ operations: [{ operationId: 'hello' }] }))
     .mockResolvedValueOnce(result([]));
-  const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
+  const ctx = { cwd: applicationWorkspace(), state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('application process is not running');
-  expect(abx.mock.calls[0][0]).toEqual(['sandbox', 'exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
-  expect(abx).toHaveBeenCalledTimes(2);
+  expect(abx.mock.calls[0][0]).toEqual(['exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
+  expect(abx.mock.calls[1][0]).toEqual(['sandbox', 'sbx-owned-test', '--bind', join(ctx.cwd, 'application-api', 'registry.yaml'), '--credential', 'app.token=config:server_token', '--alias', 'greet=app:hello']);
+  expect(abx.mock.calls[2][0]).toEqual(['--json', 'sandbox', 'sbx-owned-test', '--help']);
+  expect(abx).toHaveBeenCalledTimes(4);
 });
 
 it('does not replay application startup or send payloads while catalog readiness fails', async () => {
   vi.stubEnv('ABX_E2E_APP_START_COMMAND', 'fixture-server --port 9000');
   const abx = vi.fn()
     .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
+    .mockResolvedValueOnce(result({ status: 'bound' }))
+    .mockResolvedValueOnce(result({ operations: [{ operationId: 'hello' }] }))
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
-    .mockResolvedValueOnce({ ...result([], 1), out: 'unready' })
+    .mockResolvedValueOnce({ ...result({ status: 503, body: { error: 'unready' } }, 1), out: 'unready' })
     .mockResolvedValueOnce(result([{ pid: 987654 }]))
-    .mockResolvedValueOnce({ ...result([], 1), out: 'unready' });
-  const ctx = { state: { id: 'sbx-owned-test' }, abx, fail,
+    .mockResolvedValueOnce({ ...result({ status: 503, body: { error: 'unready' } }, 1), out: 'unready' });
+  const ctx = { cwd: applicationWorkspace(), state: { id: 'sbx-owned-test' }, abx, fail,
     eventually: async (fn: () => Promise<void>) => { try { await fn(); } catch { await fn(); } },
   };
-  await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('must expose protocol v2');
-  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'sandbox' && argv[1] === 'exec')).toHaveLength(1);
-  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'sandbox' && argv[1] === 'run')).toHaveLength(0);
+  await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('must expose /commands');
+  expect(abx.mock.calls.filter(([argv]) => argv[0] === 'exec')).toHaveLength(1);
+  expect(abx.mock.calls.filter(([argv]) => argv.includes('--bind'))).toHaveLength(1);
+  expect(abx.mock.calls.filter(([argv]) => argv.includes('catalog'))).toHaveLength(2);
+  expect(abx.mock.calls.some(([argv]) => argv.includes('--body') || argv.includes('hello') || argv.includes('greet'))).toBe(false);
 });
 
 it('rejects inconsistent resource measurements and inferred managed capability claims', () => {
@@ -310,7 +323,7 @@ it.each([[{ command: 'sleep' }], [{ pid: null }], [{ pid: 0 }], [{ pid: '  ' }]]
     .mockResolvedValueOnce(result(null));
   const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, check() {}, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('process-signal').run(ctx)).rejects.toThrow('invalid process inventory');
-  expect(abx.mock.calls[4][0]).toEqual(['sandbox', 'process', 'signal', 'sbx-owned-test', '987654', '--signal', '9']);
+  expect(abx.mock.calls[4][0]).toEqual(['process', 'signal', 'sbx-owned-test', '987654', '--signal', '9']);
 });
 
 it('persists create intent before submission and retains an unresolved timeout through cleanup/recovery', async () => {
@@ -407,12 +420,16 @@ it('uploads exactly one current fixture before exactly one explicitly selected s
   const abx = vi.fn()
     .mockResolvedValueOnce({ code: 0 })
     .mockResolvedValueOnce({ ...result(null), stdout: '987654\n' })
+    .mockResolvedValueOnce(result({ status: 'bound' }))
+    .mockResolvedValueOnce(result({ operations: [{ operationId: 'hello' }] }))
     .mockResolvedValueOnce(result([]));
-  const ctx = { state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
+  const ctx = { cwd: applicationWorkspace(), state: { id: 'sbx-owned-test' }, abx, fail, eventually: async (fn: () => Promise<void>) => fn() };
   await expect(scenario('run-named-command').run(ctx)).rejects.toThrow('application process is not running');
-  expect(abx.mock.calls[0][0]).toEqual(['sandbox', 'upload', 'sbx-owned-test', 'fixture.py', '/fixture/app.py']);
-  expect(abx.mock.calls[1][0]).toEqual(['sandbox', 'exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
-  expect(abx).toHaveBeenCalledTimes(3);
+  expect(abx.mock.calls[0][0]).toEqual(['upload', 'sbx-owned-test', 'fixture.py', '/fixture/app.py']);
+  expect(abx.mock.calls[1][0]).toEqual(['exec', '--background', 'sbx-owned-test', 'fixture-server --port 9000']);
+  expect(abx.mock.calls[2][0]).toContain('--bind');
+  expect(abx.mock.calls[3][0]).toEqual(['--json', 'sandbox', 'sbx-owned-test', '--help']);
+  expect(abx).toHaveBeenCalledTimes(5);
 });
 
 

@@ -17,7 +17,7 @@ import { beforeEach, it } from "vitest";
 
 import { _CI_ENV_VARS } from "../_support/env.js";
 import { delenv } from "../helpers/templateSupport.js";
-import { REGISTRY, runCase, type EvidenceCase } from "./evidence_cases.js";
+import { REGISTRY, normalize, runCase, type EvidenceCase } from "./evidence_cases.js";
 
 interface CaptureOptions {
   out: string;
@@ -83,9 +83,10 @@ it("capture CLI evidence", async () => {
       skipped++;
       continue;
     }
-    const { stdout, stderr, exit_code } = await runCase(testCase);
+    const { command, stdout, stderr, exit_code } = await runCase(testCase);
+    if (testCase.expected_exit !== undefined && exit_code !== testCase.expected_exit) throw new Error(`Unexpected exit code for ${testCase.output_file}: ${exit_code}.`);
     const gk = groupKey(testCase.output_file);
-    groups.set(gk, [...(groups.get(gk) ?? []), caseToMarkdown(testCase, stdout, stderr, exit_code)]);
+    groups.set(gk, [...(groups.get(gk) ?? []), caseToMarkdown({ ...testCase, command: command.map(arg => normalize(arg).trimEnd()) }, normalize(stdout), normalize(stderr), exit_code)]);
   }
 
   const docsBase = path.resolve(options.out);
@@ -105,17 +106,17 @@ it("capture CLI evidence", async () => {
   let readme = GENERATED_HEADER;
   readme += "# CLI Evidence Documentation\n\n";
   readme +=
-    "This directory contains auto-generated evidence of every CLI command's\n" +
-    "input→output behaviour. Each Markdown file shows the exact command invoked,\n" +
-    "its stdout, exit code, and stderr (when non-empty).\n\n";
+    "This directory contains auto-generated offline and mocked CLI evidence for the registered capture cases.\n" +
+    "Each Markdown file shows the effective command arguments, stdout, exit code and stderr.\n" +
+    "Temporary paths and nondeterministic identifiers are normalized. Mocked HTTP responses are not cloud verification.\n\n";
   readme += "## Regenerate\n\n";
   readme += "```bash\n";
   readme += "# Offline (mocked backend) — default\n";
-  readme += "node scripts/capture-cli-evidence.mjs\n\n";
+  readme += `node scripts/capture-cli-evidence.mjs --out ${path.relative(PROJECT_ROOT, docsBase)}\n\n`;
   readme += "# With real backend (configure ABX_SANDBOX_API_KEY and its endpoint first)\n";
-  readme += "node scripts/capture-cli-evidence.mjs --live\n\n";
+  readme += `node scripts/capture-cli-evidence.mjs --out ${path.relative(PROJECT_ROOT, docsBase)} --live\n\n`;
   readme += "# Single command group\n";
-  readme += "node scripts/capture-cli-evidence.mjs --command create\n";
+  readme += `node scripts/capture-cli-evidence.mjs --out ${path.relative(PROJECT_ROOT, docsBase)} --command sandbox\n`;
   readme += "```\n\n";
   readme += "## Files\n\n";
   for (const gk of sortedKeys) {

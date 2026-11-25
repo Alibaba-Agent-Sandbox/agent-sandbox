@@ -183,7 +183,7 @@ describe("TestDescribeCommandFailure", () => {
 
     expect(failure.message).toBe(`Command timed out after ${REPL_TIMEOUT}s.`);
     expect(failure.code).toBe("E3001");
-    expect(failure.suggestion).toContain("abx sandbox exec");
+    expect(failure.suggestion).toContain("abx exec");
   });
 
   it("test_sandbox_error_url_is_scrubbed", () => {
@@ -318,7 +318,7 @@ describe("TestConnectSession", () => {
       if (item instanceof Error) throw item;
       return item;
     };
-    return r.invoke(cli, ["sandbox", "connect", _SANDBOX_ID]);
+    return r.invoke(cli, ["connect", _SANDBOX_ID]);
   }
 
   it("test_session_banner_states_no_state_persists", async () => {

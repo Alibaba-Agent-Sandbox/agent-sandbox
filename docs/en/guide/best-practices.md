@@ -21,7 +21,7 @@ Full order and install steps: [Providers](providers.md). Writing a plugin: [Auth
 
 It overrides `llm_model`, `ABX_LLM_MODEL`, and `OPENAI_MODEL` for that command only. Use it when the endpoint rejects the stored model, or when one description should be drafted with a different id. An interactive terminal can offer a replacement and store the choice; a non-interactive run keeps the flag you passed.
 
-`--model` does not select the program inside a sandbox. `abx sandbox exec`, `abx sandbox command run`, and `abx sandbox` ignore it.
+`--model` does not select the program inside a sandbox. `abx exec`, `abx sandbox TARGET OPERATION`, and `abx sandbox` ignore it.
 
 ## `llm_model`: the model you want every generation to use
 
