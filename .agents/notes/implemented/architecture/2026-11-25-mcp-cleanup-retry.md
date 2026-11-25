@@ -1,6 +1,6 @@
 # Decision: Keep MCP cleanup failures retryable
 
-Status: proposed
+Status: implemented
 
 ## Problem
 

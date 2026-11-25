@@ -102,3 +102,10 @@ missing-token fixture correction. CLI MCP changes are tracked in
 [PR 280](https://github.com/Alibaba-Agent-Sandbox/agent-sandbox/pull/280); source merge,
 CI completion and release remain separate statuses. No additional cloud creation was
 needed for the documentation and main integration changes.
+
+The merged-source focused run passed 212 tests across six files, including the updated
+source-template fixture. TypeScript and the full build passed again. Both independent
+reviewers accepted the cleanup ownership, cancellation/late-handle, protocol guard and
+transport retry changes. The accepted
+[decision](../../notes/implemented/architecture/2026-11-25-mcp-cleanup-retry.md) is
+implemented in source; remote CI and release status are still tracked independently.
