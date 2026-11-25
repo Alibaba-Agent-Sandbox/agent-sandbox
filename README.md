@@ -27,6 +27,8 @@ The preview uses a new command layout. Read [upgrading from 0.5.10](docs/en/guid
 
 ## Quick start
 
+This example requires a [build of this source revision](docs/en/guide/binary-installation.md#install-from-source). Published `0.6.0-alpha.2` does not include root `create`, resource YAML v1 or pure local `template build`.
+
 Configure your provider, then create a sandbox:
 
 ```bash

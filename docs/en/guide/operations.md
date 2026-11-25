@@ -1,5 +1,7 @@
 # Operations
 
+> **Source build required:** Resource `specVersion: 1`, root `abx create`, and pure local `template build` are available in the source revision described here. Published `0.6.0-alpha.2` does not include these changes. [Build this checkout from source](binary-installation.md#install-from-source) to use them.
+
 Public commands use one parser. `--provider` selects a backend and `--json` selects machine output.
 
 | Task | Command |

@@ -1,5 +1,7 @@
 # CLI commands
 
+> **Source build required:** Resource `specVersion: 1`, root `abx create`, and pure local `template build` are available in the source revision described here. Published `0.6.0-alpha.2` does not include these changes. [Build this checkout from source](../guide/binary-installation.md#install-from-source) to use them.
+
 `abx` deploys reusable templates, manages their running instances, and exposes Sandbox operations. The commands below describe the current source tree; install a CLI built from this revision when using this command layout. Released 0.5.10 uses the earlier layout.
 
 <!-- fixed-set -->

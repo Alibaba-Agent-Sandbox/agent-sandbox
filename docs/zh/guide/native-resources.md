@@ -1,5 +1,7 @@
 # Sandbox 模板与 Serving 资源
 
+> **需要源码构建：** 本文的资源 `specVersion: 1`、根命令 `abx create` 和纯本地 `template build` 属于当前文档对应源码的能力，已发布的 `0.6.0-alpha.2` 不包含这些变更。请先[从当前检出源码构建](binary-installation.md#从源码安装)。
+
 本地 `template.yaml` 使用 `specVersion: 1` 声明可复用的云资源。Deploy 准备 Sandbox 模板、静态卷，并部署 Serving 组件；动态实例另外创建。当前资源适配器支持阿里云极速版及固定版本的 Serverless Devs `fc3` 组件。OpenSandbox 仍可用于实例操作，但没有此 YAML 路径的原生资源适配器。原生组件执行目前需要 npm CLI。
 
 ## 完整本地示例

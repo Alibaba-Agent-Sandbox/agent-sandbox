@@ -299,3 +299,10 @@ canonical value or a dropped field. The determined disposition is insufficient
 response evidence, not a demonstrated wrong-template request or projection defect.
 No additional cloud instance was created and no response value was fabricated.
 The seven regression cases, Typecheck and focused ESLint passed.
+
+The final documentation review found a release/source ambiguity after merging the
+alpha.2 release commit. New resource/build/create guides, command references and
+the changed README example now explicitly require this source revision and state
+that published alpha.2 does not contain these features. No historical release facts
+or frozen release files were changed; final-head CI is rerun for this documentation
+correction.

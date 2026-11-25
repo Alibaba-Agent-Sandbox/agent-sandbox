@@ -1,5 +1,7 @@
 # 操作速查
 
+> **需要源码构建：** 本文的资源 `specVersion: 1`、根命令 `abx create` 和纯本地 `template build` 属于当前文档对应源码的能力，已发布的 `0.6.0-alpha.2` 不包含这些变更。请先[从当前检出源码构建](binary-installation.md#从源码安装)。
+
 公共命令使用同一个解析入口，`--provider` 选择后端，`--json` 控制机器输出。
 
 | 任务 | 命令 |

@@ -1,5 +1,7 @@
 # CLI 命令
 
+> **需要源码构建：** 本文的资源 `specVersion: 1`、根命令 `abx create` 和纯本地 `template build` 属于当前文档对应源码的能力，已发布的 `0.6.0-alpha.2` 不包含这些变更。请先[从当前检出源码构建](../guide/binary-installation.md#从源码安装)。
+
 `abx` 用于部署可复用模板、管理运行实例，以及使用 Sandbox 能力。以下命令对应当前源码；使用这套入口须安装由本次源码构建的 CLI。已发布的 0.5.10 使用此前的命令布局。
 
 <!-- fixed-set -->

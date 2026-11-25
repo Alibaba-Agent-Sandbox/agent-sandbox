@@ -1,5 +1,7 @@
 # Sandbox templates and Serving resources
 
+> **Source build required:** Resource `specVersion: 1`, root `abx create`, and pure local `template build` are available in the source revision described here. Published `0.6.0-alpha.2` does not include these changes. [Build this checkout from source](binary-installation.md#install-from-source) to use them.
+
 A local `template.yaml` with `specVersion: 1` declares reusable cloud resources. Deploying it prepares Sandbox templates and static volumes, and deploys Serving components. Instances are created separately. The current resource adapter supports Alibaba Cloud Express and the pinned Serverless Devs `fc3` component. OpenSandbox remains available for instance operations; a native resource adapter is not available for this YAML path. Native component execution currently requires the npm CLI.
 
 ## Complete local example

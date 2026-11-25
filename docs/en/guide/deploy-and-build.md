@@ -1,5 +1,7 @@
 # Build and deploy
 
+> **Source build required:** Resource `specVersion: 1`, root `abx create`, and pure local `template build` are available in the source revision described here. Published `0.6.0-alpha.2` does not include these changes. [Build this checkout from source](binary-installation.md#install-from-source) to use them.
+
 `abx template build SOURCE` builds local Docker images. It does not push images, register templates, create instances or execute deployment actions. Use `abx deploy SOURCE --name NAME` to publish resources. There are no build files to copy or pass between commands.
 
 ```bash

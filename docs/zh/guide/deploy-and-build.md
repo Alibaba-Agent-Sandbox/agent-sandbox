@@ -1,5 +1,7 @@
 # 构建与部署
 
+> **需要源码构建：** 本文的资源 `specVersion: 1`、根命令 `abx create` 和纯本地 `template build` 属于当前文档对应源码的能力，已发布的 `0.6.0-alpha.2` 不包含这些变更。请先[从当前检出源码构建](binary-installation.md#从源码安装)。
+
 `abx template build SOURCE` 只构建本地 Docker 镜像，不推送镜像、不注册模板、不创建实例，也不执行部署动作。发布资源使用 `abx deploy SOURCE --name NAME`。两个命令之间不需要传递构建文件。
 
 ```bash

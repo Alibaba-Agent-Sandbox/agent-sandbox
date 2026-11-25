@@ -27,6 +27,8 @@ abx --help
 
 ## 快速开始
 
+以下示例需要[构建当前检出源码](docs/zh/guide/binary-installation.md#从源码安装)。已发布的 `0.6.0-alpha.2` 不包含根命令 `create`、资源 YAML v1 或纯本地 `template build`。
+
 配置提供方，再创建沙箱：
 
 ```bash
