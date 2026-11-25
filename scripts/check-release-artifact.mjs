@@ -63,7 +63,8 @@ assert.match(run(["deploy", "--help"]), /--template-id/);
 assert.match(run(["exec", "--help"]), /Everything after the sandbox ID/);
 const sandboxHelp = run(["sandbox", "--help"]);
 assert.match(sandboxHelp, /abx sandbox TARGET \[OPERATION\]/);
-for (const option of ["--bind", "--api", "--body", "--path", "--query", "--credential", "--alias"]) assert.ok(sandboxHelp.includes(option));
+for (const option of ["--bind", "--api", "--body", "--output", "--path", "--query", "--credential", "--alias"]) assert.ok(sandboxHelp.includes(option));
+assert.match(sandboxHelp, /stdin with -/);
 assert.match(run(["template", "init", "--help"]), /--from/);
 const providerHelp = run(["--provider", "alicloud-express", "provider", "run", "template.list", "--help"]);
 assert.match(providerHelp, /team_id/); assert.match(providerHelp, /--region/);
@@ -144,6 +145,10 @@ try {
   assert.match(unboundHelp.stdout + unboundHelp.stderr, /No API contract is bound/);
   assert.doesNotMatch(unboundHelp.stdout + unboundHelp.stderr, /Missing configuration|Choose an authentication method|input hidden/i,
     "Target help must resolve local contracts before any credential setup or Provider request");
+  const duplicateBody = invokeProject(["sandbox", "artifact-probe-unregistered", "hello", "--body", "{}", "--body", "{}"], {}, ["ci", "github_actions"]);
+  assert.equal(duplicateBody.status, 2, "Duplicate body input must fail before resolving a target");
+  assert.match(duplicateBody.stderr, /--body may only be supplied once/);
+  assert.doesNotMatch(duplicateBody.stdout + duplicateBody.stderr, /No API contract is bound|Missing configuration|Choose an authentication method/);
   const missingKey = invokeProject(["deploy", "--template-id", "base", "--yes"]);
   assert.equal(missingKey.status, 1, "No-key standard create must stop before submitting a cloud request");
   assert.match(missingKey.stdout + missingKey.stderr, /Missing configuration/i);

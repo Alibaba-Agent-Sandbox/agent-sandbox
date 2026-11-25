@@ -3,14 +3,14 @@
 The 0.6 preview changes the command layout and automation consent rules. Select the preview explicitly and check the installed version before updating scripts:
 
 ```bash
-npm install -g @agent-sandbox/cli@0.6.0-alpha.1 --registry=https://registry.npmjs.org
+npm install -g @agent-sandbox/cli@0.6.0-alpha.2 --registry=https://registry.npmjs.org
 abx --version
 abx --help
 ```
 
-The npm `next` channel tracks previews; `latest` retains 0.5.10. Use an exact version in reproducible automation. For a standalone executable, select `ABX_VERSION=0.6.0-alpha.1` with the [GitHub installer](binary-installation.md). The default stable installer and website mirror do not opt into previews.
+The npm `next` channel tracks previews; `latest` retains 0.5.10. Use an exact version in reproducible automation. For a standalone executable, select `ABX_VERSION=0.6.0-alpha.2` with the [GitHub installer](binary-installation.md). The default stable installer and website mirror do not opt into previews.
 
-Replace any downloaded alpha.0 executable with alpha.1. Managed FC application build/deploy requires the npm installation and Node.js 20+; the binary retains `deploy --plan` previews. See the [managed application prerequisites](managed-applications.md).
+Replace any downloaded alpha.0 or alpha.1 executable with alpha.2. Managed FC application build/deploy requires the npm installation and Node.js 20+; the binary retains `deploy --plan` previews. See the [managed application prerequisites](managed-applications.md).
 
 ## Update commands
 
@@ -32,6 +32,22 @@ Replace any downloaded alpha.0 executable with alpha.1. Managed FC application b
 The `app` command tree, `--native` parser selection, `sandbox command list/run` and overlapping lifecycle aliases are removed. For managed applications, follow the [managed application guide](managed-applications.md): `deploy`, `status`, `logs`, `recover` and `delete` manage the application. Old `app` subcommands are not interchangeable one-for-one. `recover` observes interrupted operations without repeating creation or publication; inspect any uncertain result before retrying a mutation.
 
 Existing Server SDK decorators and HTTP routes keep their own interfaces. A former named-command invocation requires an explicit OpenAPI binding to use the new business-operation CLI; direct HTTP and SDK access remain documented by the application.
+
+## New in alpha.2
+
+Declared scalar parameters can use natural options such as `--id` or `--message`;
+operation help shows qualified names where fields would collide. Keep `--body
+@request.json` for nested JSON, or use `--body -` to read piped JSON. Save successful
+binary responses with `--output FILE`, which refuses to overwrite an existing file.
+Do not mix a complete body with individual body-field options.
+
+Normal template deployment reuses the application token only when its actual
+service and port were verified. Explicit binding and credentials remain available
+for other applications. See [Sandbox API operations](sandbox-api.md).
+
+MCP session deletion reports incomplete cleanup and lets the client retry the same
+session. The protocol header must match the negotiated supported version. See
+[MCP shutdown and retry](mcp-session-shutdown.md).
 
 ## Review automation consent
 

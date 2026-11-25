@@ -361,3 +361,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Standalone dependency isolation](notes/implemented/process/2026-11-25-sea-dependency-isolation.md) · [verification](evidence/verify/2026-11-25-sea-dependency-isolation.md).
 
 - [Artifact human/CI error-channel regression](evidence/verify/2026-11-25-artifact-output-channel.md).
+
+- [CLI alpha.2 release preparation](notes/proposed/process/2026-11-25-cli-060-alpha2-release.md) · [preflight](evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha2-release.md).

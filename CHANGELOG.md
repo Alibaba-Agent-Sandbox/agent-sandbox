@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [0.6.0-alpha.2] - 2026-11-25
+
 ### Added
 
 - Generate unambiguous scalar API options from OpenAPI, accept piped JSON with `--body -`, and save response bytes with `--output FILE` without overwriting existing files. / 从 OpenAPI 生成无歧义的标量参数选项，支持 `--body -` 读取管道 JSON，以及通过 `--output FILE` 保存原始响应字节且不覆盖已有文件。

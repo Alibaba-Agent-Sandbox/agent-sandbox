@@ -46,7 +46,7 @@ it.each(cases.map((c) => [c.output_file, c] as const))("test_evidence_snapshot [
   if (testCase.expected_exit !== undefined) expect(exit_code, `${testCase.output_file}: ${stdout}${stderr}`).toBe(testCase.expected_exit);
   const actual = normalize(formatResult(stdout, stderr, exit_code));
 
-  const batch = testCase.output_file === "version" ? "cli-060-alpha1-20261125" : JOURNEY_CASES.has(testCase.output_file) ? "whole-journey-20261125" : "sandbox-api-20261125";
+  const batch = testCase.output_file === "version" ? "cli-060-alpha2-20261125" : JOURNEY_CASES.has(testCase.output_file) ? "whole-journey-20261125" : "sandbox-api-20261125";
   const goldenPath = path.join(GOLDEN_DIR, batch, `${testCase.output_file}.txt`);
   if (UPDATE) {
     fs.mkdirSync(path.dirname(goldenPath), { recursive: true });
