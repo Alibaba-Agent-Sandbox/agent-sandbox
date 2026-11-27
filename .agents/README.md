@@ -378,3 +378,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 
 - [CLI alpha.2 release preparation](notes/implemented/process/2026-11-25-cli-060-alpha2-release.md) · [preflight](evidence/verify/2026-11-25-cli-060-alpha2-release-preflight.md) · [verification](evidence/verify/2026-11-25-cli-060-alpha2-release.md).
 - [MCP template input](notes/implemented/feature/2026-11-25-mcp-template-input.md) · [verification](evidence/verify/2026-11-25-mcp-template-input.md).
+
+- [Unified design implementation plan](notes/proposed/architecture/2026-11-27-unified-design-plan.md) · [planning review and verification](evidence/verify/2026-11-27-unified-design-plan.md). Implementation and release acceptance remain pending.
