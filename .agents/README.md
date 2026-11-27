@@ -380,3 +380,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [MCP template input](notes/implemented/feature/2026-11-25-mcp-template-input.md) · [verification](evidence/verify/2026-11-25-mcp-template-input.md).
 
 - [Unified design implementation plan](notes/proposed/architecture/2026-11-27-unified-design-plan.md) · [planning review and verification](evidence/verify/2026-11-27-unified-design-plan.md). Implementation and release acceptance remain pending.
+
+- [Failure and authentication contract follow-up](evidence/verify/2026-11-27-feedback-contracts.md) refines the existing unified plan; product implementation remains pending.
