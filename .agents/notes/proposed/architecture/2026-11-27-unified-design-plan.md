@@ -46,6 +46,28 @@ Default MD5 application authentication requires both sides to know the same real
 
 For instance business/help, optional `--template-id` is a caller identity assertion, not a create request. Existing `--template` requires a confirmed association to this instance. `sb.bind(template_id=...)` and OpenAPI options share the SDK resolver. CLI JSON failures retain safe response/progress; accepted submissions set completion metadata to accepted. Release notes show representative command/parameter/output/lifecycle changes; shortcuts only rewrite paths. Do not restore old command trees or reinterpret old YAML as v1.
 
+### Detailed delivery contract refinement
+
+The detailed review adds finite parameter, response and capability requirements to these existing tasks. The [Python-owned neutral delivery contract](https://github.com/Alibaba-Agent-Sandbox/python-sdk/blob/main/.agents/notes/proposed/architecture/2026-11-27-unified-design-plan.md#detailed-delivery-contract-refinement) is the shared source for resource inputs/results, Express coverage, native-field preservation and E2B semantics; this owner record assigns its consumer implementation rather than duplicating that specification.
+
+Record implementation, contract tests, real-backend acceptance (exact platform/runtime combination) and release artifact separately. These remain proposed requirements. A documentation or merge result completes none of the runtime states. The common contract requires explicit create/get/connect, positive optional connect TTL only when declared, standard list pagination and the closed ActionResult model. Ordinary result output is redacted; a write with an unknown result is not replayed. SDK runtime configuration never comes from implicit CLI state.
+
+The fixed 2026-11-27 official management metadata contains 41 operations; the earlier 29 already included template cache. Native request/response nested fields matter, not only operation counts. Instance E2B HTTP and envd data capabilities are separate. Instance logs/metrics remain required but cannot be registered as supported until the fixed native parameters and actual platform/follow semantics pass. Do not fabricate since/tail/step mappings or turn placeholder metrics into measured zero.
+
+The built-in E2B helper target is the explicitly declared files/commands/PTY set against separately pinned Python and Node 2.31.0 sources. It is not full E2B cloud compatibility. Legacy-envd regular-file upload needs a genuinely bounded multipart encoder; unknown-length input without verified streaming support fails before consumption/submission. Command capture has a configurable 16 MiB default, including upstream accumulation; overflow preserves known PID/partial output without implicitly killing the process or reporting completion.
+
+#### CLI owner completion checklist
+
+CLI-01 expands the canonical tree to 47 fixed leaves, 15 Express account leaves and 18 additional Express extensions. E2B contributes 23 explicitly selected data leaves. Counts are a finite review inventory, not implemented support. Each leaf must publish its parameter-group expansion, exact required/optional arguments, types/defaults/units/conflicts, response schema, error/exit behavior and an executable usage example. Static host options are not universally accepted by every command.
+
+The 18 additional extensions are template-cache create/info/list/delete; custom-domain create/info/list/update/delete; warm-pool create/info/list/update/delete; Provider-level metrics and usage; sandbox timeout; and sandbox volume-mount append. Warm-pool item targets are TEMPLATE_ID, not a pool name. Provider metrics/usage are context operations, with no second query command alias. Express nested parameters are complete JSON contracts, not arbitrary passthrough objects.
+
+CLI-01/04 own these 23 E2B projections: files read/download/upload/write/write-files/list/info/exists/mkdir/rename/remove/watch; commands run/list/connect/stdin/close-stdin/kill; pty create/connect/input/resize/kill. Use PATH INSTANCE consistently. Native command/request/watch timeouts use distinct explicit options, rather than stealing the host total deadline. PTY bytes and streamed terminal results must not be collected into a fake unary JSON response. A backend process nonzero exit remains visible in the result while CLI uses its stable failure exit category.
+
+CLI-02/03 retain one template.yaml resource entry point, explicit unpublished-source helper installation, no install during init/help and no hidden SDK dependency on the CLI store. Reversible style set/unset does not add another confirmation step. Provider uninstall removes its managed installation, not credentials or configuration; there is no purge flag. Config file input is optional, not a required token/bindings handoff.
+
+CLI-04 must test safe ordinary output versus explicit Key/config secret output, one HTTP failure mapping through SDK/CLI/MCP, and list pagination/status/metadata without old state aliases. CLI-05 must use the same static operation input/output contracts and avoid exposing unverified streaming capabilities as unary tools. CLI-06 must validate actual standalone/npm artifact dependencies and both translated instructions before claiming delivered use.
+
 ## Alternatives considered
 
 - Rename the old command tree while retaining old routing and fallback behavior: rejected because it would preserve the wrong lifecycle and discovery semantics.
@@ -92,3 +114,5 @@ Follow-up acceptance also requires:
 Document validation and review disposition: [verification](../../../evidence/verify/2026-11-27-unified-design-plan.md).
 
 Follow-up review and verification: [failure and authentication contracts](../../../evidence/verify/2026-11-27-feedback-contracts.md).
+
+Detailed delivery-contract verification: [parameter and capability review](../../../evidence/verify/2026-11-27-delivery-contracts.md).
