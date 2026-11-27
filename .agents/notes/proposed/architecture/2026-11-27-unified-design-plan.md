@@ -32,6 +32,20 @@ The CLI projects shared operation inputs and results. Dynamic business operation
 
 Human selection hints use stderr. JSON output contains one result with selection metadata; streams retain their actual protocol. Explicit connection stores access information privately with its target and audience. Ordinary output never serializes tokens. Platform ingress authentication and explicitly selected application authentication remain separate.
 
+### Follow-up contract clarification
+
+CLI-02/03 own initialization and explicit private inputs; CLI-01/04/05 own business result projection and service identity; CLI-06 owns release guidance. These refinements stay within the existing tasks; no additional subsystem or completed implementation is implied.
+
+Initialization prepares and validates the complete source in its own staging directory, saves explicitly collected private inputs and preferences for the final path, then publishes into an absent or still-empty destination without overwriting concurrent files. Failure before publication leaves no partial target source; report already-saved private inputs and allow rerunning the original init command. Ordinary unsaved answers are collected again and a changed source version is shown. No cross-store transaction, nonempty-directory takeover or resume command is introduced. After publication the directory is valid; an output failure must not delete it or suggest overwriting it with init.
+The CSV Serving example is an explicitly selected custom-Bearer flow, not a default automatic-token flow. A declared sensitive input collects or reuses an existing application-managed value; absent values fail before deployment, and repeat deployment does not generate or rotate it. CLI private configuration does not populate SDK process environments. SDK-only callers explicitly supply the same existing value from their application's own configuration; no CLI dependency, implicit secret retrieval or second random token is allowed. Normal no-manual-token examples use their declared platform or FC-signed ingress. Do not change only the FC trigger and claim the old Bearer service supports signing.
+A received upload identity remains observable when a later helper stage fails. Preserve the original exception/HTTP details and recognizable cancellation, with safe progress containing the completed stage, known file ID and actual cleanup state. An unknown submission is not safe to replay or automatically delete. Explicit file deletion affects only the caller's selected upload, never a borrowed instance. MCP cancellation/disconnection cannot guarantee delivery of a final error or identity; do not add a recovery daemon or claim durable recovery from exception fields.
+
+Raw HTTP request/invoke keeps its status, allowed headers and body, including non-2xx. CLI and MCP adapters use actual HTTP executor metadata to report non-2xx as failure, not the presence or absence of an exception or an arbitrary business `error` field. A submission returning 202 is accepted, not completed; a completion-promising helper must observe its actual terminal contract. Successful tool output schemas do not constrain error content. Keep native E2B/OpenSandbox exception and process-result semantics intact.
+
+Default MD5 application authentication requires both sides to know the same real instance and historical cloud-template identity. Native connect may obtain platform traffic credentials without recovering that association. A Provider-verified mapping or an explicit caller assertion based on original creation facts may supply it; current Registry aliases, downloaded source and unverified runtime fields may not. The optional shared service binding `template_id` fills an unknown association only, never overwrites a confirmed identity or changes server-side identity, and is distinct from a platform-verified mapping. Compare only identifiers with the same confirmed semantics. Missing identity disables that authentication branch, with no alias guessing or authentication downgrade. The derived value is not strong authentication.
+
+For instance business/help, optional `--template-id` is a caller identity assertion, not a create request. Existing `--template` requires a confirmed association to this instance. `sb.bind(template_id=...)` and OpenAPI options share the SDK resolver. CLI JSON failures retain safe response/progress; accepted submissions set completion metadata to accepted. Release notes show representative command/parameter/output/lifecycle changes; shortcuts only rewrite paths. Do not restore old command trees or reinterpret old YAML as v1.
+
 ## Alternatives considered
 
 - Rename the old command tree while retaining old routing and fallback behavior: rejected because it would preserve the wrong lifecycle and discovery semantics.
@@ -61,6 +75,13 @@ Use one controlled platform setup for the supported end-to-end path: initialize 
 
 ## Acceptance criteria
 
+Follow-up acceptance also requires:
+
+- Inject private-store and publication failures; verify a usable rerun without clobbering files, explicit partial-save diagnostics and preferences bound to the final directory.
+- Project raw 401/500, 202 submission, missing completion, named errors and helper progress into correct exit status and legal MCP errors. Test actual transport metadata, not business fields.
+- Verify explicit template identity assertions, alias/real-ID distinction, missing association errors and custom-token reuse without ambient SDK configuration.
+
+
 - CLI-01 through CLI-06 have separately recorded implementation, tested artifact and remaining-gap status; approving this ADR completes none of them.
 - An ordinary CLI user can complete the supported template-to-result path without parsing internal records, manually exporting an application token or learning engine commands.
 - The same Node operation and helper produce equivalent business results through the SDK and CLI; CLI-only preferences do not change SDK behavior.
@@ -69,3 +90,5 @@ Use one controlled platform setup for the supported end-to-end path: initialize 
 - Required tests, real-component evidence, bilingual usage, applicable changelog, artifact checks and remote gates pass before claiming the corresponding feature delivered. Public examples describe available releases; design-only material stays in engineering records.
 
 Document validation and review disposition: [verification](../../../evidence/verify/2026-11-27-unified-design-plan.md).
+
+Follow-up review and verification: [failure and authentication contracts](../../../evidence/verify/2026-11-27-feedback-contracts.md).
