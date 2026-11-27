@@ -382,3 +382,5 @@ Current generation fix: [Express workspace ownership](notes/implemented/feature/
 - [Unified design implementation plan](notes/proposed/architecture/2026-11-27-unified-design-plan.md) · [planning review and verification](evidence/verify/2026-11-27-unified-design-plan.md). Implementation and release acceptance remain pending.
 
 - [Failure and authentication contract follow-up](evidence/verify/2026-11-27-feedback-contracts.md) refines the existing unified plan; product implementation remains pending.
+
+- [Detailed parameter, SDK and capability contracts](evidence/verify/2026-11-27-delivery-contracts.md) refine the existing unified plan; runtime implementation and release acceptance remain pending.
